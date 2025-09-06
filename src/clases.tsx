@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./styles.css";
+import Header from "../src/components reutilizables/header";
 
 interface Clase {
   materia: string;
@@ -43,15 +44,7 @@ const Clases: React.FC = () => {
 
   return (
     <div>
-      <header>
-        <div className="logo">
-          <img
-            src="/Educación Técnica y Herramientas (2).png"
-            alt="Logo de la compañía"
-          />
-          <h1 className="nombre-logo">EDUTECHUB</h1>
-        </div>
-      </header>
+       <Header />
 
       <main>
         <div className="container">
