@@ -7,7 +7,7 @@
 
 .login-register-body {
   font-family: 'Montserrat', sans-serif;
-  background: url('/fondo.png');
+  background: url('/public/fondo.png');
   background-size: cover;
   background-position: center;
   display: flex;
@@ -130,7 +130,7 @@ p {
 }
 
 .overlay {
-  background: linear-gradient(to right, #ae4bff, #4c39ff);
+  background: linear-gradient(to right, #ae4bff, #557dff);
   color: #000000ff;
   position: relative;
   left: -100%;

@@ -1,7 +1,7 @@
   @import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
 
 .header{
-    background: linear-gradient(to right, #ae4bff, #4c39ff);
+    background: linear-gradient(to right, #ae4bff, #557dff);
     color: #000000;
     display: flex;
     justify-content: center;

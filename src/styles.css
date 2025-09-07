@@ -26,7 +26,7 @@ body {
 
 /* Header */
 header {
-  background: linear-gradient(to right, #ae4bff, #4693dc);
+  background: linear-gradient(to right, #ae4bff, #557dff);
   color: #000000;
   padding: 1rem 0;
   text-align: center;
@@ -111,7 +111,7 @@ header {
 .form-container {
   max-width: 400px;
   margin: 1rem auto;
-  background: linear-gradient(to right, #ae4bffa7, #4694dcbd);
+  background: linear-gradient(to right, #ae4bff, #557dff);
   border-radius: 8px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.04);
   padding: 1.5rem;
