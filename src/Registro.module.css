@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
 
-* {
+:global(*) {
   box-sizing: border-box;
   margin: 0;
 }
 
-.login-register-body {
+.loginRegisterBody {
   font-family: 'Montserrat', sans-serif;
   background: url('/public/fondo.png');
   background-size: cover;
@@ -15,10 +15,9 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  margin: 0;
 }
 
-.login-register-container {
+.loginRegisterContainer {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -53,7 +52,7 @@ p {
   margin: 20px 0 30px;
 }
 
-.login-register-container button {
+.loginRegisterContainer button {
   border-radius: 20px;
   border: 1px solid #000000ff;
   background-color: #79238aff;
@@ -68,14 +67,14 @@ p {
   margin-top: 10px;
 }
 
-.login-register-container button:active { transform: scale(0.95); }
-.login-register-container button:focus { outline: none; }
-.login-register-container button.ghost {
+.loginRegisterContainer button:active { transform: scale(0.95); }
+.loginRegisterContainer button:focus { outline: none; }
+.loginRegisterContainer button.ghost {
   background-color: transparent;
   border-color: #000000ff;
 }
 
-.login-register-container form {
+.loginRegisterContainer form {
   background-color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -86,7 +85,7 @@ p {
   text-align: center;
 }
 
-.login-register-container input {
+.loginRegisterContainer input {
   background-color: #eee;
   border: none;
   padding: 12px 15px;
@@ -94,7 +93,7 @@ p {
   width: 100%;
 }
 
-.container-principal {
+.containerPrincipal {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 10px 14px 28px rgba(0, 0, 0, 1),
@@ -107,17 +106,17 @@ p {
   border-bottom: 2px solid #000000ff;
 }
 
-.form-container {
+.formContainer {
   position: absolute;
   top: 0;
   height: 100%;
   transition: all 0.6s ease-in-out;
 }
 
-.sign-in-container { left: 0; width: 50%; z-index: 2; }
-.sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
+.signInContainer { left: 0; width: 50%; z-index: 2; }
+.signUpContainer { left: 0; width: 50%; opacity: 0; z-index: 1; }
 
-.overlay-container {
+.overlayContainer {
   border-bottom: 2px solid #000000ff;
   position: absolute;
   top: 0;
@@ -140,7 +139,7 @@ p {
   transition: transform 0.6s ease-in-out;
 }
 
-.overlay-panel {
+.overlayPanel {
   position: absolute;
   display: flex;
   align-items: center;
@@ -155,16 +154,16 @@ p {
   transition: transform 0.6s ease-in-out;
 }
 
-.overlay-right { right: 0; transform: translateX(0); }
-.overlay-left { transform: translateX(-20%); }
+.overlayRight { right: 0; transform: translateX(0); }
+.overlayLeft { transform: translateX(-20%); }
 
-.container-principal.right-panel-active .sign-in-container {
+.containerPrincipal.rightPanelActive .signInContainer {
   transform: translateX(100%);
 }
-.container-principal.right-panel-active .overlay-container {
+.containerPrincipal.rightPanelActive .overlayContainer {
   transform: translateX(-100%);
 }
-.container-principal.right-panel-active .sign-up-container {
+.containerPrincipal.rightPanelActive .signUpContainer {
   transform: translateX(100%);
   opacity: 1;
   z-index: 5;
@@ -174,12 +173,12 @@ p {
   0%, 49.99% { opacity: 0; z-index: 1; }
   50%, 100% { opacity: 1; z-index: 5; }
 }
-.container-principal.right-panel-active .overlay {
+.containerPrincipal.rightPanelActive .overlay {
   transform: translateX(50%);
 }
-.container-principal.right-panel-active .overlay-left {
+.containerPrincipal.rightPanelActive .overlayLeft {
   transform: translateX(0);
 }
-.container-principal.right-panel-active .overlay-right {
+.containerPrincipal.rightPanelActive .overlayRight {
   transform: translateX(20%);
 }
