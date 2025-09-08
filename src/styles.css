@@ -62,6 +62,13 @@ header {
   box-shadow: 0 2px 16px rgba(0,0,0,0.06);
   padding: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .illustration {
@@ -110,7 +117,7 @@ header {
 /* Formularios */
 .form-container {
   max-width: 400px;
-  margin: 1rem auto;
+  margin: 0;
   background: linear-gradient(to right, #ae4bff, #557dff);
   border-radius: 8px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.04);
@@ -134,22 +141,43 @@ form select:focus {
   outline: none;
 }
 
-/* Lista de cursos */
-#coursesList {
-  margin: 2rem auto;
-  max-width: 600px;
+/* Nuevo layout para alinear el formulario a la izquierda */
+.main-layout {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 2rem;
+  max-width: 1200px;
+  margin-left: 20px;
+  margin-top: 40px;
 }
 
-/* Estilo para cada clase */
+/* Sección de lista de cursos: grid responsivo */
+#coursesList {
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem auto 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  justify-items: center;
+  align-items: stretch;
+}
+
+/* Cada clase ocupa el mismo espacio */
 .clase-item {
   background: var(--color-fondo);
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   padding: 1rem 1.5rem;
+  min-width: 250px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
   transition: transform 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .clase-item:hover {
@@ -182,6 +210,17 @@ form select:focus {
   }
   .clase-item h3 {
     font-size: 1.2rem;
+  }
+  #coursesList {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 95vw;
+    padding: 1rem;
+  }
+  .clase-item {
+    min-width: unset;
+    min-height: 140px;
+    padding: 1rem;
   }
 }
 

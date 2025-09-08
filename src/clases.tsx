@@ -44,91 +44,93 @@ const Clases: React.FC = () => {
 
   return (
     <div>
-       <Header />
+      <Header />
 
       <main>
-        <div className="container">
-          <img
-            src="/Educación Técnica y Herramientas (2).png"
-            alt="Logo"
-            className="illustration"
-          />
-          <div className="buttons">
-            <button
-              className="btn btn-outline"
-              aria-controls="crearClaseForm"
-              aria-expanded={mostrarCrear}
-              onClick={() => {
-                setMostrarCrear(!mostrarCrear);
-                setMostrarUnirse(false);
-              }}
-            >
-              Crear clase
-            </button>
-            <button
-              className="btn btn-primary"
-              aria-controls="unirseClaseForm"
-              aria-expanded={mostrarUnirse}
-              onClick={() => {
-                setMostrarUnirse(!mostrarUnirse);
-                setMostrarCrear(false);
-              }}
-            >
-              Unirse a clase
-            </button>
+        <div className="main-layout">
+          <div style={{ flex: "1 1 400px" }}>
+            {/* Formularios centrados a la izquierda */}
+            {mostrarCrear && (
+              <section id="crearClaseForm" className="form-container">
+                <form id="formCrearClase" onSubmit={handleCrearClase} noValidate>
+                  <input type="text" name="materia" placeholder="Materia" required />
+                  <input
+                    type="text"
+                    name="nombre"
+                    placeholder="Nombre de la clase"
+                    required
+                  />
+                  <input
+                    type="text"
+                    name="seccion"
+                    placeholder="Sección"
+                    required
+                  />
+                  <input type="text" name="aula" placeholder="Aula" required />
+                  <input
+                    type="text"
+                    name="creador"
+                    placeholder="Profesor"
+                    required
+                  />
+                  <button type="submit" className="btn btn-primary">
+                    Crear clase
+                  </button>
+                </form>
+              </section>
+            )}
+            {mostrarUnirse && (
+              <section id="unirseClaseForm" className="form-container">
+                <form id="formUnirseClase" onSubmit={handleUnirseClase} noValidate>
+                  <input type="text" name="materia" placeholder="Materia" required />
+                  <input
+                    type="text"
+                    name="codigo"
+                    placeholder="Código de clase"
+                    required
+                  />
+                  <button type="submit" className="btn btn-primary">
+                    Unirse
+                  </button>
+                </form>
+              </section>
+            )}
+          </div>
+          <div style={{ flex: "2 1 600px" }}>
+            <div className="container">
+              <img
+                src="/Educación Técnica y Herramientas (2).png"
+                alt="Logo"
+                className="illustration"
+              />
+              <div className="buttons">
+                <button
+                  className="btn btn-outline"
+                  aria-controls="crearClaseForm"
+                  aria-expanded={mostrarCrear}
+                  onClick={() => {
+                    setMostrarCrear(!mostrarCrear);
+                    setMostrarUnirse(false);
+                  }}
+                >
+                  Crear clase
+                </button>
+                <button
+                  className="btn btn-primary"
+                  aria-controls="unirseClaseForm"
+                  aria-expanded={mostrarUnirse}
+                  onClick={() => {
+                    setMostrarUnirse(!mostrarUnirse);
+                    setMostrarCrear(false);
+                  }}
+                >
+                  Unirse a clase
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Formulario para crear clase */}
-        {mostrarCrear && (
-          <section id="crearClaseForm" className="form-container">
-            <form id="formCrearClase" onSubmit={handleCrearClase} noValidate>
-              <input type="text" name="materia" placeholder="Materia" required />
-              <input
-                type="text"
-                name="nombre"
-                placeholder="Nombre de la clase"
-                required
-              />
-              <input
-                type="text"
-                name="seccion"
-                placeholder="Sección"
-                required
-              />
-              <input type="text" name="aula" placeholder="Aula" required />
-              <input
-                type="text"
-                name="creador"
-                placeholder="Profesor"
-                required
-              />
-              <button type="submit" className="btn btn-primary">
-                Crear clase
-              </button>
-            </form>
-          </section>
-        )}
-
-        {/* Formulario para unirse a clase */}
-        {mostrarUnirse && (
-          <section id="unirseClaseForm" className="form-container">
-            <form id="formUnirseClase" onSubmit={handleUnirseClase} noValidate>
-              <input type="text" name="materia" placeholder="Materia" required />
-              <input
-                type="text"
-                name="codigo"
-                placeholder="Código de clase"
-                required
-              />
-              <button type="submit" className="btn btn-primary">
-                Unirse
-              </button>
-            </form>
-          </section>
-        )}
-
-        {/* Lista de clases */}
+        {/* Sección de clases debajo de los formularios y container */}
         <div id="coursesList">
           {clases.map((clase, index) => (
             <div key={index} className="clase-item">
