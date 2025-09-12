@@ -13,7 +13,7 @@ const Header2: React.FC = () => {
 
 
          <div className="header2">
-        <a href="/">Zona De Trabajo</a>
+        <a href="/zona">Zona De Trabajo</a>
         <a href="/cursos">Calendario</a>
         <a href="/foro">Foro</a>
         <a href="/foro">Simulaciones</a>
