@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import "./styles.css";
-import Header from "../src/components reutilizables/header";
+import "../styles.css";
+import Header from "../components reutilizables/header";
 
 interface Clase {
   materia: string;

@@ -1,0 +1,235 @@
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,600,800');
+
+/* ======== ESTILOS GENERALES ======== */
+body {
+  background: url('../public/fondo.png') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Montserrat', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #222;
+  line-height: 1.6;
+}
+
+/* Links */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+a:hover {
+  transform: scale(1.05);
+}
+
+/* ======== HEADER ======== */
+.header2 {
+  font-size: 17px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  color: #fff;
+  display: flex;
+  gap: 18px;
+  margin-left: auto;
+  align-items: center;
+}
+
+.header2 a {
+  color: #fff;
+  background: linear-gradient(to right, #652f92, #334994);
+  padding: 12px 28px;
+  border-radius: 25px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+.header2 a:hover,
+.header2 a:focus {
+  background: linear-gradient(to right, #557dff, #ae4bff);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.header2 a:focus-visible {
+  outline: 2px solid #334994;
+  outline-offset: 2px;
+}
+
+/* ======== CONTENEDOR FORO ======== */
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.95); /* Overlay para legibilidad sobre fondo */
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* TITULO FORO */
+.main-content h2 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+  font-size: 2rem;
+  background: linear-gradient(to right, #003cff, hsl(273, 100%, 50%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Mejor legibilidad */
+}
+
+/* FORMULARIO MENSAJE */
+textarea {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1rem;
+  font-family: 'Montserrat', sans-serif;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+textarea:focus {
+  outline: none;
+  border-color: #ae4bff;
+  box-shadow: 0 0 0 3px #ae4bff33;
+}
+
+/* BOTONES */
+button {
+  display: inline-block;
+  padding: 12px 30px;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(to right, #652f92, #334994);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  margin-bottom: 10px ;
+}
+button:hover {
+  background: linear-gradient(to right, #557dff, #ae4bff);
+  transform: translateY(-2px);
+}
+button:active {
+  transform: scale(0.97);
+}
+
+/* MENSAJES */
+#mensajes {
+  border-top: 1px solid #eee;
+  padding: 1rem;
+  margin-top: 20px;
+  background: #fafafa;
+  min-height: 120px;
+  border-radius: 8px;
+  overflow-y: auto;
+  max-height: 400px; /* Scroll si hay muchos mensajes */
+}
+
+.mensaje-item {
+  background-color: #f9f9f9;
+  border: 1px solid #9571e9;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 1rem;
+}
+
+.mensaje-item p {
+  margin: 0 0 10px 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.mensaje-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.btn-eliminar {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.mensaje-vacio {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+}
+
+/* ADMIN */
+.admin-title {
+  text-align: center;
+  margin-top: 20px;
+  color: #555;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: #555;
+  font-size: 0.9rem;
+  background: transparent;
+}
+
+/* ======== RESPONSIVE ======== */
+@media (max-width: 1024px) {
+  .container {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+    margin: 1rem;
+  }
+
+  .main-content h2 {
+    font-size: 1.6rem;
+  }
+
+  textarea {
+    font-size: 0.95rem;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.8rem;
+  }
+
+  .main-content h2 {
+    font-size: 1.4rem;
+  }
+
+  .admin-title {
+    font-size: 0.8rem;
+  }
+}

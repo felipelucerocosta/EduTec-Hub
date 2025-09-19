@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./calendario.css";
-import Header2 from "../src/components reutilizables/header2"; // 👈 importa correctamente
+import Header2 from "../components reutilizables/header2"; // 👈 importa correctamente
 
 interface Nota {
   id: number;

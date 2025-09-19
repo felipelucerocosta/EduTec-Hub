@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Registro from "./registro";
-import Clases from "./clases";
+import Registro from "../src/componentes/registro";
+import Clases from "./componentes/clases";
+
 
 function App() {
   return (

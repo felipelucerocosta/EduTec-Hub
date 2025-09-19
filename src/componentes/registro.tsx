@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; 
-import Header from "../src/components reutilizables/header";
-import styles from "./Registro.module.css";
+import Header from "../components reutilizables/header";
+import styles from "../Registro.module.css";
 
 // ---- Interfaces ----
 interface Notification {
