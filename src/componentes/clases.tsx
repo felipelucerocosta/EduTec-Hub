@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // 👈 importar
 import "../styles.css";
 import Header from "../components reutilizables/header";
 
@@ -14,6 +15,7 @@ const Clases: React.FC = () => {
   const [mostrarCrear, setMostrarCrear] = useState(false);
   const [mostrarUnirse, setMostrarUnirse] = useState(false);
   const [clases, setClases] = useState<Clase[]>([]);
+  const navigate = useNavigate(); // 👈 hook para navegar
 
   // Manejar creación de clase
   const handleCrearClase = (e: React.FormEvent<HTMLFormElement>) => {
@@ -45,11 +47,9 @@ const Clases: React.FC = () => {
   return (
     <div>
       <Header />
-
       <main>
         <div className="main-layout">
           <div style={{ flex: "1 1 400px" }}>
-            {/* Formularios centrados a la izquierda */}
             {mostrarCrear && (
               <section id="crearClaseForm" className="form-container">
                 <form id="formCrearClase" onSubmit={handleCrearClase} noValidate>
@@ -60,19 +60,9 @@ const Clases: React.FC = () => {
                     placeholder="Nombre de la clase"
                     required
                   />
-                  <input
-                    type="text"
-                    name="seccion"
-                    placeholder="Sección"
-                    required
-                  />
+                  <input type="text" name="seccion" placeholder="Sección" required />
                   <input type="text" name="aula" placeholder="Aula" required />
-                  <input
-                    type="text"
-                    name="creador"
-                    placeholder="Profesor"
-                    required
-                  />
+                  <input type="text" name="creador" placeholder="Profesor" required />
                   <button type="submit" className="btn btn-primary">
                     Crear clase
                   </button>
@@ -83,12 +73,7 @@ const Clases: React.FC = () => {
               <section id="unirseClaseForm" className="form-container">
                 <form id="formUnirseClase" onSubmit={handleUnirseClase} noValidate>
                   <input type="text" name="materia" placeholder="Materia" required />
-                  <input
-                    type="text"
-                    name="codigo"
-                    placeholder="Código de clase"
-                    required
-                  />
+                  <input type="text" name="codigo" placeholder="Código de clase" required />
                   <button type="submit" className="btn btn-primary">
                     Unirse
                   </button>
@@ -96,6 +81,7 @@ const Clases: React.FC = () => {
               </section>
             )}
           </div>
+
           <div style={{ flex: "2 1 600px" }}>
             <div className="container">
               <img
@@ -130,10 +116,15 @@ const Clases: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* Sección de clases debajo de los formularios y container */}
+
+        {/* Lista de clases como botones */}
         <div id="coursesList">
           {clases.map((clase, index) => (
-            <div key={index} className="clase-item">
+            <button
+              key={index}
+              className="clase-item"
+              onClick={() => navigate("/Foro")} // 👈 navegar al foro
+            >
               <h3>{clase.nombre}</h3>
               <p>
                 <strong>Materia:</strong> {clase.materia}
@@ -147,7 +138,7 @@ const Clases: React.FC = () => {
               <p>
                 <strong>Profesor:</strong> {clase.creador}
               </p>
-            </div>
+            </button>
           ))}
         </div>
       </main>

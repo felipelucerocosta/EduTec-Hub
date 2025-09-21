@@ -1,0 +1,301 @@
+body {
+  background-color: #f0f0f0;
+  font-family: 'Roboto', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #333;
+  text-align: center;
+}
+
+a {
+  text-decoration: none;
+  color: #000;
+  transition: all 0.4s ease;
+}
+
+a:hover,
+a:focus {                
+  transform: scale(1.05);
+  outline: none;
+}
+
+a.nombre-logo {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+
+header {
+  background-color: #84a6c4b6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  position: relative;
+  
+}
+
+
+
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  height: 65px;
+  width: 70px;
+  border-radius: 50%;
+  margin-right: 15px;
+  transition: transform 0.4s ease;
+}
+
+.logo img:hover {
+  transform: scale(1.1);
+}
+
+/* ========== NAVBAR ========== */
+nav {
+  display: flex;
+}
+
+nav a {
+  margin: 0 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+nav a:hover {
+  transform: scale(1.1);
+}
+
+
+
+
+
+
+
+
+.contenedor-principal {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.mensaje-vacio {
+    text-align: center;
+    color: #606770;
+    margin-top: 2rem;
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+}
+
+
+/* Botones */
+.btn {
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    background-color: #e4e6eb;
+    color: #050505;
+}
+
+.btn-principal {
+    background-color: #1877f2;
+    color: #ffffff;
+}
+
+.btn:hover {
+    filter: brightness(0.95);
+}
+
+.btn-volver {
+    text-decoration: none;
+}
+
+
+/* Estilos de la página principal (clase.html) */
+.acciones {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+#lista-clases h3 {
+    margin-bottom: 1rem;
+    color: #606770;
+}
+
+.clase-item {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.clase-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.clase-item strong {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.clase-item span {
+    color: #606770;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-contenido {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.modal-cerrar {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #606770;
+}
+
+.form-modal h2 {
+    margin-top: 0;
+}
+
+.input-grupo {
+    margin-bottom: 1.5rem;
+}
+
+.input-grupo label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.input-grupo input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #dddfe2;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+
+/* Estilos de la página de gestión (materiales.html) */
+.gestion-clase {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.columna h2 {
+    border-bottom: 2px solid #e4e6eb;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-gestion {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.form-gestion input,
+.form-gestion textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #dddfe2;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+}
+
+.form-gestion textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.item-gestion, .item-gestion-alumno {
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-gestion p {
+    margin: 0.25rem 0 0;
+    color: #606770;
+    font-size: 0.9rem;
+}
+
+.btn-eliminar, .btn-eliminar-alumno {
+    background-color: #fa3e3e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 28px;
+}
+
+.btn-accion {
+    background-color: #38a92a;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}

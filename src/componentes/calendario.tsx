@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./calendario.css";
+import "../calendario.module.css";
 import Header2 from "../components reutilizables/header2"; // 👈 importa correctamente
 
 interface Nota {

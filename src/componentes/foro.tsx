@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import styles from "./foro.module.css";
+import styles from "../foro.module.css";
 import Header2 from "../components reutilizables/header2"; 
 import "boxicons/css/boxicons.min.css";
 
