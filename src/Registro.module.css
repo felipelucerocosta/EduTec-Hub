@@ -52,28 +52,42 @@ p {
   margin: 20px 0 30px;
 }
 
+/* ---------- BOTONES ---------- */
 .loginRegisterContainer button {
   border-radius: 20px;
-  border: 1px solid #000000ff;
-  background-color: #ae4bff;
-  color: #000000ff;
+  border: 2px solid #000;       /* Borde negro */
+  background-color: transparent; /* Fondo transparente */
+  color: #000;                  /* Texto negro */
   font-size: 12px;
   font-weight: bold;
   padding: 12px 45px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  transition: transform 80ms ease-in;
+  transition: transform 0.2s ease, background-color 0.2s ease;
   cursor: pointer;
   margin-top: 10px;
 }
 
-.loginRegisterContainer button:active { transform: scale(0.95); }
-.loginRegisterContainer button:focus { outline: none; }
-.loginRegisterContainer button.ghost {
-  background-color: transparent;
-  border-color: #000000ff;
+.loginRegisterContainer button:active {
+  transform: scale(0.95);
+  outline: none;
 }
 
+.loginRegisterContainer button:focus {
+  outline: none;
+}
+
+.loginRegisterContainer button:hover {
+  transform: scale(1.1); /* Aumenta tamaño al pasar el mouse */
+}
+
+.loginRegisterContainer button.ghost {
+  background-color: transparent;
+  border-color: #000;
+  color: #000;
+}
+
+/* ---------- FORMULARIOS ---------- */
 .loginRegisterContainer form {
   background-color: #FFFFFF;
   display: flex;
@@ -93,6 +107,7 @@ p {
   width: 100%;
 }
 
+/* ---------- CONTENEDOR PRINCIPAL ---------- */
 .containerPrincipal {
   background-color: #fff;
   border-radius: 10px;
@@ -103,7 +118,7 @@ p {
   width: 768px;
   max-width: 100%;
   min-height: 480px;
-  border-bottom: 2px solid #000000ff;
+  border-bottom: 2px solid #000;
 }
 
 .formContainer {
@@ -117,7 +132,7 @@ p {
 .signUpContainer { left: 0; width: 50%; opacity: 0; z-index: 1; }
 
 .overlayContainer {
-  border-bottom: 2px solid #000000ff;
+  border-bottom: 2px solid #000;
   position: absolute;
   top: 0;
   left: 50%;
@@ -130,7 +145,7 @@ p {
 
 .overlay {
   background: linear-gradient(to right, #ae4bff, #557dff);
-  color: #000000ff;
+  color: #000;
   position: relative;
   left: -100%;
   height: 100%;

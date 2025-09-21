@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // 👈 importar
-import "../styles.css";
+import "../styles.module.css";
 import Header from "../components reutilizables/header";
 
 interface Clase {

@@ -1,15 +1,16 @@
+// Header.tsx
 import React from "react";
-import "../App.css"; // importa estilos globales (incluye .header)
+import styles from "../App.module.css"; // Importa tu CSS Module
 
 const Header: React.FC = () => {
   return (
-    <div className="header">
+    <header className={styles.header}>
       <img
         src="/Educación Técnica y Herramientas (2).png"
         alt="Logo EduTecH"
       />
       <h1>EduTec-Hub</h1>
-    </div>
+    </header>
   );
 };
 
