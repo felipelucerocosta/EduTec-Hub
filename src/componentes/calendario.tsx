@@ -178,7 +178,7 @@ export default function Calendario() {
       </main>
 
       <footer>
-        <p>Derechos de autor © 2024 EdutecHub</p>
+        <p>Derechos de autor © 2025 EdutecHub</p>
       </footer>
     </div>
   );
