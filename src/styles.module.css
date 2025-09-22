@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
 
-/* Variables de color */
 :root {
   --color-primario: #a250e1;
   --color-secundario: #f5f7fa;
@@ -17,7 +16,7 @@
   padding: 0;
 }
 
-body {
+.body {
   font-family: 'Montserrat', sans-serif;
   background: url('/fondo.png') no-repeat center center fixed;
   background-size: cover;
@@ -25,7 +24,7 @@ body {
 }
 
 /* Header */
-header {
+.header {
   background: linear-gradient(to right, #ae4bff, #557dff);
   color: #000000;
   padding: 1rem 0;
@@ -41,13 +40,13 @@ header {
   gap: 1rem;
 }
 
-.logo img {
+.logoImg {
   width: 68px;
   height: 68px;
   border-radius: 8px;
 }
 
-.nombre-logo {
+.nombreLogo {
   font-size: 2rem;
   font-weight: bold;
   letter-spacing: 2px;
@@ -66,9 +65,6 @@ header {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  
-  left: 50%;
-  transform: translateX(-50%);
 }
 
 .illustration {
@@ -76,9 +72,14 @@ header {
   margin-bottom: 1rem;
 }
 
+.buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  gap: 1rem;
+}
+
 /* Botones */
-/* ---------------- BOTONES ---------------- */
-.loginRegisterContainer button,
 .btn {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
@@ -87,56 +88,45 @@ header {
   cursor: pointer;
   transition: all 0.25s ease;
   display: inline-block;
-  margin: 0 0.5rem; /* separa los botones horizontalmente */
+  margin: 0 0.5rem;
 }
 
-/* Botón primario plano */
-.loginRegisterContainer button:not(.ghost),
-.btn-primary {
+.btnPrimary {
   background-color: #6C5CE7;
-  color: #000; /* letras negras */
+  color: #000;
   border: 1px solid #6C5CE7;
 }
-
-.loginRegisterContainer button:not(.ghost):hover,
-.btn-primary:hover {
+.btnPrimary:hover {
   background-color: #5945c2;
   border-color: #5945c2;
   transform: translateY(-2px);
 }
 
-/* Botón ghost / outline plano */
-.loginRegisterContainer button.ghost,
-.btn-outline {
+.btnOutline {
   background-color: #fff;
-  color: #000; /* letras negras */
+  color: #000;
   border: 1px solid #6C5CE7;
 }
-
-.loginRegisterContainer button.ghost:hover,
-.btn-outline:hover {
+.btnOutline:hover {
   background-color: #6C5CE7;
-  color: #000; /* letras negras al hacer hover */
+  color: #000;
   transform: translateY(-2px);
 }
 
-.loginRegisterContainer button:focus,
-.btn:focus {
+.btnFocus {
   outline: 2px solid #ffb347;
 }
 
 /* Formularios */
-.form-container {
+.formContainer {
   max-width: 400px;
-  margin: 0;
   background: linear-gradient(to right, #ae4bff, #557dff);
   border-radius: 8px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.04);
   padding: 1.5rem;
 }
 
-form input,
-form select {
+.formInput {
   width: 100%;
   padding: 0.75rem;
   margin-bottom: 1rem;
@@ -146,14 +136,7 @@ form select {
   background: #f9f9f9;
 }
 
-form input:focus,
-form select:focus {
-  border-color: var(--color-primario);
-  outline: none;
-}
-
-/* Nuevo layout para alinear el formulario a la izquierda */
-.main-layout {
+.mainLayout {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
@@ -163,8 +146,8 @@ form select:focus {
   margin-top: 40px;
 }
 
-/* Sección de lista de cursos: grid responsivo */
-#coursesList {
+/* Lista de cursos */
+.coursesList {
   width: 100%;
   max-width: 800px;
   margin: 2rem auto 0 auto;
@@ -175,9 +158,7 @@ form select:focus {
   align-items: stretch;
 }
 
-/* Cada clase ocupa el mismo espacio */
-/* ---------------- CLASES ---------------- */
-.clase-item {
+.claseItem {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
@@ -194,20 +175,20 @@ form select:focus {
   border: 1px solid #e6e6e6;
 }
 
-.clase-item:hover {
+.claseItem:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 14px rgba(0,0,0,0.15);
   border-color: #6C5CE7;
 }
 
-.clase-item h3 {
+.claseItem h3 {
   color: #6C5CE7;
   margin-bottom: 0.5rem;
   font-size: 1.4rem;
   font-weight: 700;
 }
 
-.clase-item p {
+.claseItem p {
   margin: 0.25rem 0;
   font-size: 1rem;
   color: #222;
@@ -216,25 +197,25 @@ form select:focus {
 /* Responsive */
 @media (max-width: 600px) {
   .container,
-  .form-container,
-  #coursesList {
+  .formContainer,
+  .coursesList {
     max-width: 95vw;
     padding: 1rem;
   }
-  .logo img {
+  .logoImg {
     width: 36px;
     height: 36px;
   }
-  .clase-item h3 {
+  .claseItem h3 {
     font-size: 1.2rem;
   }
-  #coursesList {
+  .coursesList {
     grid-template-columns: 1fr;
     gap: 1rem;
     max-width: 95vw;
     padding: 1rem;
   }
-  .clase-item {
+  .claseItem {
     min-width: unset;
     min-height: 140px;
     padding: 1rem;
@@ -242,7 +223,7 @@ form select:focus {
 }
 
 @media (min-width: 1900px) {
-  body {
+  .body {
     font-size: 1.1rem;
     background-size: cover;
   }
@@ -255,30 +236,30 @@ form select:focus {
   .container {
     max-width: 1600px;
   }
-  .container img {
+  .illustration {
     height: 150px;
     width: 150px;
   }
 
-  .form-container {
+  .formContainer {
     max-width: 1000px;
     padding: 2.5rem;
   }
 
-  .clase-item {
+  .claseItem {
     padding: 2rem;
   }
 
-  .logo img {
+  .logoImg {
     width: 104px;
     height: 104px;
   }
 
-  .nombre-logo {
+  .nombreLogo {
     font-size: 2.5rem;
   }
 
-  #coursesList {
+  .coursesList {
     max-width: 90%;
   }
 }

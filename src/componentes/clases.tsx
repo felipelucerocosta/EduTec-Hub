@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // 👈 importar
-import "../styles.module.css";
+import { useNavigate } from "react-router-dom";
+import styles from "../styles.module.css"; // 👈 módulo css
 import Header from "../components reutilizables/header";
 
 interface Clase {
@@ -15,9 +15,8 @@ const Clases: React.FC = () => {
   const [mostrarCrear, setMostrarCrear] = useState(false);
   const [mostrarUnirse, setMostrarUnirse] = useState(false);
   const [clases, setClases] = useState<Clase[]>([]);
-  const navigate = useNavigate(); // 👈 hook para navegar
+  const navigate = useNavigate();
 
-  // Manejar creación de clase
   const handleCrearClase = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -33,7 +32,6 @@ const Clases: React.FC = () => {
     setMostrarCrear(false);
   };
 
-  // Manejar unión a clase
   const handleUnirseClase = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -45,36 +43,31 @@ const Clases: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className={styles.body}>
       <Header />
       <main>
-        <div className="main-layout">
+        <div className={styles.mainLayout}>
           <div style={{ flex: "1 1 400px" }}>
             {mostrarCrear && (
-              <section id="crearClaseForm" className="form-container">
-                <form id="formCrearClase" onSubmit={handleCrearClase} noValidate>
-                  <input type="text" name="materia" placeholder="Materia" required />
-                  <input
-                    type="text"
-                    name="nombre"
-                    placeholder="Nombre de la clase"
-                    required
-                  />
-                  <input type="text" name="seccion" placeholder="Sección" required />
-                  <input type="text" name="aula" placeholder="Aula" required />
-                  <input type="text" name="creador" placeholder="Profesor" required />
-                  <button type="submit" className="btn btn-primary">
+              <section className={styles.formContainer}>
+                <form onSubmit={handleCrearClase} noValidate>
+                  <input className={styles.formInput} type="text" name="materia" placeholder="Materia" required />
+                  <input className={styles.formInput} type="text" name="nombre" placeholder="Nombre de la clase" required />
+                  <input className={styles.formInput} type="text" name="seccion" placeholder="Sección" required />
+                  <input className={styles.formInput} type="text" name="aula" placeholder="Aula" required />
+                  <input className={styles.formInput} type="text" name="creador" placeholder="Profesor" required />
+                  <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`}>
                     Crear clase
                   </button>
                 </form>
               </section>
             )}
             {mostrarUnirse && (
-              <section id="unirseClaseForm" className="form-container">
-                <form id="formUnirseClase" onSubmit={handleUnirseClase} noValidate>
-                  <input type="text" name="materia" placeholder="Materia" required />
-                  <input type="text" name="codigo" placeholder="Código de clase" required />
-                  <button type="submit" className="btn btn-primary">
+              <section className={styles.formContainer}>
+                <form onSubmit={handleUnirseClase} noValidate>
+                  <input className={styles.formInput} type="text" name="materia" placeholder="Materia" required />
+                  <input className={styles.formInput} type="text" name="codigo" placeholder="Código de clase" required />
+                  <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`}>
                     Unirse
                   </button>
                 </form>
@@ -83,17 +76,15 @@ const Clases: React.FC = () => {
           </div>
 
           <div style={{ flex: "2 1 600px" }}>
-            <div className="container">
+            <div className={styles.container}>
               <img
                 src="/Educación Técnica y Herramientas (2).png"
                 alt="Logo"
-                className="illustration"
+                className={styles.illustration}
               />
-              <div className="buttons">
+              <div className={styles.buttons}>
                 <button
-                  className="btn btn-outline"
-                  aria-controls="crearClaseForm"
-                  aria-expanded={mostrarCrear}
+                  className={`${styles.btn} ${styles.btnOutline}`}
                   onClick={() => {
                     setMostrarCrear(!mostrarCrear);
                     setMostrarUnirse(false);
@@ -102,9 +93,7 @@ const Clases: React.FC = () => {
                   Crear clase
                 </button>
                 <button
-                  className="btn btn-primary"
-                  aria-controls="unirseClaseForm"
-                  aria-expanded={mostrarUnirse}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
                   onClick={() => {
                     setMostrarUnirse(!mostrarUnirse);
                     setMostrarCrear(false);
@@ -117,27 +106,18 @@ const Clases: React.FC = () => {
           </div>
         </div>
 
-        {/* Lista de clases como botones */}
-        <div id="coursesList">
+        <div className={styles.coursesList}>
           {clases.map((clase, index) => (
             <button
               key={index}
-              className="clase-item"
-              onClick={() => navigate("/Foro")} // 👈 navegar al foro
+              className={styles.claseItem}
+              onClick={() => navigate("/Foro")}
             >
               <h3>{clase.nombre}</h3>
-              <p>
-                <strong>Materia:</strong> {clase.materia}
-              </p>
-              <p>
-                <strong>Sección:</strong> {clase.seccion}
-              </p>
-              <p>
-                <strong>Aula:</strong> {clase.aula}
-              </p>
-              <p>
-                <strong>Profesor:</strong> {clase.creador}
-              </p>
+              <p><strong>Materia:</strong> {clase.materia}</p>
+              <p><strong>Sección:</strong> {clase.seccion}</p>
+              <p><strong>Aula:</strong> {clase.aula}</p>
+              <p><strong>Profesor:</strong> {clase.creador}</p>
             </button>
           ))}
         </div>

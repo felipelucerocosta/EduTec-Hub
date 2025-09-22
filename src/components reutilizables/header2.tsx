@@ -11,7 +11,7 @@ const Header2: React.FC = () => {
       <h1>EduTec-Hub</h1>
 
       <nav className={styles.header2}>
-        <a href="/zona">Zona De Trabajo</a>
+        <a href="/gestionClase">Zona De Trabajo</a>
         <a href="/calendario">Calendario</a>
         <a href="/clases">Clases</a>
         <a href="/simulaciones">Simulaciones</a>

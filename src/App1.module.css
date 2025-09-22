@@ -9,10 +9,11 @@
     border-bottom: 2px solid #000;
     width: 100%;
     padding: 10px 24px;
-    min-height: 75px;
+    min-height: 45px;
     font-family: 'Montserrat', sans-serif;
     font-weight: 400;
     box-sizing: border-box;
+    max-height: 70px;
 }
 
 .header img {
