@@ -12,7 +12,7 @@ const Header2: React.FC = () => {
 
       <nav className={styles.header2}>
         <a href="/zona">Zona De Trabajo</a>
-        <a href="/cursos">Calendario</a>
+        <a href="/calendario">Calendario</a>
         <a href="/clases">Clases</a>
         <a href="/simulaciones">Simulaciones</a>
       </nav>
