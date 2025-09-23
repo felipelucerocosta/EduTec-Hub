@@ -7,7 +7,7 @@ body {
   font-family: 'Montserrat', Arial, sans-serif;
   margin: 0;
   padding: 0;
-  color: #222;
+  color: #000000;
   line-height: 1.6;
 }
 
@@ -27,7 +27,7 @@ a:hover {
   max-width: 900px;
   margin: 2rem auto;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.95); /* Overlay para legibilidad sobre fondo */
+   background: linear-gradient(to right, #ae4bff, #557dff);
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.1);
   display: flex;
@@ -42,7 +42,7 @@ a:hover {
   margin-bottom: 1.5rem;
   font-weight: 800;
   font-size: 2rem;
-  background: linear-gradient(to right, #003cff, hsl(273, 100%, 50%));
+  background: linear-gradient(to right, #17285f, hsl(0, 0%, 0%));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

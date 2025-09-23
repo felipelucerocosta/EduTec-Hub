@@ -8,6 +8,8 @@
   --peligro: #dc3545;
   --atencion: #ffc107;
   --blanco: #ffffff;
+  --nota-bg: #6c5ce7;
+  --nota-texto: #fff;
 }
 
 * {
@@ -21,73 +23,12 @@ body {
   color: var(--texto);
 }
 
-/* ================== HEADER ================== */
-header {
-  height: 80px;
-  background-color: var(--primario);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 25px;
-  color: #000000;
-  box-shadow: 0 2px 10px var(--sombra);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo img {
-  height: 50px;
-  border-radius: 8px;
-}
-
-.nombre-logo {
-  font-size: 1.5rem;
-  color: var(--secundario);
-  font-weight: 700;
-  text-shadow: #ffffff;
-}
-
-/* ================== NAV ================== */
-header nav {
-  display: flex;
-  gap: 15px;
-}
-
-header nav a {
-  color: #ffffff;
-  text-shadow: #ecfffb;
-  font-weight: 800;
-  font-size: 20px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: background 0.2s, color 0.2s;
-  display: flex;
-    align-items: center;   
-    gap: 16px;
-}
-
-header nav a:hover {
-  background-color: #ffffff;
-  color: var(--primario);
-}
-
-header nav a.active {
-  background-color: #ffffff;
-  color: var(--primario);
-  font-weight: 600;
-}
-
 /* ================== CONTENEDOR ================== */
 .contenedor {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 30px auto;
   padding: 30px;
-  background-color: var(--blanco);
+  background: linear-gradient(to right, #ae4bff9c, #557dffa2);
   border-radius: 12px;
   box-shadow: 0 2px 12px var(--sombra);
 }
@@ -102,7 +43,7 @@ header nav a.active {
 
 .encabezado h2 {
   font-size: 1.8rem;
-  color: var(--primario);
+  color: #000000;
   margin: 0;
 }
 
@@ -114,11 +55,12 @@ header nav a.active {
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .encabezado button:hover {
   background-color: #163e77;
+  transform: translateY(-2px);
 }
 
 /* ================== FORMULARIO ================== */
@@ -134,22 +76,32 @@ header nav a.active {
   padding: 10px 12px;
   font-size: 1rem;
   border: 1px solid var(--borde);
-  border-radius: 6px;
+  border-radius: 8px;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.formulario-nota input:focus,
+.formulario-nota select:focus {
+  outline: none;
+  border-color: var(--primario);
+  box-shadow: 0 0 5px var(--primario);
 }
 
 .formulario-nota button {
   background-color: var(--exito);
   color: white;
   border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
+  padding: 12px 20px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .formulario-nota button:hover {
   background-color: #218838;
+  transform: translateY(-2px);
 }
 
 /* ================== CALENDARIO ================== */
@@ -168,7 +120,7 @@ th {
   color: white;
   padding: 12px;
   font-weight: 600;
-  text-align: left;
+  text-align: center;
 }
 
 td {
@@ -178,7 +130,8 @@ td {
   vertical-align: top;
   padding: 8px;
   background-color: #fdfdfd;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 8px;
 }
 
 td:hover {
@@ -197,25 +150,46 @@ td:hover {
   color: #555;
 }
 
-/* ================== NOTAS EN CELDA ================== */
+/* ================== NOTAS EN CELDA (UX/UI MEJORADO) ================== */
 td ul {
   margin: 25px 0 0 0;
-  padding-left: 15px;
+  padding-left: 0;
   list-style-type: none;
-  max-height: 60px;
+  max-height: 70px;
   overflow-y: auto;
 }
 
 td ul li {
-  background-color: var(--primario);
-  color: #fff;
-  border-radius: 5px;
-  padding: 3px 8px;
-  margin-bottom: 6px;
-  font-size: 0.8rem;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  margin-bottom: 5px;
+  font-size: 0.85rem;
   font-weight: 500;
+  color: var(--nota-texto);
+  background: var(--nota-bg);
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, background 0.3s ease;
 }
+
+td ul li:hover {
+  transform: translateY(-2px);
+  background: #5a4cd8;
+}
+
+/* Colores opcionales por índice */
+.nota-color-0 { background-color: #e74c3c; }
+.nota-color-1 { background-color: #8e44ad; }
+.nota-color-2 { background-color: #3498db; }
+.nota-color-3 { background-color: #16a085; }
+.nota-color-4 { background-color: #27ae60; }
+.nota-color-5 { background-color: #f39c12; }
+.nota-color-6 { background-color: #d35400; }
+.nota-color-7 { background-color: #c0392b; }
+.nota-color-8 { background-color: #2980b9; }
+.nota-color-9 { background-color: #2c3e50; }
 
 /* ================== FOOTER ================== */
 footer {
@@ -227,31 +201,6 @@ footer {
 
 /* ================== RESPONSIVE ================== */
 @media (max-width: 768px) {
-  header {
-    flex-direction: column;
-    height: auto;
-    padding: 10px;
-  }
-
-  .logo img {
-    height: 45px;
-  }
-
-  .nombre-logo {
-    font-size: 1.3rem;
-  }
-
-  header nav {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-  }
-
-  header nav a {
-    padding: 10px;
-    width: 100%;
-  }
-
   .contenedor {
     padding: 20px;
   }
@@ -264,23 +213,19 @@ footer {
     height: 80px;
     padding: 5px;
   }
+
+  .encabezado h2 {
+    font-size: 1.5rem;
+  }
+
+  .formulario-nota input,
+  .formulario-nota button {
+    font-size: 1rem;
+    padding: 10px 12px;
+  }
 }
 
-/* ================== PANTALLAS GRANDES ================== */
 @media (min-width: 1200px) {
-  header {
-    height: 100px;
-    padding: 0 50px;
-  }
-
-  .logo img {
-    height: 80px;
-  }
-
-  .nombre-logo {
-    font-size: 2rem;
-  }
-
   .contenedor {
     max-width: 1400px;
     padding: 40px;
@@ -299,7 +244,7 @@ footer {
   }
 
   .encabezado h2 {
-    font-size: 2.3rem;
+    font-size: 2rem;
   }
 
   .formulario-nota input,
@@ -308,15 +253,3 @@ footer {
     padding: 14px 20px;
   }
 }
-
-/* ================== COLORES PARA NOTAS OPCIONALES ================== */
-.nota-color-0 { background-color: #e74c3c; }
-.nota-color-1 { background-color: #8e44ad; }
-.nota-color-2 { background-color: #3498db; }
-.nota-color-3 { background-color: #16a085; }
-.nota-color-4 { background-color: #27ae60; }
-.nota-color-5 { background-color: #f39c12; }
-.nota-color-6 { background-color: #d35400; }
-.nota-color-7 { background-color: #c0392b; }
-.nota-color-8 { background-color: #2980b9; }
-.nota-color-9 { background-color: #2c3e50; }

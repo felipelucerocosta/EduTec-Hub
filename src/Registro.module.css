@@ -56,7 +56,7 @@ p {
 .loginRegisterContainer button {
   border-radius: 20px;
   border: 2px solid #000;       /* Borde negro */
-  background-color: transparent; /* Fondo transparente */
+  background-color: #806b8f; /* Fondo transparente */
   color: #000;                  /* Texto negro */
   font-size: 12px;
   font-weight: bold;

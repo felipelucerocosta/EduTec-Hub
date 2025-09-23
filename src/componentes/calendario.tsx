@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import "../calendario.module.css";
-import Header2 from "../components reutilizables/header2"; // 👈 importa correctamente
+import styles from "../calendario.module.css";
+import Header2 from "../components reutilizables/header2";
 
 interface Nota {
   id: number;
@@ -25,7 +25,6 @@ export default function Calendario() {
   const [mes, setMes] = useState<number>(hoy.getMonth());
   const [anio, setAnio] = useState<number>(hoy.getFullYear());
   const [notas, setNotas] = useState<Nota[]>([]);
-
   const [textoNota, setTextoNota] = useState<string>("");
   const [diaNota, setDiaNota] = useState<string>("");
 
@@ -53,9 +52,7 @@ export default function Calendario() {
     e.preventDefault();
     if (!textoNota || !diaNota) return;
 
-    const fecha_evento = `${anio}-${String(mes + 1).padStart(2, "0")}-${String(
-      diaNota
-    ).padStart(2, "0")}`;
+    const fecha_evento = `${anio}-${String(mes + 1).padStart(2, "0")}-${String(diaNota).padStart(2, "0")}`;
 
     const nuevaNota: Nota = {
       id: Date.now(),
@@ -101,9 +98,7 @@ export default function Calendario() {
     return calendario;
   };
 
-  const nombreMes = new Intl.DateTimeFormat("es-ES", {
-    month: "long",
-  }).format(new Date(anio, mes));
+  const nombreMes = new Intl.DateTimeFormat("es-ES", { month: "long" }).format(new Date(anio, mes));
 
   useEffect(() => {
     document.title = `Calendario - ${nombreMes} ${anio}`;
@@ -111,22 +106,16 @@ export default function Calendario() {
 
   return (
     <div>
-      <header>
-        <Header2 /> {/* 👈 ahora sí */}
-      </header>
+      <Header2 />
 
-      <main className="contenedor">
-        <section className="encabezado">
-          <button onClick={() => cambiarMes(-1)} aria-label="Mes anterior">
-            ←
-          </button>
+      <main className={styles.contenedor}>
+        <section className={styles.encabezado}>
+          <button onClick={() => cambiarMes(-1)}>←</button>
           <h2>{`${nombreMes} ${anio}`}</h2>
-          <button onClick={() => cambiarMes(1)} aria-label="Mes siguiente">
-            →
-          </button>
+          <button onClick={() => cambiarMes(1)}>→</button>
         </section>
 
-        <form className="formulario-nota" onSubmit={agregarNota}>
+        <form className={styles["formulario-nota"]} onSubmit={agregarNota}>
           <input
             type="text"
             placeholder="Escribí tu nota..."
@@ -146,7 +135,7 @@ export default function Calendario() {
           <button type="submit">Agregar nota</button>
         </form>
 
-        <table id="calendario">
+        <table id={styles.calendario}>
           <thead>
             <tr>
               <th>Dom</th>
@@ -165,8 +154,10 @@ export default function Calendario() {
                   <td key={j}>
                     {dia.numero}
                     <ul>
-                      {dia.notas.map((n) => (
-                        <li key={n.id}>{n.titulo}</li>
+                      {dia.notas.map((n, idx) => (
+                        <li key={n.id} className={styles[`nota-color-${idx % 10}`]}>
+                          {n.titulo}
+                        </li>
                       ))}
                     </ul>
                   </td>
