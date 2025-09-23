@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
-import type { FormEvent } from "react"; // 👈 Import de tipo separado
-import "../materiales.module.css";
-import Header2 from "../components reutilizables/header2"; 
+import type { FormEvent } from "react";
+import styles from "../materiales.module.css";
+import Header2 from "../components reutilizables/header2";
 
 interface Material {
   titulo: string;
@@ -15,7 +15,6 @@ interface Alumno {
 }
 
 const GestionClase: React.FC = () => {
-
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [alumnos] = useState<Alumno[]>([]);
   const [modalLibretaVisible, setModalLibretaVisible] = useState<boolean>(false);
@@ -25,7 +24,6 @@ const GestionClase: React.FC = () => {
   const descripcionMaterialRef = useRef<HTMLTextAreaElement>(null);
   const bimestreMaterialRef = useRef<HTMLInputElement>(null);
   const porcentajeMaterialRef = useRef<HTMLInputElement>(null);
-
   const motivoActaRef = useRef<HTMLTextAreaElement>(null);
 
   const agregarMaterial = (e: FormEvent<HTMLFormElement>) => {
@@ -55,21 +53,22 @@ const GestionClase: React.FC = () => {
     e.preventDefault();
     if (motivoActaRef.current) {
       const acta = motivoActaRef.current.value;
-      console.log("Nueva acta:", acta); // sin backend, sólo en consola
+      console.log("Nueva acta:", acta); // solo consola por ahora
       e.currentTarget.reset();
     }
   };
 
   return (
     <div>
-        <Header2 />
+      <Header2 />
 
-      <main className="contenedor-principal gestion-clase">
+      <main className={styles.contenedorPrincipal}>
+        {/* ======== COLUMNA DE MATERIALES ======== */}
         <section className="columna">
           <h2>Materiales y Trabajos</h2>
-          <div className="form-gestion">
+          <div className={styles.formGestion}>
             <h3>Añadir Nuevo Ítem</h3>
-            <form id="form-agregar-material" onSubmit={agregarMaterial}>
+            <form onSubmit={agregarMaterial}>
               <input
                 type="text"
                 placeholder="Título del trabajo"
@@ -80,8 +79,8 @@ const GestionClase: React.FC = () => {
                 placeholder="Descripción..."
                 ref={descripcionMaterialRef}
                 required
-              ></textarea>
-              <div className="campos-libreta">
+              />
+              <div className={styles.camposLibretta}>
                 <input
                   type="number"
                   placeholder="Bimestre (1-4)"
@@ -99,28 +98,28 @@ const GestionClase: React.FC = () => {
                   required
                 />
               </div>
-              <button type="submit" className="btn btn-principal">
+              <button type="submit" className={`${styles.btn} ${styles.btnPrincipal}`}>
                 Añadir
               </button>
             </form>
           </div>
+
           <div id="lista-materiales">
             {materiales.map((mat, idx) => (
-              <div key={idx} className="material-item">
+              <div key={idx} className={styles.materialItem}>
                 <h4>{mat.titulo}</h4>
                 <p>{mat.descripcion}</p>
-                <p>
-                  Bimestre: {mat.bimestre} | %: {mat.porcentaje}
-                </p>
+                <p>Bimestre: {mat.bimestre} | %: {mat.porcentaje}</p>
               </div>
             ))}
           </div>
         </section>
 
+        {/* ======== COLUMNA DE ALUMNOS ======== */}
         <section className="columna">
-          <div className="header-columna">
+          <div className={styles.headerColumna}>
             <h2>Alumnos Inscritos</h2>
-            <button className="btn" onClick={abrirLibreta}>
+            <button className={styles.btn} onClick={abrirLibreta}>
               📊 Libreta de Notas
             </button>
           </div>
@@ -132,40 +131,37 @@ const GestionClase: React.FC = () => {
         </section>
       </main>
 
+      {/* ======== MODAL LIBRETA ======== */}
       {modalLibretaVisible && (
-        <div className="modal-overlay">
-          <div className="modal-contenido modal-libreta-contenido">
-            <button className="modal-cerrar" onClick={cerrarLibreta}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContenido}>
+            <button className={styles.modalCerrar} onClick={cerrarLibreta}>
               &times;
             </button>
             <h2>Libreta de Notas</h2>
-            <div id="contenedor-libreta" className="contenedor-tabla">
-              {/* Contenido dinámico */}
+            <div id="contenedor-libreta">
+              {/* Aquí se puede agregar contenido dinámico */}
             </div>
           </div>
         </div>
       )}
 
+      {/* ======== MODAL ACTA ======== */}
       {modalActaVisible && (
-        <div className="modal-overlay">
-          <div className="modal-contenido">
-            <button className="modal-cerrar" onClick={cerrarActa}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContenido}>
+            <button className={styles.modalCerrar} onClick={cerrarActa}>
               &times;
             </button>
-            <h2 id="titulo-modal-acta">Actas del Alumno</h2>
-            <div id="historial-actas">{/* Contenido dinámico */}</div>
-            <form
-              id="form-agregar-acta"
-              className="form-gestion"
-              onSubmit={agregarActa}
-            >
+            <h2>Actas del Alumno</h2>
+            <form className={styles.formGestion} onSubmit={agregarActa}>
               <h3>Crear Nueva Acta</h3>
               <textarea
                 placeholder="Describe el motivo del acta"
                 ref={motivoActaRef}
                 required
-              ></textarea>
-              <button type="submit" className="btn btn-principal">
+              />
+              <button type="submit" className={`${styles.btn} ${styles.btnPrincipal}`}>
                 Guardar Acta
               </button>
             </form>
