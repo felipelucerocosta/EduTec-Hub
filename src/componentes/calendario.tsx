@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "../calendario.module.css";
-import Header2 from "../components reutilizables/header2";
+import Header3 from "../components reutilizables/header3";
 
 interface Nota {
   id: number;
@@ -106,7 +106,7 @@ export default function Calendario() {
 
   return (
     <div>
-      <Header2 />
+      <Header3 />
 
       <main className={styles.contenedor}>
         <section className={styles.encabezado}>

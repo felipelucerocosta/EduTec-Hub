@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,600,800');
+
+.body {
+  background: url('../public/fondo.png') no-repeat center center fixed;
+  background-size: cover;
+  font-family: 'Montserrat', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #000000;
+  line-height: 1.6;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+a:hover {
+  transform: scale(1.05);
+}
+
+/* ======== CONTENEDOR GALERIA ======== */
+.container {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: linear-gradient(to right, #ae4bff, #557dff);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* TITULO */
+.main-content h2 {
+  text-align: center;
+  margin: 0 0 1.5rem 0;
+  font-weight: 800;
+  font-size: 2rem;
+  background: linear-gradient(to right, #17285f, hsl(0, 0%, 0%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* GRID DE TARJETAS */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background-color: #f9f9f9;
+  border: 1px solid #9571e9;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.card img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-bottom: 0.8rem;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.card-desc {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+/* BOTON EN TARJETA */
+.button {
+  display: inline-block;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(to right, #652f92, #334994);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.button:hover {
+  background: linear-gradient(to right, #557dff, #ae4bff);
+  transform: translateY(-2px);
+}
+.button:active {
+  transform: scale(0.97);
+}
+
+/* ADMIN */
+.admin-title {
+  text-align: center;
+  margin-top: 20px;
+  color: #555;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  padding: 2rem;
+  color: #555;
+  font-size: 0.9rem;
+  background: transparent;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .main-content h2 {
+    font-size: 1.6rem;
+  }
+}
+@media (max-width: 480px) {
+  .main-content h2 {
+    font-size: 1.4rem;
+  }
+  .admin-title {
+    font-size: 0.8rem;
+  }
+}

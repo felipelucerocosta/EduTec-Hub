@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles.module.css"; // 👈 módulo css
 import Header from "../components reutilizables/header";
@@ -11,11 +11,30 @@ interface Clase {
   creador: string;
 }
 
+const STORAGE_KEY = "mis_clases"; // 🔹 clave para localStorage
+
 const Clases: React.FC = () => {
   const [mostrarCrear, setMostrarCrear] = useState(false);
   const [mostrarUnirse, setMostrarUnirse] = useState(false);
   const [clases, setClases] = useState<Clase[]>([]);
   const navigate = useNavigate();
+
+  // 🔹 Cargar clases guardadas al montar
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setClases(JSON.parse(saved));
+      } catch {
+        console.error("Error al leer localStorage");
+      }
+    }
+  }, []);
+
+  // 🔹 Guardar clases cada vez que cambien
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clases));
+  }, [clases]);
 
   const handleCrearClase = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,7 +46,7 @@ const Clases: React.FC = () => {
       aula: formData.get("aula") as string,
       creador: formData.get("creador") as string,
     };
-    setClases([...clases, nuevaClase]);
+    setClases((prev) => [...prev, nuevaClase]);
     e.currentTarget.reset();
     setMostrarCrear(false);
   };

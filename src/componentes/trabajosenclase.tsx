@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import type { FormEvent } from "react";
 import styles from "../materiales.module.css";
-import Header2 from "../components reutilizables/header2";
+import Header4 from "../components reutilizables/header4";
 
 interface Material {
   titulo: string;
@@ -16,10 +16,15 @@ interface Alumno {
 
 const GestionClase: React.FC = () => {
   const [materiales, setMateriales] = useState<Material[]>([]);
-  const [alumnos] = useState<Alumno[]>([]);
-  const [modalLibretaVisible, setModalLibretaVisible] = useState<boolean>(false);
+  const [alumnos] = useState<Alumno[]>([
+    { nombre: "Juan Pérez" },
+    { nombre: "Ana Gómez" },
+  ]);
+  const [modalLibretaVisible, setModalLibretaVisible] =
+    useState<boolean>(false);
   const [modalActaVisible, setModalActaVisible] = useState<boolean>(false);
 
+  // referencias de inputs
   const tituloMaterialRef = useRef<HTMLInputElement>(null);
   const descripcionMaterialRef = useRef<HTMLTextAreaElement>(null);
   const bimestreMaterialRef = useRef<HTMLInputElement>(null);
@@ -48,6 +53,7 @@ const GestionClase: React.FC = () => {
   const abrirLibreta = () => setModalLibretaVisible(true);
   const cerrarLibreta = () => setModalLibretaVisible(false);
   const cerrarActa = () => setModalActaVisible(false);
+  const abrirActa = () => setModalActaVisible(true);
 
   const agregarActa = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -60,11 +66,11 @@ const GestionClase: React.FC = () => {
 
   return (
     <div>
-      <Header2 />
+      <Header4 />
 
       <main className={styles.contenedorPrincipal}>
         {/* ======== COLUMNA DE MATERIALES ======== */}
-        <section className="columna">
+        <section className={styles.columna}>
           <h2>Materiales y Trabajos</h2>
           <div className={styles.formGestion}>
             <h3>Añadir Nuevo Ítem</h3>
@@ -98,7 +104,10 @@ const GestionClase: React.FC = () => {
                   required
                 />
               </div>
-              <button type="submit" className={`${styles.btn} ${styles.btnPrincipal}`}>
+              <button
+                type="submit"
+                className={`${styles.btn} ${styles.btnPrincipal}`}
+              >
                 Añadir
               </button>
             </form>
@@ -109,23 +118,32 @@ const GestionClase: React.FC = () => {
               <div key={idx} className={styles.materialItem}>
                 <h4>{mat.titulo}</h4>
                 <p>{mat.descripcion}</p>
-                <p>Bimestre: {mat.bimestre} | %: {mat.porcentaje}</p>
+                <p>
+                  Bimestre: {mat.bimestre} | %: {mat.porcentaje}
+                </p>
               </div>
             ))}
           </div>
         </section>
 
         {/* ======== COLUMNA DE ALUMNOS ======== */}
-        <section className="columna">
+        <section className={styles.columna}>
           <div className={styles.headerColumna}>
             <h2>Alumnos Inscritos</h2>
-            <button className={styles.btn} onClick={abrirLibreta}>
-              📊 Libreta de Notas
-            </button>
+            <div>
+              <button className={styles.btn} onClick={abrirLibreta}>
+                📊 Libreta de Notas
+              </button>
+              <button className={styles.btn} onClick={abrirActa}>
+                📝 Actas
+              </button>
+            </div>
           </div>
           <div id="lista-alumnos">
             {alumnos.map((alumno, idx) => (
-              <div key={idx}>{alumno.nombre}</div>
+              <div key={idx} className={styles.alumnoItem}>
+                {alumno.nombre}
+              </div>
             ))}
           </div>
         </section>
@@ -141,6 +159,7 @@ const GestionClase: React.FC = () => {
             <h2>Libreta de Notas</h2>
             <div id="contenedor-libreta">
               {/* Aquí se puede agregar contenido dinámico */}
+              <p>Próximamente la libreta…</p>
             </div>
           </div>
         </div>
@@ -161,7 +180,10 @@ const GestionClase: React.FC = () => {
                 ref={motivoActaRef}
                 required
               />
-              <button type="submit" className={`${styles.btn} ${styles.btnPrincipal}`}>
+              <button
+                type="submit"
+                className={`${styles.btn} ${styles.btnPrincipal}`}
+              >
                 Guardar Acta
               </button>
             </form>
