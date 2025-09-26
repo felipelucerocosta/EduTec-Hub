@@ -757,6 +757,12 @@
     text-align: left;
   }
 }
+.uploadBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
 
 /* ===================== RESPONSIVE DESIGN ===================== */
 @media (max-width: 1024px) {

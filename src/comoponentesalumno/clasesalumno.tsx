@@ -11,25 +11,8 @@ interface Clase {
 }
 
 const Clases: React.FC = () => {
-  const [mostrarCrear, setMostrarCrear] = useState(false);
   const [mostrarUnirse, setMostrarUnirse] = useState(false);
   const [clases, setClases] = useState<Clase[]>([]);
-
-  // Manejar creación de clase
-  const handleCrearClase = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const nuevaClase: Clase = {
-      materia: formData.get("materia") as string,
-      nombre: formData.get("nombre") as string,
-      seccion: formData.get("seccion") as string,
-      aula: formData.get("aula") as string,
-      creador: formData.get("creador") as string,
-    };
-    setClases([...clases, nuevaClase]);
-    e.currentTarget.reset();
-    setMostrarCrear(false);
-  };
 
   // Manejar unión a clase
   const handleUnirseClase = (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,6 +23,16 @@ const Clases: React.FC = () => {
     console.log("Unido a clase:", { materia, codigo });
     e.currentTarget.reset();
     setMostrarUnirse(false);
+
+    // Ejemplo: podrías agregar una clase “ficticia” cuando se une
+    const nuevaClase: Clase = {
+      materia,
+      nombre: `Clase de ${materia}`,
+      seccion: "Sin definir",
+      aula: "Sin definir",
+      creador: "Profesor asignado",
+    };
+    setClases([...clases, nuevaClase]);
   };
 
   return (
@@ -49,36 +42,7 @@ const Clases: React.FC = () => {
       <main>
         <div className="main-layout">
           <div style={{ flex: "1 1 400px" }}>
-            {/* Formularios centrados a la izquierda */}
-            {mostrarCrear && (
-              <section id="crearClaseForm" className="form-container">
-                <form id="formCrearClase" onSubmit={handleCrearClase} noValidate>
-                  <input type="text" name="materia" placeholder="Materia" required />
-                  <input
-                    type="text"
-                    name="nombre"
-                    placeholder="Nombre de la clase"
-                    required
-                  />
-                  <input
-                    type="text"
-                    name="seccion"
-                    placeholder="Sección"
-                    required
-                  />
-                  <input type="text" name="aula" placeholder="Aula" required />
-                  <input
-                    type="text"
-                    name="creador"
-                    placeholder="Profesor"
-                    required
-                  />
-                  <button type="submit" className="btn btn-primary">
-                    Crear clase
-                  </button>
-                </form>
-              </section>
-            )}
+            {/* Formulario solo para unirse */}
             {mostrarUnirse && (
               <section id="unirseClaseForm" className="form-container">
                 <form id="formUnirseClase" onSubmit={handleUnirseClase} noValidate>
@@ -105,24 +69,10 @@ const Clases: React.FC = () => {
               />
               <div className="buttons">
                 <button
-                  className="btn btn-outline"
-                  aria-controls="crearClaseForm"
-                  aria-expanded={mostrarCrear}
-                  onClick={() => {
-                    setMostrarCrear(!mostrarCrear);
-                    setMostrarUnirse(false);
-                  }}
-                >
-                  Crear clase
-                </button>
-                <button
                   className="btn btn-primary"
                   aria-controls="unirseClaseForm"
                   aria-expanded={mostrarUnirse}
-                  onClick={() => {
-                    setMostrarUnirse(!mostrarUnirse);
-                    setMostrarCrear(false);
-                  }}
+                  onClick={() => setMostrarUnirse(!mostrarUnirse)}
                 >
                   Unirse a clase
                 </button>
@@ -130,7 +80,8 @@ const Clases: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* Sección de clases debajo de los formularios y container */}
+
+        {/* Sección de clases unidas */}
         <div id="coursesList">
           {clases.map((clase, index) => (
             <div key={index} className="clase-item">

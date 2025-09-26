@@ -82,7 +82,7 @@
 }
 .btnOutline:hover {
   background-color: #6C5CE7;
-  color: #000;
+  color: #ffffff;
   transform: translateY(-2px);
 }
 
@@ -155,7 +155,7 @@
 }
 
 .claseItem h3 {
-  color: #6C5CE7;
+  color: #5c5c5c;
   margin-bottom: 0.5rem;
   font-size: 1.4rem;
   font-weight: 700;
