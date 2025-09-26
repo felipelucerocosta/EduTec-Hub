@@ -68,7 +68,7 @@ const Clases: React.FC = () => {
         <div className={styles.mainLayout}>
           <div style={{ flex: "1 1 400px" }}>
             {mostrarCrear && (
-              <section className={styles.formContainer}>
+              <section className={`${styles.formContainer} ${styles.slideIn}`}>
                 <form onSubmit={handleCrearClase} noValidate>
                   <input className={styles.formInput} type="text" name="materia" placeholder="Materia" required />
                   <input className={styles.formInput} type="text" name="nombre" placeholder="Nombre de la clase" required />
@@ -82,7 +82,7 @@ const Clases: React.FC = () => {
               </section>
             )}
             {mostrarUnirse && (
-              <section className={styles.formContainer}>
+              <section className={`${styles.formContainer} ${styles.slideIn}`}>
                 <form onSubmit={handleUnirseClase} noValidate>
                   <input className={styles.formInput} type="text" name="materia" placeholder="Materia" required />
                   <input className={styles.formInput} type="text" name="codigo" placeholder="Código de clase" required />

@@ -82,6 +82,7 @@ button {
   transition: all 0.3s ease;
   margin-top: 10px;
   margin-bottom: 10px ;
+  border: 1.5px solid #000000;
 }
 button:hover {
   background: linear-gradient(to right, #557dff, #ae4bff);

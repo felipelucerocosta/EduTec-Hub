@@ -23,48 +23,21 @@
   color: var(--color-texto);
 }
 
-/* Header */
-.header {
-  background: linear-gradient(to right, #ae4bff, #557dff);
-  color: #000000;
-  padding: 1rem 0;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  font-family: 'Trebuchet MS', Arial, sans-serif;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.logoImg {
-  width: 68px;
-  height: 68px;
-  border-radius: 8px;
-}
-
-.nombreLogo {
-  font-size: 2rem;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
 
 /* Main container */
 .container {
-  max-width: 400px;
-  margin: 2rem auto;
-  background: linear-gradient(to right, #ae4bffd8, #4694dce4);
+  background: linear-gradient(to right, #ae4bff, #557dff);
   border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
   padding: 2rem;
-  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  transition: transform 0.3s ease;
 }
 
 .illustration {
@@ -93,19 +66,19 @@
 
 .btnPrimary {
   background-color: #6C5CE7;
-  color: #000;
-  border: 1px solid #6C5CE7;
+  color: #ffffff;
+  border: 1.5px solid #000000;
 }
 .btnPrimary:hover {
   background-color: #5945c2;
-  border-color: #5945c2;
+  border-color: #000000;
   transform: translateY(-2px);
 }
 
 .btnOutline {
   background-color: #fff;
-  color: #000;
-  border: 1px solid #6C5CE7;
+  color: #ffffff;
+  border: 1.5px solid #000000;
 }
 .btnOutline:hover {
   background-color: #6C5CE7;
@@ -261,5 +234,56 @@
 
   .coursesList {
     max-width: 90%;
+  }
+}
+
+/* ================== OVERRIDES: centrar + animaciones ================== */
+
+/* Centrar mainLayout (sobreescribe el anterior) */
+.mainLayout {
+  display: flex;
+  justify-content: center;       /* Centra horizontalmente */
+  align-items: flex-start;       /* Alinea arriba */
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 40px auto;             /* centra con margen automático */
+  position: relative;
+  transition: all 0.4s ease;     /* transición general */
+  flex-wrap: wrap;
+}
+
+/* Añadir transición suave al contenedor (sobreescribe/añade) */
+.container {
+  /* mantiene tus reglas anteriores y agrega transición para movimiento */
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+/* Clase que se aplica desde React para desplazar el contenedor a la derecha */
+.containerShifted {
+  transform: translateX(80px);  /* mueve el contenedor */
+  opacity: 0.95;                /* leve cambio de opacidad */
+}
+
+/* Clase para aplicar la animación al formContainer (usás styles.slideIn) */
+.slideIn {
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+
+/* Keyframes para el fade + slide in */
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive: menos desplazamiento en pantallas pequeñas */
+@media (max-width: 600px) {
+  .containerShifted {
+    transform: translateX(40px);
   }
 }
