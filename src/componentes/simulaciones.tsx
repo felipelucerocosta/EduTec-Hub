@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import styles from "../simulacion.module.css";
 import Header5 from "../components reutilizables/header5";
+import EngineWorkshop from "./motor"; // importa el componente motor
 
 interface Simulacion {
   id: number;
@@ -37,9 +38,21 @@ const simulaciones: Simulacion[] = [
 ];
 
 const GaleriaSimulaciones: React.FC = () => {
-  const handleSeleccion = (titulo: string) => {
-    alert(`Has seleccionado: ${titulo}`);
+  const [simSeleccionada, setSimSeleccionada] = useState<number | null>(null);
+
+  const handleSeleccion = (sim: Simulacion) => {
+    // Si es la primera simulación, mostramos el motor
+    if (sim.id === 1) {
+      setSimSeleccionada(1);
+    } else {
+      alert(`Has seleccionado: ${sim.titulo}`);
+    }
   };
+
+  // Si se seleccionó la primera simulación, renderizamos el motor
+  if (simSeleccionada === 1) {
+    return <EngineWorkshop />;
+  }
 
   return (
     <div className={styles.body}>
@@ -52,7 +65,7 @@ const GaleriaSimulaciones: React.FC = () => {
               <div
                 key={sim.id}
                 className={styles.card}
-                onClick={() => handleSeleccion(sim.titulo)}
+                onClick={() => handleSeleccion(sim)}
               >
                 <img src={sim.imagen} alt={sim.titulo} />
                 <div className={styles["card-title"]}>{sim.titulo}</div>
@@ -61,7 +74,7 @@ const GaleriaSimulaciones: React.FC = () => {
                   className={styles.button}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSeleccion(sim.titulo);
+                    handleSeleccion(sim);
                   }}
                 >
                   Seleccionar
