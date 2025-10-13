@@ -14,7 +14,7 @@ const simulaciones: Simulacion[] = [
   {
     id: 1,
     titulo: "Simulación 1",
-    descripcion: "Explora un laboratorio virtual de física",
+    descripcion: "Arreglar un motor de combustión interna",
     imagen: "../public/descarga.png",
   },
   {

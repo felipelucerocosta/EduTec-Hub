@@ -85,6 +85,8 @@ const Registro: React.FC = () => {
       setAlumnos((prev) => [...prev, alumnoData]);
       showNotification("Alumno registrado exitosamente", "success");
       setAlumnoData({ nombre_completo: "", correo: "", curso: "", DNI: "", contrasena: "" });
+      // Navegar a la vista de alumno después de registrarse
+      navigate("/alumno");
     } else {
       setProfesores((prev) => [...prev, profesorData]);
       showNotification("Profesor registrado exitosamente", "success");

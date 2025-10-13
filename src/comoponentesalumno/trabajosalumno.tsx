@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import styles from "../materiales.module.css";
 import Header4 from "../components reutilizables/header4";
-import TareaDetalle from "../componentes/tareadetalle"; // 👈 nuevo componente
+import TareaDetalle from "../componentes/TareaDetalle"; // 👈 nuevo componente (corrección de mayúsculas)
 
 interface Tarea {
   id: number;

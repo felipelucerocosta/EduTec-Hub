@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type { DragEvent } from "react";
 import styles from "../simulacion.module.css";  // Asegúrate de usar CSS Modules
 
@@ -87,7 +87,7 @@ export default function EngineWorkshop() {
   };
 
   // Corrección: Renombrado a _e porque no se usa el parámetro
-  const handleDragLeave = (_e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = () => {
     setDragOver(false);
   };
 
