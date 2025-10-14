@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../styles.module.css";
+import styles from "../styles.module.css";
 import Header from "../components reutilizables/header";
 
 interface Clase {
@@ -14,7 +14,6 @@ const Clases: React.FC = () => {
   const [mostrarUnirse, setMostrarUnirse] = useState(false);
   const [clases, setClases] = useState<Clase[]>([]);
 
-  // Manejar unión a clase
   const handleUnirseClase = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -24,7 +23,6 @@ const Clases: React.FC = () => {
     e.currentTarget.reset();
     setMostrarUnirse(false);
 
-    // Ejemplo: podrías agregar una clase “ficticia” cuando se une
     const nuevaClase: Clase = {
       materia,
       nombre: `Clase de ${materia}`,
@@ -40,36 +38,43 @@ const Clases: React.FC = () => {
       <Header />
 
       <main>
-        <div className="main-layout">
+        <div className={styles.mainLayout}>
           <div style={{ flex: "1 1 400px" }}>
-            {/* Formulario solo para unirse */}
             {mostrarUnirse && (
-              <section id="unirseClaseForm" className="form-container">
+              <section id="unirseClaseForm" className={styles.formContainer}>
                 <form id="formUnirseClase" onSubmit={handleUnirseClase} noValidate>
-                  <input type="text" name="materia" placeholder="Materia" required />
+                  <input
+                    type="text"
+                    name="materia"
+                    placeholder="Materia"
+                    required
+                    className={styles.formInput}
+                  />
                   <input
                     type="text"
                     name="codigo"
                     placeholder="Código de clase"
                     required
+                    className={styles.formInput}
                   />
-                  <button type="submit" className="btn btn-primary">
+                  <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`}>
                     Unirse
                   </button>
                 </form>
               </section>
             )}
           </div>
+
           <div style={{ flex: "2 1 600px" }}>
-            <div className="container">
+            <div className={styles.container}>
               <img
                 src="/Educación Técnica y Herramientas (2).png"
                 alt="Logo"
-                className="illustration"
+                className={styles.illustration}
               />
-              <div className="buttons">
+              <div className={styles.buttons}>
                 <button
-                  className="btn btn-primary"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
                   aria-controls="unirseClaseForm"
                   aria-expanded={mostrarUnirse}
                   onClick={() => setMostrarUnirse(!mostrarUnirse)}
@@ -81,10 +86,10 @@ const Clases: React.FC = () => {
           </div>
         </div>
 
-        {/* Sección de clases unidas */}
-        <div id="coursesList">
+        {/* Lista de clases unidas */}
+        <div className={styles.coursesList}>
           {clases.map((clase, index) => (
-            <div key={index} className="clase-item">
+            <div key={index} className={styles.claseItem}>
               <h3>{clase.nombre}</h3>
               <p>
                 <strong>Materia:</strong> {clase.materia}
