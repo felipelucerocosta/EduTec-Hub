@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import styles from "../simulacion.module.css";
 import Header5 from "../components reutilizables/header5";
-import EngineWorkshop from "./motor"; // importa el componente motor
+import EngineWorkshop from "./motor"; 
+import Simulation from "./plantas";// importa el componente motor
 
 interface Simulacion {
   id: number;
@@ -52,6 +53,9 @@ const GaleriaSimulaciones: React.FC = () => {
   // Si se seleccionó la primera simulación, renderizamos el motor
   if (simSeleccionada === 1) {
     return <EngineWorkshop />;
+  }
+  else if (simSeleccionada === 2) {
+    return <Simulation />
   }
 
   return (
