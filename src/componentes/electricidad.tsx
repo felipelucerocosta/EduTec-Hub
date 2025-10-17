@@ -1,11 +1,12 @@
 // ElectricitySimulation.tsx
 import React, { useState } from 'react';
 import styles from '../simulacion.module.css';
+import appStyles from '../App.module.css';
 
 interface Step {
   id: number;
   name: string;
-  status: string;  // 'pending', 'current', o 'completed'
+  status: string;  
 }
 
 const stepsData: Step[] = [
@@ -56,8 +57,9 @@ function ElectricitySimulation() {
   };
 
   return (
-    <div className={styles.body}>
-      <div className={styles['container main-content']}>
+    <div className={appStyles.mainContainer}>
+      <div className={styles.body}>
+        <div className={styles['container main-content']}>
         <h2>Simulación de Electricidad: Ensamblaje de un Circuito</h2>
         
         <div className={styles.grid}>
@@ -159,6 +161,7 @@ function ElectricitySimulation() {
         <footer className={styles.footer}>
           Simulación creada con React y estilos personalizados.
         </footer>
+        </div>
       </div>
     </div>
   );

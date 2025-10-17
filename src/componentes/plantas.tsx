@@ -1,6 +1,7 @@
 // Simulation.tsx
 import React, { useState } from 'react';
 import styles from '../simulacion.module.css';
+import appStyles from '../App.module.css';
 
 // Interfaz para definir el tipo de un paso
 interface Step {
@@ -63,8 +64,9 @@ function Simulation() {
   };
 
   return (
-    <div className={styles.body}>
-      <div className={styles['container main-content']}>
+    <div className={appStyles.mainContainer}>
+      <div className={styles.body}>
+        <div className={styles['container main-content']}>
         <h2>Simulación de Práctica de Jardinería</h2>
         
         {/* Grid Layout */}
@@ -176,6 +178,7 @@ function Simulation() {
         <footer className={styles.footer}>
           Simulación creada con React y estilos personalizados.
         </footer>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import styles from "./App.module.css";
 
 // 👇 Importa respetando mayúsculas y carpetas
 import Registro from "../src/componentes/registro";
@@ -14,8 +15,9 @@ import TrabajosAlumno from "./comoponentesalumno/trabajosalumno";
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <div className={styles.mainContainer}>
+      <Router>
+        <Routes>
         <Route path="/" element={<Registro />} />
         <Route path="/clases" element={<Clases />} />
         <Route path="/gestionClase" element={<GestionClase />} />
@@ -25,8 +27,9 @@ function App() {
         <Route path="/foro" element={<Foro />} />
         <Route path="/calendario" element={<Calendario />} />
         <Route path="/simulaciones" element={<GaleriaSimulaciones />} />
-      </Routes>
-    </Router>
+        </Routes>
+      </Router>
+    </div>
   );
 }
 
