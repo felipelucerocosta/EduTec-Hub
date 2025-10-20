@@ -17,6 +17,7 @@
     height: 70px;
     width: 70px;
     margin-right: 15px;
+<<<<<<< HEAD
   }
 
   .mainContainer{
@@ -25,4 +26,6 @@
     color: #ffffff; /* texto claro sobre fondo azul */
     padding: 20px;
     box-sizing: border-box;
+=======
+>>>>>>> 8f54c20 (first commit)
   }
