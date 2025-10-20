@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-<<<<<<< HEAD
     "target": "ES2022",
-=======
-    "target": "ES2020",
->>>>>>> 8f54c20 (first commit)
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
@@ -25,19 +21,11 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-<<<<<<< HEAD
-    "noUncheckedSideEffectImports": true
-  },
-  "include": ["src"]
-=======
     "noUncheckedSideEffectImports": true,
 
     /* Interoperability */
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.3"
->>>>>>> 8f54c20 (first commit)
+  "include": ["src"]
 }
