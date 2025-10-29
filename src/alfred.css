@@ -1,0 +1,174 @@
+/* Botón flotante para abrir el chat */
+.alfred-toggle-button {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform 0.2s ease-in-out;
+}
+
+.alfred-toggle-button:hover {
+  transform: scale(1.1);
+  background-color: #0056b3;
+}
+
+/* Ventana principal del chat */
+.alfred-chat-window {
+  position: fixed;
+  bottom: 100px;
+  right: 25px;
+  width: 350px;
+  max-width: 90vw;
+  height: 500px;
+  max-height: 70vh;
+  background-color: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  font-family: sans-serif;
+}
+
+/* Encabezado del chat */
+.alfred-header {
+  background-color: #007bff;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.alfred-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.alfred-close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* Área de mensajes */
+.alfred-messages {
+  flex-grow: 1;
+  padding: 15px;
+  overflow-y: auto;
+  background-color: #f4f7f9;
+}
+
+.alfred-message {
+  margin-bottom: 12px;
+  display: flex;
+}
+
+.alfred-message p {
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 80%;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Mensajes de Alfred (izquierda) */
+.alfred-message.alfred p {
+  background-color: #e9ecef;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+/* Mensajes del usuario (derecha) */
+.alfred-message.user {
+  justify-content: flex-end;
+}
+
+.alfred-message.user p {
+  background-color: #007bff;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* Formulario de entrada */
+.alfred-input-form {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: #fff;
+}
+
+.alfred-input-form input {
+  flex-grow: 1;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 10px 15px;
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+.alfred-input-form input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.alfred-input-form button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.alfred-input-form button:disabled {
+    background-color: #a0c3e6;
+    cursor: not-allowed;
+}
+
+.alfred-input-form button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+/* Indicador de "escribiendo..." */
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: #9e9ea1;
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.3s infinite;
+    margin: 0 2px;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-6px);
+    }
+}

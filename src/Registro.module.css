@@ -3,8 +3,10 @@
 :global(*) {
   box-sizing: border-box;
   margin: 0;
+  padding: 0;
 }
 
+/* ---------- CUERPO PRINCIPAL ---------- */
 .loginRegisterBody {
   font-family: 'Montserrat', sans-serif;
   background: url('/public/fondo.png');
@@ -17,6 +19,7 @@
   height: 100vh;
 }
 
+/* ---------- CONTENEDOR GENERAL ---------- */
 .loginRegisterContainer {
   display: flex;
   justify-content: center;
@@ -26,6 +29,7 @@
   position: relative;
 }
 
+/* ---------- NOTIFICACIONES ---------- */
 .notification {
   position: absolute;
   top: 20px;
@@ -43,21 +47,27 @@
 .notification.success { background-color: #4CAF50; }
 .notification.error { background-color: #f44336; }
 
-h1 { margin: 0; }
+/* ---------- TITULOS Y TEXTOS ---------- */
+h1 {
+  margin: 0;
+  color: #000;
+}
+
 p {
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 600;
+  color: #000000;
   line-height: 20px;
   letter-spacing: 0.5px;
-  margin: 20px 0 30px;
+  margin: 15px 0 25px;
 }
 
 /* ---------- BOTONES ---------- */
 .loginRegisterContainer button {
   border-radius: 20px;
-  border: 2px solid #000;       /* Borde negro */
-  background-color: #806b8f; /* Fondo transparente */
-  color: #000;                  /* Texto negro */
+  border: 2px solid #000;
+  background-color: #806b8fb7;
+  color: #fff;
   font-size: 12px;
   font-weight: bold;
   padding: 12px 45px;
@@ -68,132 +78,57 @@ p {
   margin-top: 10px;
 }
 
+.loginRegisterContainer button:hover {
+  transform: scale(1.05);
+  background-color: #9c83b3;
+}
+
 .loginRegisterContainer button:active {
   transform: scale(0.95);
-  outline: none;
 }
 
-.loginRegisterContainer button:focus {
-  outline: none;
-}
-
-.loginRegisterContainer button:hover {
-  transform: scale(1.1); /* Aumenta tamaño al pasar el mouse */
-}
-
-.loginRegisterContainer button.ghost {
-  background-color: transparent;
-  border-color: #000;
-  color: #000;
-}
-
-/* ---------- FORMULARIOS ---------- */
-.loginRegisterContainer form {
-  background-color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  padding: 0 50px;
-  height: 100%;
+/* ---------- FORMULARIO ---------- */
+.containerPrincipal {
+  background-color: #b594dba2; /* Fondo blanco semitransparente */
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  width: 400px;
+  padding: 50px 40px;
   text-align: center;
+  border: 2px solid #000;
+  backdrop-filter: blur(5px);
+}
+
+.loginRegisterContainer form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .loginRegisterContainer input {
-  background-color: #eee;
-  border: none;
+  background-color: #f2f2f2;
+  border: 1px solid #000000;
   padding: 12px 15px;
   margin: 8px 0;
   width: 100%;
+  border-radius: 5px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* ---------- CONTENEDOR PRINCIPAL ---------- */
-.containerPrincipal {
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 10px 14px 28px rgba(0, 0, 0, 1),
-              0 10px 10px rgba(0,0,0,0.22);
-  position: relative;
-  overflow: hidden;
-  width: 768px;
-  max-width: 100%;
-  min-height: 480px;
-  border-bottom: 2px solid #000;
+.loginRegisterContainer input:focus {
+  border-color: #6e5580;
+  box-shadow: 0 0 6px rgba(128, 107, 143, 0.6);
+  outline: none;
 }
 
-.formContainer {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  transition: all 0.6s ease-in-out;
-}
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 500px) {
+  .containerPrincipal {
+    width: 90%;
+    padding: 40px 20px;
+  }
 
-.signInContainer { left: 0; width: 50%; z-index: 2; }
-.signUpContainer { left: 0; width: 50%; opacity: 0; z-index: 1; }
-
-.overlayContainer {
-  border-bottom: 2px solid #000;
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 50%;
-  height: 100%;
-  overflow: hidden;
-  transition: transform 0.6s ease-in-out;
-  z-index: 100;
-}
-
-.overlay {
-  background: linear-gradient(to right, #ae4bff, #557dff);
-  color: #000;
-  position: relative;
-  left: -100%;
-  height: 100%;
-  width: 200%;
-  transform: translateX(0);
-  transition: transform 0.6s ease-in-out;
-}
-
-.overlayPanel {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  padding: 0 40px;
-  text-align: center;
-  top: 0;
-  height: 100%;
-  width: 50%;
-  transform: translateX(0);
-  transition: transform 0.6s ease-in-out;
-}
-
-.overlayRight { right: 0; transform: translateX(0); }
-.overlayLeft { transform: translateX(-20%); }
-
-.containerPrincipal.rightPanelActive .signInContainer {
-  transform: translateX(100%);
-}
-.containerPrincipal.rightPanelActive .overlayContainer {
-  transform: translateX(-100%);
-}
-.containerPrincipal.rightPanelActive .signUpContainer {
-  transform: translateX(100%);
-  opacity: 1;
-  z-index: 5;
-  animation: show 0.6s;
-}
-@keyframes show {
-  0%, 49.99% { opacity: 0; z-index: 1; }
-  50%, 100% { opacity: 1; z-index: 5; }
-}
-.containerPrincipal.rightPanelActive .overlay {
-  transform: translateX(50%);
-}
-.containerPrincipal.rightPanelActive .overlayLeft {
-  transform: translateX(0);
-}
-.containerPrincipal.rightPanelActive .overlayRight {
-  transform: translateX(20%);
+  .loginRegisterContainer button {
+    padding: 10px 30px;
+  }
 }
