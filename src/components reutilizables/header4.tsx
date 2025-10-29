@@ -8,7 +8,7 @@ const Header4: React.FC = () => {
         src="/Educación Técnica y Herramientas (2).png"
         alt="Logo EduTecH"
       />
-      <h1>EduTec-Hub</h1>
+      <h1>Tech-Room 29</h1>
 
       <nav className={styles.header2}>
         <a href="/calendario">Calendario</a>
