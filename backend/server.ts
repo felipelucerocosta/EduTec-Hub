@@ -9,12 +9,14 @@ const apiRutasRouter = interop(require('./api_rutas'));
 const mensajesRouter = interop(require('./mensajes'));
 const registroRouter = interop(require('./registro'));
 const loginRouter = interop(require('./login'));
+const alfredRouter = interop(require('./alfred')); // 👈 1. IMPORTAR ALFRED
 
 // --- 2. INICIALIZAR LA APP ---
 const app = express();
 const PORT: number = Number(process.env.PORT) || 3001;
 
 // --- 3. CONFIGURAR MIDDLEWARE ---
+// ¡Tu configuración de CORS está perfecta!
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
@@ -38,6 +40,7 @@ app.use('/api', mensajesRouter);
 app.use('/api', registroRouter);
 app.use('/api', loginRouter);
 app.use('/api', apiRutasRouter);
+app.use('/api', alfredRouter); // 👈 2. USAR EL ROUTER DE ALFRED
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('Servidor del Backend de EduTecHub funcionando!');

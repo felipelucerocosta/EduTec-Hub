@@ -1,9 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "../src/App"; // 👈 Cambia Registro por App
+import App from "./App"; // 👈 CORRECCIÓN: La ruta era "../src/App"
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
-    <App /> {/* 👈 Ahora cargas App con las rutas */}
+    <App /> {/* Ahora cargas App con las rutas */}
   </StrictMode>
 );

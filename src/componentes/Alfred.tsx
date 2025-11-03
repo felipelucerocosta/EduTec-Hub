@@ -1,5 +1,25 @@
 import React, { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from "react";
-import "../alfred.css";
+import "../alfred.css"; 
+
+// ---- Interfaces ----
+interface Message {
+  sender: "user" | "alfred";
+  text: string;
+}
+
+interface ChatPart {
+  text: string;
+}
+
+interface ChatMessage {
+  role: "user" | "model";
+  parts: ChatPart[];
+}
+
+// --- Constantes ---
+const ALUMNO_DOMAIN = "@alu.tecnica29de6.edu.ar";
+const PROFESOR_DOMAIN = "@tecnica29de6.edu.ar";
+const API_URL = "http://localhost:3001/api"; // URL base de tu backend
 
 const AlfredIcon: React.FC = () => (
   <svg
@@ -20,28 +40,14 @@ const AlfredIcon: React.FC = () => (
   </svg>
 );
 
-// ---- Interfaces ----
-interface Message {
-  sender: "user" | "alfred";
-  text: string;
-}
-
-interface ChatPart {
-  text: string;
-}
-
-interface ChatMessage {
-  role: "user" | "model";
-  parts: ChatPart[];
-}
-
 const Alfred: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([
-    { sender: "alfred", text: "Hola, soy Alfred. ¿En qué puedo servirle?" },
+    { sender: "alfred", text: "Hola, soy Alfred. ¿En qué puedo servirle? Puedo ayudarte con 'ayuda login' o 'generar contraseña'." },
   ]);
   const [userInput, setUserInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [awaitingEmailForPassword, setAwaitingEmailForPassword] = useState<boolean>(false); // Nuevo estado
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -54,6 +60,13 @@ const Alfred: React.FC = () => {
     setUserInput(event.target.value);
   };
 
+  const addAlfredMessage = (text: string) => {
+    setMessages((prev) => [...prev, { sender: "alfred", text }]);
+  };
+  const addUserMessage = (text: string) => {
+    setMessages((prev) => [...prev, { sender: "user", text }]);
+  };
+
   const getAlfredResponse = async (prompt: string): Promise<void> => {
     setIsLoading(true);
 
@@ -62,15 +75,13 @@ const Alfred: React.FC = () => {
         role: "user",
         parts: [
           {
-            text: "Eres Alfred, un asistente virtual servicial, educado y algo formal, como un mayordomo. Responde de manera concisa y útil a las preguntas del usuario.",
+            text: "Eres Alfred, un asistente virtual servicial, educado y algo formal, como un mayordomo. Responde de manera concisa y útil a las preguntas del usuario. Tu nombre es Alfred. No te desvíes del rol de asistente de escuela técnica.",
           },
         ],
       },
       { role: "model", parts: [{ text: "Entendido. Estoy a su servicio." }] },
       
-      // ===================================
-      // AQUÍ ESTÁ LA CORRECCIÓN APLICADA
-      // ===================================
+      // Historial de mensajes para el modelo de IA
       ...messages.map((msg) => ({
         // Traduce 'alfred' (de tu estado) a 'model' (para la API)
         role: msg.sender === 'user' ? 'user' as const : 'model' as const,
@@ -83,10 +94,8 @@ const Alfred: React.FC = () => {
       { role: "user", parts: [{ text: prompt }] },
     ];
 
-    const localApiUrl = "http://localhost:3001/api/ask-alfred";
-
     try {
-      const response = await fetch(localApiUrl, {
+      const response = await fetch(`${API_URL}/ask-alfred`, { // Usa API_URL
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chatHistory }),
@@ -100,36 +109,89 @@ const Alfred: React.FC = () => {
 
       if (result.candidates && result.candidates.length > 0) {
         const text = result.candidates[0].content.parts[0].text;
-        setMessages((prev) => [...prev, { sender: "alfred", text }]);
+        addAlfredMessage(text);
       } else {
         const errorMessage =
           result.error ||
-          "Disculpe, no he podido procesar su solicitud en este momento.";
-        setMessages((prev) => [...prev, { sender: "alfred", text: errorMessage }]);
+          "Mis disculpas, no he podido procesar su solicitud en este momento.";
+        addAlfredMessage(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al contactar con el servidor local:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "alfred",
-          text: "Mis disculpas, parece que hay un problema de conexión con nuestro servidor.",
-        },
-      ]);
+      addAlfredMessage(
+        "Mis disculpas, parece que hay un problema de conexión con nuestro servidor o mi sistema de IA. Por favor, intente de nuevo más tarde."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSendMessage = (event: FormEvent) => {
+  // Nueva función para generar contraseña (llamada desde Alfred)
+  const generatePasswordWithAlfred = async (email: string) => {
+    setIsLoading(true);
+    addAlfredMessage("Entendido. Estoy generando una contraseña segura para usted...");
+
+    try {
+      const response = await fetch(`${API_URL}/generate-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // Contexto para la IA
+          context: `Generar una contraseña segura de 12 caracteres con mayúsculas, minúsculas y números para el usuario con correo ${email}.`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.password) {
+        addAlfredMessage(`Su nueva contraseña sugerida es: ${data.password}. Le recomiendo copiarla y usarla de inmediato.`);
+        // Opcional: copiar al portapapeles
+        navigator.clipboard.writeText(data.password).then(() => {
+            addAlfredMessage("La contraseña ha sido copiada automáticamente al portapapeles.");
+        });
+      } else {
+        throw new Error(data.error || "No se pudo generar la contraseña.");
+      }
+    } catch (error: any) {
+      console.error("Error al generar contraseña:", error);
+      addAlfredMessage(`Mis disculpas, no pude generar la contraseña. ${error.message}`);
+    } finally {
+      setIsLoading(false);
+      setAwaitingEmailForPassword(false); // Resetea el estado
+    }
+  };
+
+  const handleSendMessage = async (event: FormEvent) => {
     event.preventDefault();
     if (userInput.trim() === "" || isLoading) return;
 
-    const newUserMessage: Message = { sender: "user", text: userInput };
-    setMessages((prevMessages) => [...prevMessages, newUserMessage]);
-
-    getAlfredResponse(userInput);
+    const userMessageText = userInput.trim();
+    addUserMessage(userMessageText);
     setUserInput("");
+
+    // --- Lógica de Comandos de Alfred ---
+    if (awaitingEmailForPassword) {
+      // Si estamos esperando un correo para la contraseña
+      if (userMessageText.endsWith(ALUMNO_DOMAIN) || userMessageText.endsWith(PROFESOR_DOMAIN)) {
+        generatePasswordWithAlfred(userMessageText);
+      } else {
+        addAlfredMessage("Ese no parece un correo institucional válido. Por favor, ingrese su correo institucional para generar una contraseña.");
+      }
+      setAwaitingEmailForPassword(false); // Resetea después de intentar procesar
+      return;
+    }
+
+    const lowerCaseMessage = userMessageText.toLowerCase();
+
+    if (lowerCaseMessage.includes("generar contraseña")) {
+      addAlfredMessage("Entendido. Por favor, ingrese su correo institucional para poder generar una contraseña segura.");
+      setAwaitingEmailForPassword(true); // Activa el estado de espera
+    } else if (lowerCaseMessage.includes("ayuda login") || lowerCaseMessage.includes("ayuda inicio sesion")) {
+      addAlfredMessage("Para iniciar sesión, por favor use su correo institucional (@alu.tecnica29de6.edu.ar o @tecnica29de6.edu.ar) y su contraseña. Si ha olvidado su contraseña, puede usar el enlace '¿Olvidaste tu contraseña?' en la página de inicio de sesión para restablecerla.");
+    } else {
+      // Si no es un comando especial, envía al modelo de IA
+      getAlfredResponse(userMessageText);
+    }
   };
 
   return (
@@ -170,7 +232,7 @@ const Alfred: React.FC = () => {
               type="text"
               value={userInput}
               onChange={handleInputChange}
-              placeholder="Escriba su consulta..."
+              placeholder={awaitingEmailForPassword ? "Ingrese su correo institucional..." : "Escriba su consulta..."}
               aria-label="Escriba su consulta"
               disabled={isLoading}
             />

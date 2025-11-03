@@ -1,251 +1,292 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Header from "../components reutilizables/header";
 import styles from "../Registro.module.css";
 
+// --- Interfaces ---
 interface Notification {
   msg: string;
   type: "success" | "error" | "";
 }
 
-interface LoginData {
+interface FormData {
+  nombre_completo: string;
+  DNI: string;
   correo: string;
   contrasena: string;
+  curso: string;    // Para alumnos
+  materia: string;  // Para profesores
 }
 
-interface PasswordGenerationState {
-  isGenerating: boolean;
-  generatedPassword: string;
-}
+// --- Constantes ---
+const ALUMNO_DOMAIN = "@alu.tecnica29de6.edu.ar";
+const PROFESOR_DOMAIN = "@tecnica29de6.edu.ar";
+const API_URL = "http://localhost:3001/api"; // URL base de tu backend
 
 const Registro: React.FC = () => {
+  const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [notification, setNotification] = useState<Notification>({ msg: "", type: "" });
-  const [loginData, setLoginData] = useState<LoginData>({ correo: "", contrasena: "" });
-  const [passwordGen, setPasswordGen] = useState<PasswordGenerationState>({ isGenerating: false, generatedPassword: "" });
-  const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
+  const [formData, setFormData] = useState<FormData>({
+    nombre_completo: "",
+    DNI: "",
+    correo: "",
+    contrasena: "",
+    curso: "",
+    materia: "",
+  });
   const navigate = useNavigate();
 
-  // Simulación de cuentas institucionales registradas
-
+  // --- Funciones Auxiliares ---
   const showNotification = (msg: string, type: "success" | "error") => {
     setNotification({ msg, type });
     setTimeout(() => setNotification({ msg: "", type: "" }), 4000);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLoginData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // --- Lógica de Pestañas ---
+  const handleTabChange = (registering: boolean) => {
+    setIsRegistering(registering);
+    setNotification({ msg: "", type: "" }); // Limpia notificaciones al cambiar
+    // Limpia campos específicos al cambiar de pestaña
+    setFormData(prev => ({
+        ...prev,
+        nombre_completo: "",
+        DNI: "",
+        curso: "",
+        materia: ""
+    }));
+  };
+
+  // --- Lógica de API: Iniciar Sesión ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { correo, contrasena } = formData;
 
-    const correo = loginData.correo.trim().toLowerCase();
-    const contrasena = loginData.contrasena;
-
-    const esAlumno = correo.endsWith("@alu.tecnica29de6.edu.ar");
-    const esProfesor = correo.endsWith("@tecnica29de6.edu.ar") && !correo.includes("@alu.");
-
-    if (!esAlumno && !esProfesor) {
-      showNotification("Solo se permiten correos institucionales del colegio.", "error");
+    // Validar correo institucional
+    if (!correo.endsWith(ALUMNO_DOMAIN) && !correo.endsWith(PROFESOR_DOMAIN)) {
+      showNotification("Por favor, use un correo institucional para iniciar sesión.", "error");
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:3001/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correo, contrasena }),
       });
-
+      
       const data = await response.json();
 
-      if (data.success) {
-        showNotification("Inicio de sesión exitoso ✅", "success");
-
-        // Redirigir según el rol del usuario
-        setTimeout(() => {
-          if (data.usuario.rol === "alumno") navigate("/alumno");
-          else if (data.usuario.rol === "profesor") navigate("/clases");
-        }, 1500);
+      if (response.ok) {
+        showNotification(data.message, "success");
+        if (data.rol === 'profesor') {
+          navigate("/clases");
+        } else if (data.rol === 'alumno') {
+          navigate("/alumno");
+        } else {
+          showNotification("Rol de usuario desconocido.", "error");
+          navigate("/");
+        }
       } else {
-        showNotification(data.message || "Correo o contraseña incorrectos ❌", "error");
+        throw new Error(data.message || "Error al iniciar sesión");
       }
-    } catch (error) {
-      console.error('Error en login:', error);
-      showNotification("Error de conexión. Inténtalo de nuevo.", "error");
+    } catch (error: any) {
+      showNotification(error.message, "error");
     }
   };
 
-  const generatePassword = async () => {
-    if (!loginData.correo.trim()) {
-      showNotification("Ingresa tu correo institucional primero.", "error");
+  // --- Lógica de API: Registrarse ---
+  const handleRegistro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { correo, nombre_completo, DNI, contrasena, curso, materia } = formData;
+    
+    const isProfesor = correo.endsWith(PROFESOR_DOMAIN);
+    const isAlumno = correo.endsWith(ALUMNO_DOMAIN);
+
+    if (!isProfesor && !isAlumno) {
+      showNotification("Debe usar un correo institucional de profesor o alumno.", "error");
       return;
     }
 
-    const correo = loginData.correo.trim().toLowerCase();
-    const esInstitucional = correo.endsWith("@alu.tecnica29de6.edu.ar") || correo.endsWith("@tecnica29de6.edu.ar");
-
-    if (!esInstitucional) {
-      showNotification("Solo se permiten correos institucionales.", "error");
+    // Validaciones específicas para registro
+    if (!nombre_completo || !DNI || !contrasena) {
+      showNotification("Todos los campos obligatorios deben ser completados.", "error");
       return;
     }
+    if (isAlumno && !curso) {
+      showNotification("El campo 'Curso' es obligatorio para alumnos.", "error");
+      return;
+    }
+    if (isProfesor && !materia) {
+      showNotification("El campo 'Materia' es obligatorio para profesores.", "error");
+      return;
+    }
+    if (contrasena.length < 6) { // Validación mínima de contraseña
+        showNotification("La contraseña debe tener al menos 6 caracteres.", "error");
+        return;
+    }
 
-    setPasswordGen({ isGenerating: true, generatedPassword: "" });
+
+    const endpoint = isProfesor ? `${API_URL}/registro-profesor` : `${API_URL}/registro-alumno`;
+    
+    const body = {
+      nombre_completo,
+      correo,
+      DNI,
+      contrasena,
+      ...(isAlumno && { curso }),
+      ...(isProfesor && { materia }),
+    };
 
     try {
-      const response = await fetch('http://localhost:3001/api/generate-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: correo }),
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      const data = await response.text(); // Tu API de registro.ts devuelve texto plano
 
-      if (data.password) {
-        setPasswordGen({ isGenerating: false, generatedPassword: data.password });
-        showNotification("Contraseña generada. Cópiala y regístrate.", "success");
+      if (response.ok) {
+        showNotification(data, "success"); // "Registro exitoso..."
+        setIsRegistering(false); // Vuelve a la pestaña de Login
+        // Limpia el formulario (excepto el correo/pass para facilitar el login si se desea)
+        setFormData(prev => ({ 
+            ...prev, 
+            nombre_completo: "", 
+            DNI: "", 
+            curso: "", 
+            materia: "" 
+        }));
       } else {
-        throw new Error(data.error || 'Error generando contraseña');
+        throw new Error(data); // "El correo o DNI ya está registrado."
       }
-    } catch (error) {
-      console.error('Error generando contraseña:', error);
-      setPasswordGen({ isGenerating: false, generatedPassword: "" });
-      showNotification("Error generando contraseña. Inténtalo de nuevo.", "error");
+    } catch (error: any) {
+      showNotification(error.message, "error");
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!loginData.correo.trim()) {
-      showNotification("Ingresa tu correo institucional.", "error");
-      return;
-    }
-
-    const correo = loginData.correo.trim().toLowerCase();
-    const esInstitucional = correo.endsWith("@alu.tecnica29de6.edu.ar") || correo.endsWith("@tecnica29de6.edu.ar");
-
-    if (!esInstitucional) {
-      showNotification("Solo se permiten correos institucionales.", "error");
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:3001/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        showNotification("Si existe una cuenta con ese correo, se ha enviado un enlace de recuperación.", "success");
-      } else {
-        showNotification(data.message || "Error enviando email de recuperación.", "error");
-      }
-    } catch (error) {
-      console.error('Error en forgot password:', error);
-      showNotification("Error de conexión. Inténtalo de nuevo.", "error");
-    }
-  };
-
+  // --- Renderizado ---
   return (
     <div className={styles.loginRegisterBody}>
       <Header />
-
+      {notification.msg && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          {notification.msg}
+        </div>
+      )}
       <div className={styles.loginRegisterContainer}>
-        {notification.msg && (
-          <div className={`${styles.notification} ${notification.type ? styles[notification.type] : ""}`}>
-            {notification.msg}
-          </div>
-        )}
-
         <div className={styles.containerPrincipal}>
-          <div className={`${styles.formContainer} ${styles.signInContainer}`}>
-            <form onSubmit={handleLogin}>
-              <h1>Iniciar Sesión</h1>
-              <p style={{ fontSize: "14px", marginBottom: "10px" }}>
-                Solo se permiten cuentas institucionales del colegio
-              </p>
+          
+          {/* --- Pestañas de Login / Registro --- */}
+          <div className={styles.tabContainer}> {/* Asegúrate de que tienes estilos para 'tabContainer' y 'tabButton' en Registro.module.css */}
+            <button
+              className={`${styles.tabButton} ${!isRegistering ? styles.activeTab : ''}`}
+              onClick={() => handleTabChange(false)}
+            >
+              Iniciar Sesión
+            </button>
+            <button
+              className={`${styles.tabButton} ${isRegistering ? styles.activeTab : ''}`}
+              onClick={() => handleTabChange(true)}
+            >
+              Registrarse
+            </button>
+          </div>
+
+          {/* --- Formulario Dinámico --- */}
+          <form onSubmit={isRegistering ? handleRegistro : handleLogin}>
+            <h2 style={{ color: "black" }}>
+              {isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}
+            </h2>
+
+            {/* --- Campos de Registro (Condicional) --- */}
+            {isRegistering && (
+              <>
+                <div className={styles.formGroup}>
+                  <input
+                    type="text"
+                    name="nombre_completo"
+                    placeholder="Nombre Completo"
+                    value={formData.nombre_completo}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <input
+                    type="text"
+                    name="DNI"
+                    placeholder="DNI"
+                    value={formData.DNI}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {/* --- Campos Comunes (Correo y Contraseña) --- */}
+            <div className={styles.formGroup}>
               <input
                 type="email"
-                placeholder="Correo institucional"
                 name="correo"
-                value={loginData.correo}
+                placeholder="Correo Institucional"
+                value={formData.correo}
                 onChange={handleInputChange}
                 required
               />
+            </div>
+            <div className={styles.formGroup}>
               <input
                 type="password"
                 name="contrasena"
                 placeholder="Contraseña"
-                value={loginData.contrasena}
+                value={formData.contrasena}
                 onChange={handleInputChange}
                 required
               />
-              <button type="submit">Entrar</button>
-            </form>
-
-            {/* Botón para generar contraseña con Alfred */}
-            <div style={{ marginTop: "15px", textAlign: "center" }}>
-              <button
-                type="button"
-                onClick={generatePassword}
-                disabled={passwordGen.isGenerating}
-                style={{
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "4px",
-                  cursor: passwordGen.isGenerating ? "not-allowed" : "pointer",
-                  marginBottom: "10px"
-                }}
-              >
-                {passwordGen.isGenerating ? "Generando..." : "Generar Contraseña con Alfred"}
-              </button>
-              {passwordGen.generatedPassword && (
-                <div style={{
-                  backgroundColor: "#f8f9fa",
-                  padding: "10px",
-                  borderRadius: "4px",
-                  border: "1px solid #dee2e6",
-                  marginTop: "10px"
-                }}>
-                  <strong>Contraseña generada:</strong>
-                  <div style={{
-                    fontFamily: "monospace",
-                    backgroundColor: "#e9ecef",
-                    padding: "5px",
-                    borderRadius: "3px",
-                    marginTop: "5px",
-                    wordBreak: "break-all"
-                  }}>
-                    {passwordGen.generatedPassword}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(passwordGen.generatedPassword)}
-                    style={{
-                      marginTop: "5px",
-                      backgroundColor: "#28a745",
-                      color: "white",
-                      border: "none",
-                      padding: "4px 8px",
-                      borderRadius: "3px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Copiar
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* Botón para "¿Olvidaste tu contraseña?" */}
+            {/* --- Campos de Rol (Condicional para Registro) --- */}
+            {isRegistering && formData.correo.endsWith(ALUMNO_DOMAIN) && (
+              <div className={styles.formGroup}>
+                <input
+                  type="text"
+                  name="curso"
+                  placeholder="Curso (ej: 7mo 1ra)"
+                  value={formData.curso}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            )}
+            
+            {isRegistering && formData.correo.endsWith(PROFESOR_DOMAIN) && (
+              <div className={styles.formGroup}>
+                <input
+                  type="text"
+                  name="materia"
+                  placeholder="Materia que enseña"
+                  value={formData.materia}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            )}
+
+            {/* --- Botón de Envío --- */}
+            <button type="submit">
+              {isRegistering ? "Registrarse" : "Iniciar Sesión"}
+            </button>
+            
+            {/* --- Enlace "Olvidaste Contraseña" --- */}
             <div style={{ marginTop: "15px", textAlign: "center" }}>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(!showForgotPassword)}
+              <Link
+                to="/forgot-password"
                 style={{
                   backgroundColor: "transparent",
                   color: "#007bff",
@@ -255,27 +296,10 @@ const Registro: React.FC = () => {
                 }}
               >
                 ¿Olvidaste tu contraseña?
-              </button>
-              {showForgotPassword && (
-                <div style={{ marginTop: "10px" }}>
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    style={{
-                      backgroundColor: "#dc3545",
-                      color: "white",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: "4px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Enviar enlace de recuperación
-                  </button>
-                </div>
-              )}
+              </Link>
             </div>
-          </div>
+            
+          </form>
         </div>
       </div>
     </div>
