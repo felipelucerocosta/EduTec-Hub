@@ -1,12 +1,7 @@
 import React, { useState } from "react";
 import styles from "../simulacion.module.css";
 import Header5 from "../components reutilizables/header5";
-<<<<<<< HEAD
-import EngineWorkshop from "./motor"; 
-import Simulation from "./plantas";// importa el componente motor
-=======
 import EngineWorkshop from "./motor"; // importa el componente motor
->>>>>>> 8f54c20 (first commit)
 
 interface Simulacion {
   id: number;
@@ -58,12 +53,6 @@ const GaleriaSimulaciones: React.FC = () => {
   if (simSeleccionada === 1) {
     return <EngineWorkshop />;
   }
-<<<<<<< HEAD
-  else if (simSeleccionada === 2) {
-    return <Simulation />
-  }
-=======
->>>>>>> 8f54c20 (first commit)
 
   return (
     <div className={styles.body}>

@@ -69,4 +69,64 @@ router.post('/ask-alfred', async (req: Request<{}, {}, AskAlfredBody>, res: Resp
     }
 });
 
+// Endpoint para generar contraseñas seguras usando Alfred
+router.post('/generate-password', async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'El correo electrónico es requerido.' });
+    }
+
+    // Validar que sea un correo institucional
+    if (!email.endsWith('@alu.tecnica29de6.edu.ar') && !email.endsWith('@tecnica29de6.edu.ar')) {
+        return res.status(400).json({ error: 'Solo se permiten correos institucionales.' });
+    }
+
+    const apiKey: string = "AIzaSyCvttzZon067xS7DnQsgQIgNXvaMFTEpBw";
+
+    if (apiKey === "" || !apiKey) {
+        return res.status(500).json({ error: 'La API Key no ha sido configurada en el servidor.' });
+    }
+
+    // Prompt para generar una contraseña segura basada en el email institucional
+    const prompt = `Genera una contraseña segura y memorable para el usuario con email ${email}. La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y símbolos. Hazla fácil de recordar pero segura. Responde solo con la contraseña generada, sin explicaciones adicionales.`;
+
+    const chatHistory: ChatContent[] = [
+        {
+            role: "user",
+            parts: [{ text: "Eres un generador de contraseñas seguras. Responde solo con la contraseña generada." }]
+        },
+        {
+            role: "model",
+            parts: [{ text: "Entendido. Generaré contraseñas seguras." }]
+        },
+        {
+            role: "user",
+            parts: [{ text: prompt }]
+        }
+    ];
+
+    const payload: { contents: ChatContent[] } = { contents: chatHistory };
+
+    const apiUrl: string = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+    try {
+        const config: AxiosRequestConfig = {
+            headers: { 'Content-Type': 'application/json' }
+        };
+
+        const apiResponse = await axios.post(apiUrl, payload, config);
+
+        if (apiResponse.data.candidates && apiResponse.data.candidates.length > 0) {
+            const generatedPassword = apiResponse.data.candidates[0].content.parts[0].text.trim();
+            res.status(200).json({ password: generatedPassword });
+        } else {
+            res.status(500).json({ error: 'No se pudo generar la contraseña.' });
+        }
+    } catch (error: unknown) {
+        console.error("Error generando contraseña:", error);
+        res.status(500).json({ error: 'Error interno al generar la contraseña.' });
+    }
+});
+
 export default router; // Usamos 'export default' en TypeScript

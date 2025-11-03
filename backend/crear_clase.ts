@@ -18,7 +18,7 @@ router.post('/crear-clase', (req: Request, res: Response) => {
     database: process.env.DB_NAME || 'eductechub'
   });
 
-  conn.connect((err) => {
+  conn.connect((err: any) => {
     if (err) {
       console.error('Error de conexión MySQL:', err);
       return res.json({ error: 'Error de conexión' });

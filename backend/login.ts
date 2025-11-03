@@ -1,9 +1,9 @@
 import { Router, type Request, type Response } from 'express';
 import 'express-session';
 import pool from './conexion_be';
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
 
 const router = Router();
 
@@ -62,6 +62,31 @@ async function notifyFailedAttempts(email: string) {
   }
 }
 
+// Función para notificar login exitoso por email
+async function notifySuccessfulLogin(email: string) {
+  const subject = 'Notificación: Inicio de sesión exitoso';
+  const text = `Se ha iniciado sesión exitosamente en tu cuenta (${email}) en EduTecHub. Si no fuiste tú, cambia tu contraseña inmediatamente.`;
+  const html = `<p>Se ha iniciado sesión exitosamente en tu cuenta (${email}) en EduTecHub.</p>
+                <p>Si no fuiste tú, <strong>cambia tu contraseña inmediatamente</strong> o contacta con soporte.</p>`;
+
+  if (mailTransporter) {
+    try {
+      await mailTransporter.sendMail({
+        from: process.env.SMTP_FROM || 'no-reply@example.com',
+        to: email,
+        subject,
+        text,
+        html
+      });
+      console.log(`Notificación de login exitoso enviada a ${email}.`);
+    } catch (err) {
+      console.error('Error enviando notificación de login exitoso:', err);
+    }
+  } else {
+    console.log('Mail transporter no configurado. Notificación de login exitoso (simulada):', { email, subject, text });
+  }
+}
+
 // --- RUTA DE LOGIN ---
 router.post('/login', async (req: Request, res: Response) => {
   const correo: string = req.body.correo ? String(req.body.correo).trim() : '';
@@ -69,6 +94,11 @@ router.post('/login', async (req: Request, res: Response) => {
 
   if (!correo || !contrasena) {
     return res.status(400).json({ success: false, message: 'Faltan correo o contraseña.' });
+  }
+
+  // Validar dominio institucional
+  if (!correo.endsWith('@alu.tecnica29de6.edu.ar') && !correo.endsWith('@tecnica29de6.edu.ar')) {
+    return res.status(400).json({ success: false, message: 'Solo se permiten correos institucionales.' });
   }
 
   try {
@@ -101,17 +131,20 @@ router.post('/login', async (req: Request, res: Response) => {
       rol = 'profesor';
     }
 
-    req.session.usuario = {
+    (req.session as any).usuario = {
       id: Number(usuario.id_usuario),
       nombre: usuario.nombre_completo || '',
       correo: usuario.correo || correo,
       rol
     };
 
+    // Enviar notificación de login exitoso por email
+    await notifySuccessfulLogin(correo);
+
     res.status(200).json({
       success: true,
       message: 'Inicio de sesión exitoso.',
-      usuario: req.session.usuario
+      usuario: (req.session as any).usuario
     });
   } catch (err) {
     console.error('Error en la consulta de login:', err);

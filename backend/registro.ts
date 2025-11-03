@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import pool from './conexion_be';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 
 const router = Router();
 
@@ -28,6 +28,11 @@ router.post(
 
     if (!nombre_completo || !correo || !curso || !DNI || !contrasena) {
       return res.status(400).send('Datos incompletos.');
+    }
+
+    // Validar dominio institucional para alumnos
+    if (!correo.endsWith('@alu.tecnica29de6.edu.ar')) {
+      return res.status(400).send('Solo se permiten correos institucionales de alumnos (@alu.tecnica29de6.edu.ar).');
     }
 
     try {
@@ -98,6 +103,11 @@ router.post(
 
     if (!nombre_completo || !correo || !materia || !DNI || !contrasena) {
       return res.status(400).send('Datos incompletos.');
+    }
+
+    // Validar dominio institucional para profesores
+    if (!correo.endsWith('@tecnica29de6.edu.ar') || correo.includes('@alu.')) {
+      return res.status(400).send('Solo se permiten correos institucionales de profesores (@tecnica29de6.edu.ar).');
     }
 
     try {

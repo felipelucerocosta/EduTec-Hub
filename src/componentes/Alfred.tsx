@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, FormEvent, ChangeEvent } from "react";
-import "./Alfred.css";
+import React, { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from "react";
+import "../alfred.css";
 
 const AlfredIcon: React.FC = () => (
   <svg
@@ -67,10 +67,19 @@ const Alfred: React.FC = () => {
         ],
       },
       { role: "model", parts: [{ text: "Entendido. Estoy a su servicio." }] },
+      
+      // ===================================
+      // AQUÍ ESTÁ LA CORRECCIÓN APLICADA
+      // ===================================
       ...messages.map((msg) => ({
-        role: msg.sender === "user" ? "user" : "model",
+        // Traduce 'alfred' (de tu estado) a 'model' (para la API)
+        role: msg.sender === 'user' ? 'user' as const : 'model' as const,
         parts: [{ text: msg.text }],
       })),
+      // ===================================
+      // FIN DE LA CORRECCIÓN
+      // ===================================
+
       { role: "user", parts: [{ text: prompt }] },
     ];
 
@@ -162,6 +171,7 @@ const Alfred: React.FC = () => {
               value={userInput}
               onChange={handleInputChange}
               placeholder="Escriba su consulta..."
+              aria-label="Escriba su consulta"
               disabled={isLoading}
             />
             <button type="submit" disabled={isLoading}>
