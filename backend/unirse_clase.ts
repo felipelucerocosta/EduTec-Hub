@@ -1,6 +1,6 @@
-import express, { type Request, type Response } from 'express';
-import session from 'express-session';
-import mysql from 'mysql';
+import { Router, type Request, type Response } from 'express';
+import 'express-session';
+import pool from './conexion_be'; // 👈 1. Importa el POOL de PostgreSQL
 
 declare module 'express-session' {
   interface SessionData {
@@ -8,86 +8,51 @@ declare module 'express-session' {
   }
 }
 
-const app = express();
+const router = Router();
 
-// Middlewares
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'una-clave-muy-secreta-y-larga',
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax'
-  }
-}));
-
-// Configuración de la conexión MySQL
-const conexion = mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'edutec'
-});
-
-conexion.connect((err: any) => {
-  if (err) {
-    console.error('Error al conectar con la base de datos:', err);
-  } else {
-    console.log('Conexión a la base de datos establecida.');
-  }
-});
-
-// Ruta POST para unirse a una clase
-app.post('/unirse-clase', (req: Request, res: Response) => {
-  const alumno_id = req.session?.alumno_id;
+router.post('/unirse-clase', async (req: Request, res: Response) => { // 👈 2. Convertido a async
+  
+  // Usamos el ID de la sesión (más seguro)
+  const alumno_id = req.session?.usuario?.id;
   if (!alumno_id) {
-    return res.send('Debes iniciar sesión como alumno.');
+    return res.status(401).send('Debes iniciar sesión como alumno.');
   }
 
   const materia: string = req.body.materia || '';
   const codigo: string = req.body.codigo || '';
 
   if (!materia || !codigo) {
-    return res.send('Datos incompletos.');
+    return res.status(400).send('Datos incompletos.');
   }
 
-  // Verificar si ya está unido a la clase
-  const verificarSql = `
-    SELECT * FROM alumnos_clases 
-    WHERE alumno_id = ? AND materia = ?
-  `;
+  try {
+    // 👈 3. Query de PostgreSQL (usa $1, $2)
+    // Verificar si ya está unido a la clase
+    const verificarSql = `
+      SELECT * FROM alumnos_clases 
+      WHERE alumno_id = $1 AND materia = $2
+    `;
+    const resultVerificar = await pool.query(verificarSql, [alumno_id, materia]);
 
-  conexion.query(verificarSql, [alumno_id, materia], (err, results: any) => {
-    if (err) {
-      console.error('Error en la base de datos (verificar):', err);
-      return res.send('Error en la base de datos.');
-    }
-
-    if (Array.isArray(results) && results.length > 0) {
+    if (resultVerificar.rows.length > 0) {
       return res.send(`Ya estás unido a la clase de ${materia}.`);
     }
 
     // Insertar la relación
     const insertSql = `
       INSERT INTO alumnos_clases (alumno_id, materia, codigo) 
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3)
     `;
+    
+    // 👈 4. Usa pool.query con await (sin callbacks)
+    await pool.query(insertSql, [alumno_id, materia, codigo]);
+    
+    res.send('Te has unido a la clase exitosamente.');
 
-    conexion.query(insertSql, [alumno_id, materia, codigo], (insertErr) => {
-      if (insertErr) {
-        console.error('Error en la base de datos (insert):', insertErr);
-        return res.send('Error al unirse a la clase.');
-      }
-      res.send(`¡Te has unido a la clase de ${materia}!`);
-    });
-  });
+  } catch (err) {
+    console.error('Error en la base de datos (unirse_clase):', err);
+    res.status(500).send('Error en la base de datos.');
+  }
 });
 
-// Iniciar servidor
-const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
-});
+export default router;

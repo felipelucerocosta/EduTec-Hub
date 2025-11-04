@@ -2,7 +2,7 @@
 import { Router, Request, Response } from 'express'; // Usamos import
 import 'express-session';         // Importamos para los tipos de sesión
 import pool from './conexion_be';  // Importamos el pool de PostgreSQL
-import multer from 'multer';       // Importamos multer
+import * as multer from 'multer';     // Importamos multer
 
 // --- 2. EL RESTO DE TU CÓDIGO (SIN CAMBIOS) ---
 const storage = multer.diskStorage({
