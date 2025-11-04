@@ -26,6 +26,12 @@ const mailTransporter = (process.env.SMTP_HOST && process.env.SMTP_USER && proce
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
+      },
+      // ===================================
+      // 1. AÑADE ESTAS 3 LÍNEAS AQUÍ
+      // ===================================
+      tls: {
+        rejectUnauthorized: false
       }
     })
   : null;
@@ -47,7 +53,7 @@ async function notifyFailedAttempts(email: string) {
   if (mailTransporter) {
     try {
       await mailTransporter.sendMail({
-        from: process.env.SMTP_FROM || 'no-reply@example.com',
+        from: process.env.SMTP_FROM || `EduTec-Hub <${process.env.SMTP_USER}>`, // Usar un "from" más amigable
         to: email,
         subject,
         text,
@@ -72,7 +78,7 @@ async function notifySuccessfulLogin(email: string) {
   if (mailTransporter) {
     try {
       await mailTransporter.sendMail({
-        from: process.env.SMTP_FROM || 'no-reply@example.com',
+        from: process.env.SMTP_FROM || `EduTec-Hub <${process.env.SMTP_USER}>`, // Usar un "from" más amigable
         to: email,
         subject,
         text,
@@ -144,11 +150,17 @@ router.post('/login', async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: 'Inicio de sesión exitoso.',
-      usuario: (req.session as any).usuario
+      // 2. CORRECCIÓN: Devuelve 'rol' en el objeto 'usuario'
+      usuario: {
+        id: Number(usuario.id_usuario),
+        nombre: usuario.nombre_completo || '',
+        correo: usuario.correo || correo,
+        rol
+      }
     });
   } catch (err) {
     console.error('Error en la consulta de login:', err);
-    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+    res.status(5.00).json({ success: false, message: 'Error interno del servidor.' });
   }
 });
 
@@ -192,6 +204,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     // Responder siempre OK para evitar enumeración de usuarios
     if (!userResult || !Array.isArray(userResult.rows) || userResult.rows.length === 0) {
       console.log(`Forgot-password solicitado para correo no registrado: ${correo}`);
+      // 3. CORRECCIÓN: Tu frontend espera 'message', no 'message'
       return res.status(200).json({ success: true, message: 'Si existe una cuenta con ese correo, se ha enviado un enlace de recuperación.' });
     }
 
@@ -213,7 +226,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
     if (mailTransporter) {
       await mailTransporter.sendMail({
-        from: process.env.SMTP_FROM || 'no-reply@example.com',
+        from: process.env.SMTP_FROM || `EduTec-Hub <${process.env.SMTP_USER}>`, // Usar un "from" más amigable
         to: user.correo,
         subject: 'Recuperar contraseña - EduTecHub',
         text: `Para restablecer tu contraseña, visita: ${resetLink}`,

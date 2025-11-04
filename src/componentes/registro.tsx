@@ -21,10 +21,10 @@ interface FormData {
 // --- Constantes ---
 const ALUMNO_DOMAIN = "@alu.tecnica29de6.edu.ar";
 const PROFESOR_DOMAIN = "@tecnica29de6.edu.ar";
-const API_URL = "http://localhost:3001/api"; // URL base de tu backend
+const API_URL = "http://localhost:3001/api"; 
 
 const Registro: React.FC = () => {
-  const [isRegistering, setIsRegistering] = useState<boolean>(false);
+  const [isRegistering, setIsRegistering] = useState<boolean>(false); 
   const [notification, setNotification] = useState<Notification>({ msg: "", type: "" });
   const [formData, setFormData] = useState<FormData>({
     nombre_completo: "",
@@ -34,6 +34,7 @@ const Registro: React.FC = () => {
     curso: "",
     materia: "",
   });
+  
   const navigate = useNavigate();
 
   // --- Funciones Auxiliares ---
@@ -50,22 +51,13 @@ const Registro: React.FC = () => {
   const handleTabChange = (registering: boolean) => {
     setIsRegistering(registering);
     setNotification({ msg: "", type: "" }); // Limpia notificaciones al cambiar
-    // Limpia campos específicos al cambiar de pestaña
-    setFormData(prev => ({
-        ...prev,
-        nombre_completo: "",
-        DNI: "",
-        curso: "",
-        materia: ""
-    }));
   };
 
-  // --- Lógica de API: Iniciar Sesión ---
+  // --- Lógica de API: Iniciar Sesión (CORREGIDA) ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const { correo, contrasena } = formData;
-
-    // Validar correo institucional
+    
     if (!correo.endsWith(ALUMNO_DOMAIN) && !correo.endsWith(PROFESOR_DOMAIN)) {
       showNotification("Por favor, use un correo institucional para iniciar sesión.", "error");
       return;
@@ -78,17 +70,18 @@ const Registro: React.FC = () => {
         body: JSON.stringify({ correo, contrasena }),
       });
       
-      const data = await response.json();
+      const data = await response.json(); 
 
       if (response.ok) {
         showNotification(data.message, "success");
-        if (data.rol === 'profesor') {
+
+        // Corrección (Rol desconocido):
+        if (data.usuario && data.usuario.rol === 'profesor') {
           navigate("/clases");
-        } else if (data.rol === 'alumno') {
+        } else if (data.usuario && data.usuario.rol === 'alumno') {
           navigate("/alumno");
         } else {
           showNotification("Rol de usuario desconocido.", "error");
-          navigate("/");
         }
       } else {
         throw new Error(data.message || "Error al iniciar sesión");
@@ -101,7 +94,7 @@ const Registro: React.FC = () => {
   // --- Lógica de API: Registrarse ---
   const handleRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { correo, nombre_completo, DNI, contrasena, curso, materia } = formData;
+    const { correo } = formData;
     
     const isProfesor = correo.endsWith(PROFESOR_DOMAIN);
     const isAlumno = correo.endsWith(ALUMNO_DOMAIN);
@@ -111,34 +104,15 @@ const Registro: React.FC = () => {
       return;
     }
 
-    // Validaciones específicas para registro
-    if (!nombre_completo || !DNI || !contrasena) {
-      showNotification("Todos los campos obligatorios deben ser completados.", "error");
-      return;
-    }
-    if (isAlumno && !curso) {
-      showNotification("El campo 'Curso' es obligatorio para alumnos.", "error");
-      return;
-    }
-    if (isProfesor && !materia) {
-      showNotification("El campo 'Materia' es obligatorio para profesores.", "error");
-      return;
-    }
-    if (contrasena.length < 6) { // Validación mínima de contraseña
-        showNotification("La contraseña debe tener al menos 6 caracteres.", "error");
-        return;
-    }
-
-
     const endpoint = isProfesor ? `${API_URL}/registro-profesor` : `${API_URL}/registro-alumno`;
     
     const body = {
-      nombre_completo,
-      correo,
-      DNI,
-      contrasena,
-      ...(isAlumno && { curso }),
-      ...(isProfesor && { materia }),
+      nombre_completo: formData.nombre_completo,
+      correo: formData.correo,
+      DNI: formData.DNI,
+      contrasena: formData.contrasena,
+      ...(isAlumno && { curso: formData.curso }),
+      ...(isProfesor && { materia: formData.materia }),
     };
 
     try {
@@ -148,12 +122,11 @@ const Registro: React.FC = () => {
         body: JSON.stringify(body),
       });
 
-      const data = await response.text(); // Tu API de registro.ts devuelve texto plano
+      const data = await response.text(); 
 
       if (response.ok) {
         showNotification(data, "success"); // "Registro exitoso..."
         setIsRegistering(false); // Vuelve a la pestaña de Login
-        // Limpia el formulario (excepto el correo/pass para facilitar el login si se desea)
         setFormData(prev => ({ 
             ...prev, 
             nombre_completo: "", 
@@ -181,29 +154,12 @@ const Registro: React.FC = () => {
       <div className={styles.loginRegisterContainer}>
         <div className={styles.containerPrincipal}>
           
-          {/* --- Pestañas de Login / Registro --- */}
-          <div className={styles.tabContainer}> {/* Asegúrate de que tienes estilos para 'tabContainer' y 'tabButton' en Registro.module.css */}
-            <button
-              className={`${styles.tabButton} ${!isRegistering ? styles.activeTab : ''}`}
-              onClick={() => handleTabChange(false)}
-            >
-              Iniciar Sesión
-            </button>
-            <button
-              className={`${styles.tabButton} ${isRegistering ? styles.activeTab : ''}`}
-              onClick={() => handleTabChange(true)}
-            >
-              Registrarse
-            </button>
-          </div>
-
-          {/* --- Formulario Dinámico --- */}
           <form onSubmit={isRegistering ? handleRegistro : handleLogin}>
             <h2 style={{ color: "black" }}>
               {isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}
             </h2>
 
-            {/* --- Campos de Registro (Condicional) --- */}
+            {/* --- CAMPOS DE REGISTRO (CONDICIONALES) --- */}
             {isRegistering && (
               <>
                 <div className={styles.formGroup}>
@@ -229,7 +185,7 @@ const Registro: React.FC = () => {
               </>
             )}
 
-            {/* --- Campos Comunes (Correo y Contraseña) --- */}
+            {/* --- Campos Comunes (Email y Contraseña) --- */}
             <div className={styles.formGroup}>
               <input
                 type="email"
@@ -251,7 +207,7 @@ const Registro: React.FC = () => {
               />
             </div>
 
-            {/* --- Campos de Rol (Condicional para Registro) --- */}
+            {/* --- CAMPOS DE ROL (CONDICIONALES) --- */}
             {isRegistering && formData.correo.endsWith(ALUMNO_DOMAIN) && (
               <div className={styles.formGroup}>
                 <input
@@ -278,27 +234,61 @@ const Registro: React.FC = () => {
               </div>
             )}
 
-            {/* --- Botón de Envío --- */}
+            {/* --- Botón de Envío Dinámico --- */}
             <button type="submit">
               {isRegistering ? "Registrarse" : "Iniciar Sesión"}
             </button>
             
-            {/* --- Enlace "Olvidaste Contraseña" --- */}
+            {/* --- Enlace "Olvidé Contraseña" --- */}
             <div style={{ marginTop: "15px", textAlign: "center" }}>
               <Link
                 to="/forgot-password"
                 style={{
                   backgroundColor: "transparent",
-                  color: "#007bff",
+                  color: "#007bff", // Mantenemos el azul para "Olvidé contraseña"
                   border: "none",
                   cursor: "pointer",
-                  textDecoration: "underline"
+                  textDecoration: "underline",
+                  fontSize: "0.9em" // Un poco más pequeño
                 }}
               >
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
-            
+
+            {/* =================================== */}
+            {/* SECCIÓN DE PESTAÑAS (ESTILO MEJORADO) */}
+            {/* =================================== */}
+            <div style={{ 
+              marginTop: "20px", 
+              textAlign: "center", 
+              paddingTop: "15px", 
+              borderTop: "1px solid #00000020" // <-- Corregido el typo y color más suave
+            }}>
+              <span style={{ color: '#333' }}> {/* Texto más suave */}
+                {isRegistering ? "¿Ya tienes una cuenta? " : "¿No tienes una cuenta? "}
+              </span>
+              <button
+                type="button" 
+                onClick={() => handleTabChange(!isRegistering)}
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#000000", // Color negro
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "none", // Sin subrayado
+                  fontFamily: "inherit",
+                  fontSize: "1em",
+                  fontWeight: "bold", // En negrita
+                  padding: 0,
+                  margin: 0,
+                  marginLeft: "4px"
+                }}
+              >
+                {isRegistering ? "Inicia Sesión" : "Regístrate"}
+              </button>
+            </div>
+
           </form>
         </div>
       </div>

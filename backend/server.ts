@@ -2,6 +2,11 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+import * as dotenv from 'dotenv'; // 👈 1. IMPORTAR DOTENV
+
+// 👈 2. EJECUTAR DOTENV (Esto lee tu archivo .env)
+// (Debe estar ANTES de que cualquier otro archivo intente usar process.env)
+dotenv.config(); 
 
 function interop(m: any) { return m && (m.default ?? m); }
 
@@ -9,14 +14,13 @@ const apiRutasRouter = interop(require('./api_rutas'));
 const mensajesRouter = interop(require('./mensajes'));
 const registroRouter = interop(require('./registro'));
 const loginRouter = interop(require('./login'));
-const alfredRouter = interop(require('./alfred')); // 👈 1. IMPORTAR ALFRED
+const alfredRouter = interop(require('./alfred')); 
 
 // --- 2. INICIALIZAR LA APP ---
 const app = express();
 const PORT: number = Number(process.env.PORT) || 3001;
 
 // --- 3. CONFIGURAR MIDDLEWARE ---
-// ¡Tu configuración de CORS está perfecta!
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
@@ -40,7 +44,7 @@ app.use('/api', mensajesRouter);
 app.use('/api', registroRouter);
 app.use('/api', loginRouter);
 app.use('/api', apiRutasRouter);
-app.use('/api', alfredRouter); // 👈 2. USAR EL ROUTER DE ALFRED
+app.use('/api', alfredRouter); 
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('Servidor del Backend de EduTecHub funcionando!');
