@@ -266,7 +266,7 @@ const Registro: React.FC = () => {
               borderTop: "1px solid #00000020" // <-- Corregido el typo y color más suave
             }}>
               <span style={{ color: '#333' }}> {/* Texto más suave */}
-                {isRegistering ? "¿Ya tienes una cuenta? " : " "}
+                {isRegistering ? "¿Ya tienes una cuenta? " : "¿No tienes una cuenta? "}
               </span>
               <button
                 type="button" 
@@ -285,7 +285,7 @@ const Registro: React.FC = () => {
                   marginLeft: "4px"
                 }}
               >
-                {isRegistering ? "Inicia Sesión" : ""}
+                {isRegistering ? "Inicia Sesión" : "Regístrate"}
               </button>
             </div>
 
