@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import axios, { AxiosRequestConfig } from 'axios';
+import pool from './conexion_be'; // 👈 IMPORTAMOS LA CONEXIÓN A POSTGRESQL
+import * as bcrypt from 'bcrypt'; // 👈 IMPORTAMOS BCRYPT
 
 // Definición de tipos para la estructura de la conversación
 interface ChatContent {
@@ -7,126 +9,116 @@ interface ChatContent {
     parts: Array<{ text: string }>;
 }
 
-// Interfaz para el cuerpo de la solicitud (req.body)
+// Interfaz para el cuerpo de la solicitud (req.body) de /ask-alfred
 interface AskAlfredBody {
     chatHistory: ChatContent[];
 }
 
+// Interfaz para el cuerpo de la solicitud (req.body) de /generate-password
+interface GeneratePasswordBody {
+    email: string;
+    context: string;
+}
+
 const router: Router = Router();
 
+// ===================================
+// RUTA 1: /ask-alfred (CHAT NORMAL)
+// (Sin cambios)
+// ===================================
 router.post('/ask-alfred', async (req: Request<{}, {}, AskAlfredBody>, res: Response) => {
-    // La desestructuración con tipado nos asegura que chatHistory es un array de ChatContent
     const { chatHistory } = req.body;
 
     if (!chatHistory) {
         return res.status(400).json({ error: 'El historial del chat es requerido.' });
     }
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Pega la API Key que generaste en Google AI Studio.
-    // Es **altamente recomendado** usar variables de entorno (process.env.GEMINI_API_KEY)
-    // para las claves secretas en un entorno de producción.
+    // (Asegúrate de cambiar esta KEY por una variable de entorno)
     const apiKey: string = "AIzaSyCvttzZon067xS7DnQsgQIgNXvaMFTEpBw";
 
     if (apiKey === "" || !apiKey) {
-        // En un entorno real, `apiKey` debería venir de `process.env` y no del código fuente.
-        return res.status(500).json({ error: 'La API Key no ha sido configurada en el servidor.' });
+        console.error("API Key de Gemini no está configurada.");
+        return res.status(500).json({ error: 'Servicio de IA no configurado.' });
     }
-
-    // Estructura del payload con tipado
-    const payload: { contents: ChatContent[] } = { contents: chatHistory };
-   
-    // URL de la API con la clave
+    
     const apiUrl: string = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-    try {
-        // Configuración para la solicitud de Axios
-        const config: AxiosRequestConfig = {
-            headers: { 'Content-Type': 'application/json' }
-        };
-
-        const apiResponse = await axios.post(apiUrl, payload, config);
-
-        // TypeScript infiere el tipo de apiResponse.data
-        res.status(200).json(apiResponse.data);
-
-    } catch (error: unknown) {
-        console.error("======================================================");
-        console.error("ERROR DETALLADO AL LLAMAR A LA API DE GEMINI:");
-       
-        // Uso de `isAxiosError` para un manejo de errores más robusto con tipado.
-        if (axios.isAxiosError(error) && error.response) {
-            console.error("Data:", error.response.data);
-            console.error("Status:", error.response.status);
-        } else if (error instanceof Error) {
-            console.error('Error', error.message);
-        } else {
-            console.error('An unknown error occurred');
-        }
-        console.error("======================================================");
-       
-        res.status(500).json({ error: 'Error interno al contactar el servicio de IA.' });
-    }
-});
-
-// Endpoint para generar contraseñas seguras usando Alfred
-router.post('/generate-password', async (req: Request, res: Response) => {
-    const { email } = req.body;
-
-    if (!email) {
-        return res.status(400).json({ error: 'El correo electrónico es requerido.' });
-    }
-
-    // Validar que sea un correo institucional
-    if (!email.endsWith('@alu.tecnica29de6.edu.ar') && !email.endsWith('@tecnica29de6.edu.ar')) {
-        return res.status(400).json({ error: 'Solo se permiten correos institucionales.' });
-    }
-
-    const apiKey: string = "AIzaSyCvttzZon067xS7DnQsgQIgNXvaMFTEpBw";
-
-    if (apiKey === "" || !apiKey) {
-        return res.status(500).json({ error: 'La API Key no ha sido configurada en el servidor.' });
-    }
-
-    // Prompt para generar una contraseña segura basada en el email institucional
-    const prompt = `Genera una contraseña segura y memorable para el usuario con email ${email}. La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y símbolos. Hazla fácil de recordar pero segura. Responde solo con la contraseña generada, sin explicaciones adicionales.`;
-
-    const chatHistory: ChatContent[] = [
-        {
-            role: "user",
-            parts: [{ text: "Eres un generador de contraseñas seguras. Responde solo con la contraseña generada." }]
-        },
-        {
-            role: "model",
-            parts: [{ text: "Entendido. Generaré contraseñas seguras." }]
-        },
-        {
-            role: "user",
-            parts: [{ text: prompt }]
-        }
-    ];
-
     const payload: { contents: ChatContent[] } = { contents: chatHistory };
-
-    const apiUrl: string = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
+    
     try {
         const config: AxiosRequestConfig = {
             headers: { 'Content-Type': 'application/json' }
         };
-
         const apiResponse = await axios.post(apiUrl, payload, config);
 
         if (apiResponse.data.candidates && apiResponse.data.candidates.length > 0) {
-            const generatedPassword = apiResponse.data.candidates[0].content.parts[0].text.trim();
-            res.status(200).json({ password: generatedPassword });
+            const text = apiResponse.data.candidates[0].content.parts[0].text;
+            res.status(200).json({ candidates: apiResponse.data.candidates });
         } else {
-            res.status(500).json({ error: 'No se pudo generar la contraseña.' });
+            res.status(500).json({ error: 'Respuesta no válida de la IA.' });
         }
     } catch (error: unknown) {
-        console.error("Error generando contraseña:", error);
-        res.status(500).json({ error: 'Error interno al generar la contraseña.' });
+        console.error('Error llamando a la API de Gemini:', error);
+        res.status(500).json({ error: 'Error interno al contactar la IA.' });
     }
 });
 
-export default router; // Usamos 'export default' en TypeScript
+
+// ==========================================================
+// RUTA 2: /generate-password (GENERAR Y GUARDAR CONTRASEÑA)
+// (Completamente modificada)
+// ==========================================================
+router.post('/generate-password', async (req: Request<{}, {}, GeneratePasswordBody>, res: Response) => {
+    const { email, context } = req.body;
+    const apiKey: string = "AIzaSyCvttzZon067xS7DnQsgQIgNXvaMFTEpBw"; // (Usar variable de entorno)
+
+    if (!email) {
+        return res.status(400).json({ error: 'El correo es requerido para generar y guardar la contraseña.' });
+    }
+
+    try {
+        // --- 1. Verificar si el usuario existe en la BD ---
+        const userQuery = await pool.query('SELECT id_usuario FROM usuarios WHERE correo = $1', [email]);
+        
+        if (userQuery.rows.length === 0) {
+            return res.status(404).json({ error: 'Correo no encontrado. No se puede actualizar la contraseña.' });
+        }
+        const userId = userQuery.rows[0].id_usuario;
+
+        // --- 2. Llamar a la IA de Gemini para generar la contraseña ---
+        const prompt = context || `Generar una contraseña segura de 12 caracteres para ${email}`;
+        const chatHistory: ChatContent[] = [
+            { role: "user", parts: [{ text: "Eres un generador de contraseñas seguras. Responde solo con la contraseña generada, sin texto adicional." }] },
+            { role: "model", parts: [{ text: "Entendido." }] },
+            { role: "user", parts: [{ text: prompt }] }
+        ];
+        const payload = { contents: chatHistory };
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const config: AxiosRequestConfig = { headers: { 'Content-Type': 'application/json' } };
+        
+        const apiResponse = await axios.post(apiUrl, payload, config);
+        
+        if (!apiResponse.data.candidates || apiResponse.data.candidates.length === 0) {
+            throw new Error('La API de IA no generó una contraseña.');
+        }
+        
+        // Limpiamos la contraseña por si la IA añade espacios
+        const newPassword = apiResponse.data.candidates[0].content.parts[0].text.trim();
+
+        // --- 3. Hashear la nueva contraseña ---
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        // --- 4. Actualizar la contraseña en la base de datos ---
+        await pool.query('UPDATE usuarios SET contrasena = $1 WHERE id_usuario = $2', [hashedPassword, userId]);
+        
+        // --- 5. Enviar la contraseña (sin hashear) de vuelta al chat ---
+        res.status(200).json({ password: newPassword });
+
+    } catch (error: any) {
+        console.error('Error en /generate-password:', error.message);
+        res.status(500).json({ error: 'Error interno al generar y guardar la contraseña.' });
+    }
+});
+
+
+export default router;
