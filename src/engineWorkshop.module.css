@@ -69,14 +69,30 @@ h2 {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+/* --- ADICIÓN: Estilos para la Accesibilidad (Foco) --- */
+.card:focus-within {
+  outline: 3px solid #3498db;
+  outline-offset: 4px;
+}
+/* -------------------------------------------------- */
+
+
 .steps-card {
   grid-column: span 1;
 }
 
-.engine-card {
+.engine-card { /* Usado para Motor */
   grid-column: span 1;
   position: relative;
 }
+
+/* --- ADICIÓN: Estilos específicos para la tarjeta de Circuito/Red --- */
+.circuit-card,
+.network-card {
+  grid-column: span 1;
+  position: relative;
+}
+/* -------------------------------------------------- */
 
 .toolbox-card {
   grid-column: span 1;
@@ -200,6 +216,21 @@ h2 {
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
   animation: pulse 1s infinite;
 }
+
+/* --- ADICIÓN: Estilo específico para el paso "current" de Red (Uso de color diferente) --- */
+.steps-list.network-steps li.current {
+  background: #fcf8e3; /* Amarillo pálido */
+  border-left-color: #f39c12; /* Naranja/Amarillo */
+  box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3);
+  animation: pulse-network 1s infinite;
+}
+
+@keyframes pulse-network {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(243, 156, 18, 0.1); }
+}
+/* ---------------------------------------------------------------------------------------- */
+
 
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3); }
@@ -364,6 +395,37 @@ h2 {
   opacity: 0.6;
 }
 
+/* --- ADICIÓN: Botón para la simulación de Red/Siguiente Paso (Alternativa) --- */
+.next-step-button {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad); /* Color púrpura */
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin: 10px 0;
+    box-shadow: 0 4px 10px rgba(155, 89, 182, 0.3);
+}
+
+.next-step-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #8e44ad, #9b59b6);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(155, 89, 182, 0.4);
+}
+
+.next-step-button:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.6;
+}
+/* ------------------------------------------------------------------------------- */
+
+
 /* Message */
 .message {
   text-align: center;
@@ -450,6 +512,18 @@ h2 {
   color: #6c757d;
 }
 
+/* --- ADICIÓN: Estilos específicos para la Red --- */
+.network-status-ok {
+    color: #9b59b6; /* Púrpura */
+    font-weight: bold;
+}
+
+.network-diagram-line {
+    transition: stroke 0.5s ease, stroke-width 0.3s ease;
+}
+/* ----------------------------------------------- */
+
+
 /* Toolbox Styles */
 .tool-list {
   display: flex;
@@ -468,6 +542,14 @@ h2 {
   user-select: none;
   position: relative;
 }
+
+/* --- ADICIÓN: Foco para herramienta (Accesibilidad) --- */
+.tool:focus {
+    outline: 3px solid #e67e22;
+    outline-offset: 2px;
+}
+/* ---------------------------------------------------- */
+
 
 .tool:not([draggable="true"]) {
   opacity: 0.6;
@@ -492,6 +574,22 @@ h2 {
   font-size: 0.85em;
   margin-top: 5px;
 }
+
+/* --- ADICIÓN: Estilos de herramientas específicos para electricidad --- */
+.tool.electricity-tool {
+    background: #d1ecf1; /* Azul pálido */
+    border-color: #007bff;
+    color: #0c5460;
+}
+.tool.electricity-tool:hover {
+    background: #c3e6cb;
+    border-color: #28a745;
+}
+.tool.electricity-tool .card-desc {
+    color: #0c5460;
+}
+/* ------------------------------------------------------------------- */
+
 
 /* Footer */
 .footer {
