@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import styles from "../simulacion.module.css";
 import Header5 from "../components reutilizables/header5";
-import EngineWorkshop from "./motor"; // importa el componente motor
+
+// Importar los componentes
+import EngineWorkshop from "./motor";
+import Economia from "./economia";
+import Electricidad from "./electricidad";
 
 interface Simulacion {
   id: number;
@@ -15,25 +19,19 @@ const simulaciones: Simulacion[] = [
     id: 1,
     titulo: "Simulación 1",
     descripcion: "Arreglar un motor de combustión interna",
-    imagen: "../public/descarga.png",
+    imagen: "../public/motor.jpg",
   },
   {
     id: 2,
     titulo: "Simulación 2",
-    descripcion: "Estudio de ecosistemas marinos",
-    imagen: "../public/descarga.png",
+    descripcion: "Computacion",
+    imagen: "../public/computacopn.jpg",
   },
   {
     id: 3,
     titulo: "Simulación 3",
     descripcion: "Prácticas de circuitos eléctricos",
-    imagen: "../public/descarga.png",
-  },
-  {
-    id: 4,
-    titulo: "Simulación 4",
-    descripcion: "Realidad aumentada en química",
-    imagen: "../public/descarga.png",
+    imagen: "../public/cirguitos.jpg",
   },
 ];
 
@@ -41,19 +39,15 @@ const GaleriaSimulaciones: React.FC = () => {
   const [simSeleccionada, setSimSeleccionada] = useState<number | null>(null);
 
   const handleSeleccion = (sim: Simulacion) => {
-    // Si es la primera simulación, mostramos el motor
-    if (sim.id === 1) {
-      setSimSeleccionada(1);
-    } else {
-      alert(`Has seleccionado: ${sim.titulo}`);
-    }
+    setSimSeleccionada(sim.id);
   };
 
-  // Si se seleccionó la primera simulación, renderizamos el motor
-  if (simSeleccionada === 1) {
-    return <EngineWorkshop />;
-  }
+  // 🔥 Renderizado condicional de cada componente
+  if (simSeleccionada === 1) return <EngineWorkshop />;
+  if (simSeleccionada === 2) return <Economia />;
+  if (simSeleccionada === 3) return <Electricidad />;
 
+  // 🖼 Galería
   return (
     <div className={styles.body}>
       <Header5 />
@@ -70,6 +64,7 @@ const GaleriaSimulaciones: React.FC = () => {
                 <img src={sim.imagen} alt={sim.titulo} />
                 <div className={styles["card-title"]}>{sim.titulo}</div>
                 <div className={styles["card-desc"]}>{sim.descripcion}</div>
+
                 <button
                   className={styles.button}
                   onClick={(e) => {
@@ -85,6 +80,7 @@ const GaleriaSimulaciones: React.FC = () => {
         </div>
         <div className={styles["admin-title"]}>[ADMINISTRACIÓN]</div>
       </div>
+
       <footer className={styles.footer}>
         <p>Derechos de autor © 2025 EdutecHub</p>
       </footer>
