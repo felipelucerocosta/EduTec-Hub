@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { DragEvent } from "react";
-import styles from "../simulacion.module.css";  // Asegúrate de usar CSS Modules
+import styles from "../engineWorkshop.module.css";  // Asegúrate de usar CSS Modules
 
 interface Step {
   id: number;
