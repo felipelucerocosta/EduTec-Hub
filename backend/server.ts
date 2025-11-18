@@ -15,6 +15,7 @@ const mensajesRouter = interop(require('./mensajes'));
 const registroRouter = interop(require('./registro'));
 const loginRouter = interop(require('./login'));
 const alfredRouter = interop(require('./alfred')); 
+const obtenerClasesRouter = interop(require('./obtener_clases'));
 
 // --- 2. INICIALIZAR LA APP ---
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api', registroRouter);
 app.use('/api', loginRouter);
 app.use('/api', apiRutasRouter);
 app.use('/api', alfredRouter); 
+app.use('/api', obtenerClasesRouter);
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('Servidor del Backend de EduTecHub funcionando!');
