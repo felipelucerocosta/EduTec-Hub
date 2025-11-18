@@ -11,14 +11,14 @@ import ClasesAlumno from "./comoponentesalumno/clasesalumno";
 import TrabajosAlumno from "./comoponentesalumno/trabajosalumno";
 
 // === NUEVOS COMPONENTES ===
-import ForgotPassword from "./componentes/ForgotPassword"; // 👈 NUEVO
-import ResetPassword from "./componentes/ResetPassword";   // 👈 NUEVO
-import Alfred from "./componentes/Alfred";                 // 👈 AÑADIDO
+import ForgotPassword from "./componentes/ForgotPassword"; 
+import ResetPassword from "./componentes/ResetPassword";   
+import Alfred from "./componentes/Alfred";                 
 
 function App() {
   return (
-    <Router>
-      
+    <Router basename="/EduTec-Hub/">   {/* 👈 AGREGADO PARA GITHUB PAGES */}
+
       <Routes>
         {/* Rutas existentes */}
         <Route path="/" element={<Registro />} />
@@ -33,9 +33,8 @@ function App() {
         {/* === NUEVAS RUTAS === */}
         <Route path="/forgot-password" element={<ForgotPassword />} /> 
         <Route path="/reset-password" element={<ResetPassword />} /> 
-
       </Routes>
-      
+
       {/* Alfred se renderiza fuera de <Routes> para estar en todas las páginas */}
       <Alfred />
 
