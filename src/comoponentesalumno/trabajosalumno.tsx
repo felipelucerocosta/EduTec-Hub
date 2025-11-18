@@ -9,6 +9,7 @@ interface Tarea {
   titulo: string;
   descripcion: string;
   fechaEntrega: string;
+  porcentaje?: number;
 }
 
 interface Alumno {
@@ -28,12 +29,14 @@ const GestionClase: React.FC = () => {
       titulo: "Trabajo Práctico Nº1",
       descripcion: "Realizar el circuito eléctrico del proyecto.",
       fechaEntrega: "2025-10-01",
+      porcentaje: 30,
     },
     {
       id: 2,
       titulo: "Ensayo Técnico",
       descripcion: "Escribir un ensayo sobre seguridad eléctrica.",
       fechaEntrega: "2025-10-10",
+      porcentaje: 10,
     },
   ]);
 

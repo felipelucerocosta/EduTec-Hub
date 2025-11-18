@@ -8,6 +8,7 @@ interface Props {
     titulo: string;
     descripcion: string;
     fechaEntrega: string;
+    porcentaje?: number; // porcentaje de la nota final
   };
   onClose: () => void;
 }
@@ -39,6 +40,11 @@ const TareaDetalle: React.FC<Props> = ({ tarea, onClose }) => {
         <p>
           <strong>Fecha de entrega:</strong> {tarea.fechaEntrega}
         </p>
+        {typeof tarea.porcentaje === 'number' && (
+          <p>
+            <strong>Porcentaje:</strong> {tarea.porcentaje}%
+          </p>
+        )}
 
         <div className={styles.formGestion}>
           <button
