@@ -1,6 +1,6 @@
 // ElectricitySimulation.tsx
 import React, { useState } from 'react';
-import styles from '../simulacion.module.css';
+import styles from '../engineWorkshop.module.css';
 import appStyles from '../App.module.css';
 
 interface Step {
