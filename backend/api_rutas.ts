@@ -4,6 +4,7 @@ import path from 'path';
 import 'express-session';         // Importamos para los tipos de sesión
 import pool from './conexion_be';  // Importamos el pool de PostgreSQL
 import * as multer from 'multer';     // Importamos multer
+import session from 'express-session';  
 
 // --- 2. EL RESTO DE TU CÓDIGO (SIN CAMBIOS) ---
 const storage = multer.diskStorage({
@@ -27,6 +28,7 @@ declare module 'express-session' {
   }
 }
 
+
 const router = Router(); // <-- Esto ahora funcionará correctamente
 
 // ======================================================
@@ -34,8 +36,8 @@ const router = Router(); // <-- Esto ahora funcionará correctamente
 // ======================================================
 
 // Obtener todas las notas del calendario para el usuario que ha iniciado sesión
-router.get('/calendario/notas', async (req: Request, res: Response) => { // Tipos mejorados
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : null;
+router.get('/calendario/notas', async (req: Request, res: Response) => {
+  const id_usuario = req.session.usuario? Number(req.session.usuario.id) : null;
 
   if (!id_usuario) {
     return res.status(401).json({ message: 'No autorizado.' });
