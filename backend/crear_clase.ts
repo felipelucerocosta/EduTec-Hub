@@ -5,7 +5,7 @@ import pool from './conexion_be';
 declare module 'express-session' {
   interface SessionData {
     nombre_completo?: string;
-    usuario?: {
+    usuario?: { //
       id: number;
       rol?: string;
       [key: string]: any;

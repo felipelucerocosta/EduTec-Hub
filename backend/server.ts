@@ -2,20 +2,24 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-import * as dotenv from 'dotenv'; // 👈 1. IMPORTAR DOTENV
+import * as dotenv from 'dotenv'; 
 
-// 👈 2. EJECUTAR DOTENV (Esto lee tu archivo .env)
-// (Debe estar ANTES de que cualquier otro archivo intente usar process.env)
 dotenv.config(); 
 
 function interop(m: any) { return m && (m.default ?? m); }
 
+// --- 1. IMPORTAR LOS ARCHIVOS DE RUTAS ---
 const apiRutasRouter = interop(require('./api_rutas'));
 const mensajesRouter = interop(require('./mensajes'));
 const registroRouter = interop(require('./registro'));
 const loginRouter = interop(require('./login'));
 const alfredRouter = interop(require('./alfred')); 
+
+// 👇 AÑADE ESTAS IMPORTACIONES PARA LAS CLASES
+const crearClaseRouter = interop(require('./crear_clase')); 
+const unirseClaseRouter = interop(require('./unirse_clase')); // 👈 ESTA ARREGLA TU ERROR
 const obtenerClasesRouter = interop(require('./obtener_clases'));
+const obtenerClasesAlumnoRouter = interop(require('./obtener_clases_alumno'));
 
 // --- 2. INICIALIZAR LA APP ---
 const app = express();
@@ -46,7 +50,12 @@ app.use('/api', registroRouter);
 app.use('/api', loginRouter);
 app.use('/api', apiRutasRouter);
 app.use('/api', alfredRouter); 
+
+// 👇 AÑADE ESTOS 'app.use' PARA ACTIVAR LAS RUTAS
+app.use('/api', crearClaseRouter); 
+app.use('/api', unirseClaseRouter); // 👈 ESTA HACE QUE FUNCIONE EL POST
 app.use('/api', obtenerClasesRouter);
+app.use('/api', obtenerClasesAlumnoRouter);
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('Servidor del Backend de EduTecHub funcionando!');
