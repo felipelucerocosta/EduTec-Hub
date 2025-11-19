@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const setupDb = interop(require('./setup_db'));
 import * as dotenv from 'dotenv'; 
 
 dotenv.config(); 
