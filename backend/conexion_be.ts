@@ -1,20 +1,54 @@
-import { Pool } from 'pg';
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
+import path from 'path';
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASS || '1234',
-  database: process.env.DB_NAME || 'eductechub',
-  port: Number(process.env.DB_PORT) || 5432
-});
+// Nombre del archivo de la base de datos
+const dbPath = path.resolve(__dirname, 'database.sqlite');
 
-pool.connect()
-  .then(client => {
-    client.release();
-    console.log('✅ Conectado a la base de datos PostgreSQL.');
-  })
-  .catch((err: Error) => {
-    console.error('❌ Error de conexión a la base de datos:', err.message);
-  });
+let db: Database | null = null;
+
+// Función para iniciar la conexión
+async function getDb() {
+  if (!db) {
+    db = await open({
+      filename: dbPath,
+      driver: sqlite3.Database
+    });
+  }
+  return db;
+}
+
+// Simulamos el "pool" de PostgreSQL para que no tengas que cambiar tanto código
+const pool = {
+  query: async (text: string, params: any[] = []) => {
+    const database = await getDb();
+    
+    // SQLite usa '?' en lugar de '$1', '$2'. 
+    // Intentamos reemplazar automáticamente los $1, $2 por ? (es un parche básico)
+    const sqlNormalizado = text.replace(/\$\d+/g, '?');
+
+    try {
+      // Si es un SELECT, usamos .all()
+      if (text.trim().toUpperCase().startsWith('SELECT')) {
+        const rows = await database.all(sqlNormalizado, params);
+        return { rows: rows, rowCount: rows.length };
+      } 
+      // Si es INSERT, UPDATE, DELETE, usamos .run()
+      else {
+        const result = await database.run(sqlNormalizado, params);
+        // SQLite no devuelve las filas insertadas automáticamente como Postgres (RETURNING *)
+        // Devolvemos algo básico para que no rompa
+        return { 
+            rows: [], 
+            rowCount: result.changes, 
+            insertId: result.lastID 
+        };
+      }
+    } catch (error) {
+      console.error("Error SQL (SQLite):", error);
+      throw error;
+    }
+  }
+};
 
 export default pool;
