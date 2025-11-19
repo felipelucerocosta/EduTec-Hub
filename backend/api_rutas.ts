@@ -1,5 +1,6 @@
 // --- 1. LÍNEAS DE IMPORTACIÓN CORREGIDAS ---
 import { Router, Request, Response } from 'express'; // Usamos import
+import path from 'path';
 import 'express-session';         // Importamos para los tipos de sesión
 import pool from './conexion_be';  // Importamos el pool de PostgreSQL
 import * as multer from 'multer';     // Importamos multer
@@ -47,6 +48,38 @@ router.get('/calendario/notas', async (req: Request, res: Response) => { // Tipo
   } catch (error) {
     console.error('Error al obtener notas:', error);
     res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
+router.get('/actas', async (req: Request, res: Response) => {
+  try {
+    // Seleccionamos las actas de la base de datos
+    const result = await pool.query('SELECT * FROM actas ORDER BY uploaded_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al listar actas' });
+  }
+});
+
+// 2. DESCARGAR UNA ACTA
+router.get('/actas/descargar/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM actas WHERE id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Acta no encontrada' });
+    }
+
+    const fileData = result.rows[0];
+    // Construimos la ruta real del archivo en el servidor
+    const filePath = path.join(__dirname, '..', fileData.path); // '..' porque estamos en backend/ y uploads/ está en la raíz o dentro de backend
+
+    res.download(filePath, fileData.originalname); // Esto inicia la descarga en el navegador
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al descargar' });
   }
 });
 
