@@ -4,7 +4,8 @@ import path from 'path';
 import 'express-session';         // Importamos para los tipos de sesión
 import pool from './conexion_be';  // Importamos el pool de PostgreSQL
 import * as multer from 'multer';     // Importamos multer
-import session from 'express-session';  
+import session from 'express-session';
+import router from './api_rutas'; // Asegúrate de que este es tu archivo de rutas  
 
 // --- 2. EL RESTO DE TU CÓDIGO (SIN CAMBIOS) ---
 const storage = multer.diskStorage({
