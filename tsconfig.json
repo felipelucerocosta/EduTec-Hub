@@ -5,9 +5,16 @@
     { "path": "./tsconfig.node.json" }
   ],
   "compilerOptions": {
+    "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
     "typeRoots": ["backend/types", "./node_modules/@types"]
-  }
+  },
+  "include": [
+    "src/**/*",
+    "types/**/*"  // Asegúrate de incluir los archivos de tipos personalizados
+  ]
 }
-

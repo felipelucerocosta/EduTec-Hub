@@ -1,11 +1,10 @@
-import "express-session";
+// types/express-session.d.ts
+import { SessionData } from 'express-session';
 
-declare module "express-session" {
-  interface SessionData {
-    usuario?: {
-      id: number;
-      rol?: string;
-      [key: string]: any;
-    };
+declare global {
+  namespace Express {
+    interface Request {
+      session: SessionData;
+    }
   }
 }

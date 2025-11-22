@@ -15,11 +15,14 @@ const registroRouter = interop(require('./registro'));
 const loginRouter = interop(require('./login'));
 const alfredRouter = interop(require('./alfred')); 
 
-// 👇 AÑADE ESTAS IMPORTACIONES PARA LAS CLASES
+// Importaciones para las clases
 const crearClaseRouter = interop(require('./crear_clase')); 
-const unirseClaseRouter = interop(require('./unirse_clase')); // 👈 ESTA ARREGLA TU ERROR
+const unirseClaseRouter = interop(require('./unirse_clase')); 
 const obtenerClasesRouter = interop(require('./obtener_clases'));
 const obtenerClasesAlumnoRouter = interop(require('./obtener_clases_alumno'));
+
+// 👇 IMPORTAR EL SETUP DE LA BASE DE DATOS (SQLite)
+const setupDb = interop(require('./setup_db'));
 
 // --- 2. INICIALIZAR LA APP ---
 const app = express();
@@ -50,16 +53,17 @@ app.use('/api', registroRouter);
 app.use('/api', loginRouter);
 app.use('/api', apiRutasRouter);
 app.use('/api', alfredRouter); 
-
-// 👇 AÑADE ESTOS 'app.use' PARA ACTIVAR LAS RUTAS
 app.use('/api', crearClaseRouter); 
-app.use('/api', unirseClaseRouter); // 👈 ESTA HACE QUE FUNCIONE EL POST
+app.use('/api', unirseClaseRouter);
 app.use('/api', obtenerClasesRouter);
 app.use('/api', obtenerClasesAlumnoRouter);
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('Servidor del Backend de EduTecHub funcionando!');
 });
+
+// 👇 INICIALIZAR TABLAS ANTES DE ARRANCAR
+setupDb();
 
 // --- 5. INICIAR EL SERVIDOR ---
 app.listen(PORT, () => {
