@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import pool from './conexion_be';
+import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
 
 const router = Router();

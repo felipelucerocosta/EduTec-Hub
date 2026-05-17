@@ -1,6 +1,6 @@
 // archivo: routes/mostrarMensajes.js
 import { Router, type Request, type Response } from 'express';
-import conexion from './conexion_be';
+import conexion from './conexion_pg';
 
 const router = Router();
 

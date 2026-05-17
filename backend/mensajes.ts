@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import pool from './conexion_be';
+import pool from './conexion_pg';
 
 const router = Router();
 

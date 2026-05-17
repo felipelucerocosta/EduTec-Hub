@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import 'express-session';
-import pool from './conexion_be';
+import pool from './conexion_pg';
 
 declare module 'express-session' {
   interface SessionData {

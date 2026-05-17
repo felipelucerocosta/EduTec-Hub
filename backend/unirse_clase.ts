@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import 'express-session';
-import pool from './conexion_be'; // 👈 1. Importa el POOL de PostgreSQL
+import pool from './conexion_pg'; // 👈 1. Importa el POOL de PostgreSQL
 
 declare module 'express-session' {
   interface SessionData {
