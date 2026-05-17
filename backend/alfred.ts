@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import axios, { AxiosRequestConfig } from 'axios';
-import pool from './conexion_be'; // 👈 IMPORTAMOS LA CONEXIÓN A POSTGRESQL
+import pool from './conexion_pg'; // 👈 IMPORTAMOS LA CONEXIÓN A POSTGRESQL
 import * as bcrypt from 'bcrypt'; // 👈 IMPORTAMOS BCRYPT
 import * as nodemailer from 'nodemailer'; // <- cambiado desde "import nodemailer from 'nodemailer'"
 

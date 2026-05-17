@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import 'express-session';
-import pool from './conexion_be';
+import pool from './conexion_pg';
 import multer from 'multer';
 import path from 'path';
 

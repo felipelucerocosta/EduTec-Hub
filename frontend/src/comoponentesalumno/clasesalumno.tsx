@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../styles.module.css";
-import HeaderAlumno from "../components reutilizables/HeaderAlumno";
 import { Link } from "react-router-dom";
+import Header from "../components reutilizables/header.tsx";
 
 interface Clase {
   materia: string;
@@ -71,7 +71,7 @@ const ClasesAlumno: React.FC = () => {
 
   return (
     <div>
-      <HeaderAlumno />
+      <Header />
 
       <main>
         <div className={styles.mainLayout}>

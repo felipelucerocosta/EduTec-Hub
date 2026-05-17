@@ -1,4 +1,4 @@
-import pool from './conexion_be';
+import pool from './conexion_pg';
 
 const crearTablas = async () => {
     console.log("🔄 Inicializando Base de Datos SQLite...");

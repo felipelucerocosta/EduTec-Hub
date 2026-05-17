@@ -27,6 +27,8 @@
     "cors": "^2.8.5",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.10"
+    "nodemailer": "^7.0.10",
+    "pg": "^8.20.0",
+    "sqlite": "^5.1.1"
   }
 }

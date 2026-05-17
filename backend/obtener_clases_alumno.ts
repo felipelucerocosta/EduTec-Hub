@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import 'express-session';
-import pool from './conexion_be'; // Importa el pool de PostgreSQL
+import pool from './conexion_pg'; // Importa el pool de PostgreSQL
 
 // 👇 ESTA DEFINICIÓN DEBE COINCIDIR CON LA DE api_rutas.ts
 declare module 'express-session' {
