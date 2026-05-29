@@ -34,6 +34,9 @@ const Registro: React.FC = () => {
     curso: "",
     materia: "",
   });
+  const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
+  const [adminForm, setAdminForm] = useState({ correo: "", contrasena: "" });
+  const [adminError, setAdminError] = useState<string>("");
   
   const navigate = useNavigate();
 
@@ -45,6 +48,39 @@ const Registro: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleAdminInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAdminForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError("");
+
+    const { correo, contrasena } = adminForm;
+    if (!correo || !contrasena) {
+      setAdminError("Completa el correo y la contraseña del admin.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/admin-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo, contrasena }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAdminError(data.message || "Credenciales de admin incorrectas.");
+        return;
+      }
+
+      navigate("/admin");
+    } catch (error: any) {
+      setAdminError(error.message || "Error de conexión con el servidor.");
+    }
   };
 
   // --- Lógica de Pestañas ---
@@ -153,6 +189,13 @@ const Registro: React.FC = () => {
       )}
       <div className={styles.loginRegisterContainer}>
         <div className={styles.containerPrincipal}>
+          <button
+            type="button"
+            className={styles.adminToggle}
+            onClick={() => setShowAdminModal(true)}
+          >
+            🛡 admin
+          </button>
           
           <form onSubmit={isRegistering ? handleRegistro : handleLogin}>
             <h2 style={{ color: "black" }}>
@@ -290,6 +333,44 @@ const Registro: React.FC = () => {
             </div>
 
           </form>
+
+          {showAdminModal && (
+            <div className={styles.adminModalOverlay} onClick={() => setShowAdminModal(false)}>
+              <div className={styles.adminModal} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.adminModalHeader}>
+                  <h2>Admin Login</h2>
+                  <button type="button" className={styles.adminModalClose} onClick={() => setShowAdminModal(false)}>
+                    ×
+                  </button>
+                </div>
+                <p>Ingresa el correo y contraseña de admin para acceder al dashboard.</p>
+                <form onSubmit={handleAdminLogin}>
+                  <div className={styles.formGroup}>
+                    <input
+                      type="email"
+                      name="correo"
+                      placeholder="Admin mail"
+                      value={adminForm.correo}
+                      onChange={handleAdminInputChange}
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <input
+                      type="password"
+                      name="contrasena"
+                      placeholder="Admin password"
+                      value={adminForm.contrasena}
+                      onChange={handleAdminInputChange}
+                      required
+                    />
+                  </div>
+                  {adminError && <div className={styles.adminError}>{adminError}</div>}
+                  <button type="submit">Entrar como Admin</button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
