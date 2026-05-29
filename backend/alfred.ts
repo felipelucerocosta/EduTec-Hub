@@ -23,6 +23,17 @@ interface GeneratePasswordBody {
 
 const router: Router = Router();
 
+import 'express-session';
+
+// Middleware: permitir acceso a usuarios autenticados (admin, profesor, alumno)
+function requireAuth(req: Request, res: Response, next: any) {
+    const rol = (req.session as any)?.usuario?.rol;
+    if (!rol) return res.status(401).json({ error: 'Unauthorized', message: 'Inicia sesión para usar Alfred.' });
+    const allowed = ['admin', 'profesor', 'alumno'];
+    if (allowed.includes(String(rol))) return next();
+    return res.status(403).json({ error: 'Forbidden', message: 'No tienes permisos para usar Alfred.' });
+}
+
 // Helper: detectar email institucional
 function isInstitutionalEmail(email: string): boolean {
     const env = process.env.INSTITUTIONAL_DOMAINS; // opcional: "uni.edu,school.edu"
@@ -82,7 +93,7 @@ async function sendVerificationEmail(to: string, code: string) {
 // RUTA 1: /ask-alfred (CHAT NORMAL)
 // (Sin cambios salvo usar env para la KEY)
 // ===================================
-router.post('/ask-alfred', async (req: Request<{}, {}, AskAlfredBody>, res: Response) => {
+router.post('/ask-alfred', requireAuth, async (req: Request<{}, {}, AskAlfredBody>, res: Response) => {
     const { chatHistory } = req.body;
 
     if (!chatHistory) {

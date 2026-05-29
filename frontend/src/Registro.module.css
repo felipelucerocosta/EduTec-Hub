@@ -87,6 +87,75 @@ p {
   transform: scale(0.95);
 }
 
+.adminToggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgba(0,0,0,0.08);
+  border: 1px solid #000;
+  color: #000;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.adminToggle:hover {
+  transform: scale(1.03);
+  background: rgba(0,0,0,0.14);
+}
+
+.adminModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.adminModal {
+  width: min(420px, calc(100% - 32px));
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  position: relative;
+}
+
+.adminModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.adminModalHeader h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.5px;
+}
+
+.adminModalClose {
+  border: none;
+  background: transparent;
+  font-size: 1.6rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.adminError {
+  color: #d32f2f;
+  background: #fdecea;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
+}
+
 /* ---------- FORMULARIO ---------- */
 .containerPrincipal {
   background-color: #b594dba2; /* Fondo blanco semitransparente */
@@ -95,6 +164,7 @@ p {
   width: 400px;
   padding: 50px 40px;
   text-align: center;
+  position: relative;
   border: 2px solid #000;
   backdrop-filter: blur(5px);
 }

@@ -12,6 +12,7 @@ declare module 'express-session' {
     usuario?: {
       id: number;
       rol?: string;
+      nombre?: string;
       [key: string]: any;
     };
   }
@@ -150,7 +151,6 @@ router.post('/login', async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: 'Inicio de sesión exitoso.',
-      // 2. CORRECCIÓN: Devuelve 'rol' en el objeto 'usuario'
       usuario: {
         id: Number(usuario.id_usuario),
         nombre: usuario.nombre_completo || '',
@@ -160,7 +160,70 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('Error en la consulta de login:', err);
-    res.status(5.00).json({ success: false, message: 'Error interno del servidor.' });
+    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+  }
+});
+
+// --- RUTA DE ADMIN LOGIN ---
+router.post('/admin-login', async (req: Request, res: Response) => {
+  const correo = req.body.correo ? String(req.body.correo).trim() : '';
+  const contrasena = req.body.contrasena ? String(req.body.contrasena).trim() : '';
+
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    return res.status(500).json({ success: false, message: 'Configuración de admin no disponible.' });
+  }
+
+  if (!correo || !contrasena) {
+    return res.status(400).json({ success: false, message: 'Faltan correo o contraseña.' });
+  }
+
+  if (correo.toLowerCase() !== adminEmail || contrasena !== adminPassword) {
+    await handleFailedAttempt(correo);
+    return res.status(401).json({ success: false, message: 'Credenciales de admin incorrectas.' });
+  }
+
+  try {
+    const userQuery = 'SELECT * FROM usuarios WHERE LOWER(correo) = $1';
+    const result: any = await pool.query(userQuery, [adminEmail]);
+    let usuario = result.rows && result.rows[0];
+
+    if (!usuario) {
+      const hashed = await bcrypt.hash(adminPassword, 10);
+      const insertResult: any = await pool.query(
+        `INSERT INTO usuarios (nombre_completo, correo, contrasena)
+         VALUES ($1, $2, $3) RETURNING id_usuario, nombre_completo, correo`,
+        ['Administrador', adminEmail, hashed]
+      );
+      usuario = insertResult.rows[0];
+    }
+
+    attempts.delete(correo);
+    (req.session as any).usuario = {
+      id: Number(usuario.id_usuario),
+      nombre: usuario.nombre_completo || 'Administrador',
+      correo: usuario.correo || adminEmail,
+      rol: 'admin',
+      isAdmin: true
+    };
+
+    await notifySuccessfulLogin(correo);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Inicio de sesión de admin exitoso.',
+      usuario: {
+        id: Number(usuario.id_usuario),
+        nombre: usuario.nombre_completo || 'Administrador',
+        correo: usuario.correo || adminEmail,
+        isAdmin: true
+      }
+    });
+  } catch (err) {
+    console.error('Error en admin-login:', err);
+    return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
   }
 });
 

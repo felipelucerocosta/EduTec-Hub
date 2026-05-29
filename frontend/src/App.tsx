@@ -13,11 +13,12 @@ import TrabajosAlumno from "./comoponentesalumno/trabajosalumno";
 // === NUEVOS COMPONENTES ===
 import ForgotPassword from "./componentes/ForgotPassword"; 
 import ResetPassword from "./componentes/ResetPassword";   
+import AdminDashboard from "./componentes/AdminDashboard";
 import Alfred from "./componentes/Alfred";                 
 
 function App() {
   return (
-    <Router basename="/EduTec-Hub/">   {/* 👈 AGREGADO PARA GITHUB PAGES */}
+    <Router basename={import.meta.env.BASE_URL}>   {/* usa el base definido por Vite */}
 
       <Routes>
         {/* Rutas existentes */}
@@ -29,6 +30,7 @@ function App() {
         <Route path="/simulaciones" element={<GaleriaSimulaciones />} />
         <Route path="/alumno" element={<ClasesAlumno />} />
         <Route path="/alumno/gestion" element={<TrabajosAlumno />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         
         {/* === NUEVAS RUTAS === */}
         <Route path="/forgot-password" element={<ForgotPassword />} /> 

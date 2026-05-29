@@ -296,7 +296,7 @@ const Clases: React.FC = () => {
                 className={styles.illustration}
               />
               <div className={styles.buttons}>
-                {currentUser?.rol === 'profesor' && (
+                {currentUser?.rol === 'admin' && (
                   <button
                     className={`${styles.btn} ${styles.btnOutline}`}
                     onClick={() => {
