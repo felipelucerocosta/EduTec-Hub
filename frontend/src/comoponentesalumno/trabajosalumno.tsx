@@ -1,7 +1,7 @@
 // GestionClase.tsx
 import React, { useState } from "react";
 import styles from "../materiales.module.css";
-import Header4 from "../components reutilizables/header4";
+import Header from "../components reutilizables/header";
 import TareaDetalle from "../componentes/TareaDetalle"; // 👈 nuevo componente (corrección de mayúsculas)
 
 interface Tarea {
@@ -43,9 +43,15 @@ const GestionClase: React.FC = () => {
   // 🔹 Tarea seleccionada para ver detalle
   const [tareaSeleccionada, setTareaSeleccionada] = useState<Tarea | null>(null);
 
+  const navLinks = [
+    { label: "Clases", to: "/alumno" },
+    { label: "Calendario", to: "/calendario" },
+    { label: "Foro", to: "/foro" },
+  ];
+
   return (
     <div>
-      <Header4 />
+      <Header navLinks={navLinks} />
 
       <main className={styles.contenedorPrincipal}>
         {/* ======== COLUMNA DE TAREAS ======== */}

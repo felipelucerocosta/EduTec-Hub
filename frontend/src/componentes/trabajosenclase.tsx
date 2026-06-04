@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import type { FormEvent } from "react";
 import styles from "../materiales.module.css";
-import Header4 from "../components reutilizables/header4";
+import Header from "../components reutilizables/header";
 
 interface Material {
   titulo: string;
@@ -64,9 +64,15 @@ const GestionClase: React.FC = () => {
     }
   };
 
+  const navLinks = [
+    { label: "Calendario", to: "/calendario" },
+    { label: "Foro", to: "/foro" },
+    { label: "Clases", to: "/clases" },
+  ];
+
   return (
     <div>
-      <Header4 />
+      <Header navLinks={navLinks} />
 
       <main className={styles.contenedorPrincipal}>
         {/* ======== COLUMNA DE MATERIALES ======== */}

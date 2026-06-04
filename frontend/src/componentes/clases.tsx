@@ -255,9 +255,15 @@ const Clases: React.FC = () => {
     setMostrarUnirse(false);
   };
 
+  const navLinks = [
+    { label: "Zona de Trabajo", to: "/gestionClase" },
+    { label: "Calendario", to: "/calendario" },
+    { label: "Foro", to: "/foro" },
+  ];
+
   return (
     <div className={styles.body}>
-      <Header />
+      <Header navLinks={navLinks} />
       <main>
         <div className={styles.mainLayout}>
           <div style={{ flex: "1 1 400px" }}>
@@ -330,7 +336,7 @@ const Clases: React.FC = () => {
         <div className={styles.coursesList}>
           {clases.map((clase, index) => (
             <div key={index} className={styles.claseItem} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ flex: 1, textAlign: 'left' }} onClick={() => navigate('/Foro')}>
+              <div style={{ flex: 1, textAlign: 'left' }} onClick={() => navigate('/foro')}>
                 <h3>{clase.nombre}</h3>
                 <p><strong>Materia:</strong> {clase.materia}</p>
                 <p><strong>Sección:</strong> {clase.seccion}</p>
