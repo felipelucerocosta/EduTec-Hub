@@ -69,9 +69,15 @@ const ClasesAlumno: React.FC = () => {
     }
   };
 
+  const navLinks = [
+    { label: "Mis Trabajos", to: "/alumno/gestion" },
+    { label: "Calendario", to: "/calendario" },
+    { label: "Foro", to: "/foro" },
+  ];
+
   return (
     <div>
-      <Header />
+      <Header navLinks={navLinks} />
 
       <main>
         <div className={styles.mainLayout}>

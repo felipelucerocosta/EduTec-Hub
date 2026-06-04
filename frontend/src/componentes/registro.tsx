@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import Header from "../components reutilizables/header";
+import Button from "../components reutilizables/Button";
+import InputField from "../components reutilizables/InputField";
+import Modal from "../components reutilizables/Modal";
 import styles from "../Registro.module.css";
 
 // --- Interfaces ---
@@ -37,8 +40,11 @@ const Registro: React.FC = () => {
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
   const [adminForm, setAdminForm] = useState({ correo: "", contrasena: "" });
   const [adminError, setAdminError] = useState<string>("");
-  
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nivel = searchParams.get("nivel"); // Obtener el nivel seleccionado
 
   // --- Funciones Auxiliares ---
   const showNotification = (msg: string, type: "success" | "error") => {
@@ -89,7 +95,7 @@ const Registro: React.FC = () => {
     setNotification({ msg: "", type: "" }); // Limpia notificaciones al cambiar
   };
 
-  // --- Lógica de API: Iniciar Sesión (CORREGIDA) ---
+  // --- Lógica de API: Iniciar Sesión ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const { correo, contrasena } = formData;
@@ -99,6 +105,7 @@ const Registro: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
@@ -111,10 +118,9 @@ const Registro: React.FC = () => {
       if (response.ok) {
         showNotification(data.message, "success");
 
-        // Corrección (Rol desconocido):
-        if (data.usuario && data.usuario.rol === 'profesor') {
+        if (data.usuario && data.usuario.rol === "profesor") {
           navigate("/clases");
-        } else if (data.usuario && data.usuario.rol === 'alumno') {
+        } else if (data.usuario && data.usuario.rol === "alumno") {
           navigate("/alumno");
         } else {
           showNotification("Rol de usuario desconocido.", "error");
@@ -124,6 +130,8 @@ const Registro: React.FC = () => {
       }
     } catch (error: any) {
       showNotification(error.message, "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,6 +159,7 @@ const Registro: React.FC = () => {
       ...(isProfesor && { materia: formData.materia }),
     };
 
+    setIsLoading(true);
     try {
       const response = await fetch(endpoint, {
         method: "POST",
@@ -175,112 +184,135 @@ const Registro: React.FC = () => {
       }
     } catch (error: any) {
       showNotification(error.message, "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // --- Renderizado ---
+  // Nivel amigable para mostrar en UI
+  const getFriendlyNivel = () => {
+    if (nivel === "basico") return "Ciclo Básico (1° a 3° Año)";
+    if (nivel === "superior") return "Ciclo Superior (4° a 6° Año)";
+    if (nivel === "profesional") return "Formación Profesional";
+    return null;
+  };
+
   return (
     <div className={styles.loginRegisterBody}>
-      <Header />
+      {/* Header unificado sin links de navegación adicionales */}
+      <Header showLogout={false} />
+      
       {notification.msg && (
         <div className={`${styles.notification} ${styles[notification.type]}`}>
           {notification.msg}
         </div>
       )}
+      
       <div className={styles.loginRegisterContainer}>
         <div className={styles.containerPrincipal}>
-          <button
-            type="button"
-            className={styles.adminToggle}
-            onClick={() => setShowAdminModal(true)}
-          >
-            🛡 admin
-          </button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+            <Link to="/" style={{ color: "#3b82f6", textDecoration: "none", display: "flex", alignItems: "center", gap: "5px", fontSize: "0.9rem", fontWeight: 600 }}>
+              <i className="bx bx-arrow-back"></i> Volver a Niveles
+            </Link>
+            <button
+              type="button"
+              className={styles.adminToggle}
+              onClick={() => setShowAdminModal(true)}
+            >
+              🛡 admin
+            </button>
+          </div>
           
           <form onSubmit={isRegistering ? handleRegistro : handleLogin}>
-            <h2 style={{ color: "black" }}>
+            <h2 style={{ color: "black", marginBottom: "5px" }}>
               {isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}
             </h2>
+            
+            {getFriendlyNivel() && (
+              <p style={{ color: "#6b7280", fontSize: "0.85rem", fontWeight: 600, marginBottom: "20px" }}>
+                Nivel seleccionado: <span style={{ color: "#7c3aed" }}>{getFriendlyNivel()}</span>
+              </p>
+            )}
 
             {/* --- CAMPOS DE REGISTRO (CONDICIONALES) --- */}
             {isRegistering && (
               <>
-                <div className={styles.formGroup}>
-                  <input
-                    type="text"
-                    name="nombre_completo"
-                    placeholder="Nombre Completo"
-                    value={formData.nombre_completo}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <input
-                    type="text"
-                    name="DNI"
-                    placeholder="DNI"
-                    value={formData.DNI}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
+                <InputField
+                  label="Nombre Completo"
+                  type="text"
+                  name="nombre_completo"
+                  placeholder="Nombre Completo"
+                  icon="bx-user"
+                  value={formData.nombre_completo}
+                  onChange={handleInputChange}
+                  required
+                />
+                <InputField
+                  label="DNI"
+                  type="text"
+                  name="DNI"
+                  placeholder="DNI"
+                  icon="bx-id-card"
+                  value={formData.DNI}
+                  onChange={handleInputChange}
+                  required
+                />
               </>
             )}
 
             {/* --- Campos Comunes (Email y Contraseña) --- */}
-            <div className={styles.formGroup}>
-              <input
-                type="email"
-                name="correo"
-                placeholder="Correo Institucional"
-                value={formData.correo}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <input
-                type="password"
-                name="contrasena"
-                placeholder="Contraseña"
-                value={formData.contrasena}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+            <InputField
+              label="Correo Institucional"
+              type="email"
+              name="correo"
+              placeholder="correo@alu.tecnica29de6.edu.ar"
+              icon="bx-envelope"
+              value={formData.correo}
+              onChange={handleInputChange}
+              required
+            />
+            <InputField
+              label="Contraseña"
+              type="password"
+              name="contrasena"
+              placeholder="Contraseña"
+              icon="bx-lock-alt"
+              value={formData.contrasena}
+              onChange={handleInputChange}
+              required
+            />
 
             {/* --- CAMPOS DE ROL (CONDICIONALES) --- */}
             {isRegistering && formData.correo.endsWith(ALUMNO_DOMAIN) && (
-              <div className={styles.formGroup}>
-                <input
-                  type="text"
-                  name="curso"
-                  placeholder="Curso (ej: 7mo 1ra)"
-                  value={formData.curso}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <InputField
+                label="Curso"
+                type="text"
+                name="curso"
+                placeholder="Curso (ej: 7mo 1ra)"
+                icon="bx-group"
+                value={formData.curso}
+                onChange={handleInputChange}
+                required
+              />
             )}
             
             {isRegistering && formData.correo.endsWith(PROFESOR_DOMAIN) && (
-              <div className={styles.formGroup}>
-                <input
-                  type="text"
-                  name="materia"
-                  placeholder="Materia que enseña"
-                  value={formData.materia}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              <InputField
+                label="Materia que enseña"
+                type="text"
+                name="materia"
+                placeholder="Materia que enseña"
+                icon="bx-book"
+                value={formData.materia}
+                onChange={handleInputChange}
+                required
+              />
             )}
 
-            {/* --- Botón de Envío Dinámico --- */}
-            <button type="submit">
+            {/* --- Botón de Envío Dinámico usando Botón Reutilizable --- */}
+            <Button type="submit" loading={isLoading} style={{ width: "100%", marginTop: "10px" }}>
               {isRegistering ? "Registrarse" : "Iniciar Sesión"}
-            </button>
+            </Button>
             
             {/* --- Enlace "Olvidé Contraseña" --- */}
             <div style={{ marginTop: "15px", textAlign: "center" }}>
@@ -288,11 +320,11 @@ const Registro: React.FC = () => {
                 to="/forgot-password"
                 style={{
                   backgroundColor: "transparent",
-                  color: "#007bff", // Mantenemos el azul para "Olvidé contraseña"
+                  color: "#3b82f6", 
                   border: "none",
                   cursor: "pointer",
                   textDecoration: "underline",
-                  fontSize: "0.9em" // Un poco más pequeño
+                  fontSize: "0.9em" 
                 }}
               >
                 ¿Olvidaste tu contraseña?
@@ -306,9 +338,9 @@ const Registro: React.FC = () => {
               marginTop: "20px", 
               textAlign: "center", 
               paddingTop: "15px", 
-              borderTop: "1px solid #00000020" // <-- Corregido el typo y color más suave
+              borderTop: "1px solid #00000020" 
             }}>
-              <span style={{ color: '#333' }}> {/* Texto más suave */}
+              <span style={{ color: "#333" }}> 
                 {isRegistering ? "¿Ya tienes una cuenta? " : "¿No tienes una cuenta? "}
               </span>
               <button
@@ -316,13 +348,13 @@ const Registro: React.FC = () => {
                 onClick={() => handleTabChange(!isRegistering)}
                 style={{
                   backgroundColor: "transparent",
-                  color: "#000000", // Color negro
+                  color: "#000000", 
                   border: "none",
                   cursor: "pointer",
-                  textDecoration: "none", // Sin subrayado
+                  textDecoration: "none", 
                   fontFamily: "inherit",
                   fontSize: "1em",
-                  fontWeight: "bold", // En negrita
+                  fontWeight: "bold", 
                   padding: 0,
                   margin: 0,
                   marginLeft: "4px"
@@ -334,43 +366,46 @@ const Registro: React.FC = () => {
 
           </form>
 
-          {showAdminModal && (
-            <div className={styles.adminModalOverlay} onClick={() => setShowAdminModal(false)}>
-              <div className={styles.adminModal} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.adminModalHeader}>
-                  <h2>Admin Login</h2>
-                  <button type="button" className={styles.adminModalClose} onClick={() => setShowAdminModal(false)}>
-                    ×
-                  </button>
+          {/* Admin Modal usando el nuevo componente Modal Reutilizable */}
+          <Modal
+            isOpen={showAdminModal}
+            onClose={() => setShowAdminModal(false)}
+            title="Admin Login"
+          >
+            <p style={{ color: "#64748b", fontSize: "0.9rem", marginBottom: "1.25rem" }}>
+              Ingresa el correo y contraseña de admin para acceder al dashboard.
+            </p>
+            <form onSubmit={handleAdminLogin}>
+              <InputField
+                label="Admin mail"
+                type="email"
+                name="correo"
+                placeholder="admin@tecnica29de6.edu.ar"
+                icon="bx-envelope"
+                value={adminForm.correo}
+                onChange={handleAdminInputChange}
+                required
+              />
+              <InputField
+                label="Admin password"
+                type="password"
+                name="contrasena"
+                placeholder="Contraseña de admin"
+                icon="bx-lock-alt"
+                value={adminForm.contrasena}
+                onChange={handleAdminInputChange}
+                required
+              />
+              {adminError && (
+                <div style={{ color: "#ef4444", fontSize: "0.85rem", marginBottom: "1rem", fontWeight: 600 }}>
+                  {adminError}
                 </div>
-                <p>Ingresa el correo y contraseña de admin para acceder al dashboard.</p>
-                <form onSubmit={handleAdminLogin}>
-                  <div className={styles.formGroup}>
-                    <input
-                      type="email"
-                      name="correo"
-                      placeholder="Admin mail"
-                      value={adminForm.correo}
-                      onChange={handleAdminInputChange}
-                      required
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <input
-                      type="password"
-                      name="contrasena"
-                      placeholder="Admin password"
-                      value={adminForm.contrasena}
-                      onChange={handleAdminInputChange}
-                      required
-                    />
-                  </div>
-                  {adminError && <div className={styles.adminError}>{adminError}</div>}
-                  <button type="submit">Entrar como Admin</button>
-                </form>
-              </div>
-            </div>
-          )}
+              )}
+              <Button type="submit" style={{ width: "100%" }}>
+                Entrar como Admin
+              </Button>
+            </form>
+          </Modal>
         </div>
       </div>
     </div>
