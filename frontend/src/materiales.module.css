@@ -1,858 +1,349 @@
-@import url('https://fonts.googleapis.com/css?family=Montserrat:400,600,800');
+/* ============================================
+   MATERIALES / TRABAJOS EN CLASE - Premium Dark Layout
+   ============================================ */
 
-/* ===================== LAYOUT PRINCIPAL ===================== */
 .contenedorPrincipal {
-  max-width: 900px; /* Ajustado para coincidir con el foro */
-  margin: 2rem auto;
-  padding: 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem; /* Gap similar al foro */
-  align-items: start;
-  text-align: left;
-  font-family: 'Montserrat', Arial, sans-serif; /* Cambiado a Montserrat */
-  color: #000000;
-  line-height: 1.6;
-  background: linear-gradient(to right, #ae4bff, #557dff); /* Gradiente principal del foro */
-  border-radius: 16px; /* Bordes redondeados como en el foro */
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1); /* Sombra similar */
-  min-height: 100vh;
-}
-
-/* ===================== ENCABEZADOS ===================== */
-.contenedorPrincipal .columna h2 {
-  border-bottom: 1px solid #eee; /* Borde sutil como en el foro */
-  padding-bottom: 0.5rem;
-  margin-bottom: 1.5rem;
-  font-size: clamp(1.25rem, 2.5vw, 2rem); /* Responsive */
-  font-weight: 800; /* Peso bold */
-  background: linear-gradient(to right, #17285f, hsl(0, 0%, 0%));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 2rem auto 4rem;
+  padding: 0 1.5rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #f1f5f9;
   position: relative;
+  z-index: 1;
 }
 
-.contenedorPrincipal .columna h3 {
-  font-size: 1.125rem;
-  margin-bottom: 1rem;
-  color: #000000;
-  font-weight: 600;
-}
-
-/* ===================== BOTONES ===================== */
-.contenedorPrincipal .btn {
-  border: none;
-  padding: 12px 30px;
-  border-radius: 25px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: linear-gradient(to right, #652f92, #334994);
-  color: #fff;
-  margin: 0.3rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  min-width: 120px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.contenedorPrincipal .btn:hover {
-  background: linear-gradient(to right, #557dff, #ae4bff);
-  transform: translateY(-2px);
-}
-
-.contenedorPrincipal .btn:active {
-  transform: scale(0.97);
-}
-
-.contenedorPrincipal .btnPrincipal {
-  background: linear-gradient(to right, #652f92, #334994);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(101, 47, 146, 0.2);
-}
-
-.contenedorPrincipal .btnPrincipal:hover {
-  background: linear-gradient(to right, #557dff, #ae4bff);
-  box-shadow: 0 4px 12px rgba(85, 125, 255, 0.3);
-}
-
-/* ===================== FORMULARIOS ===================== */
-.contenedorPrincipal .formGestion {
-  background-color: #fafafa;
-  padding: 1.8rem;
-  border-radius: 10px;
-  margin-bottom: 1.8rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #ccc;
-}
-
-.contenedorPrincipal .formGestion:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  transform: translateY(-1px);
-}
-
-.contenedorPrincipal .formGestion input,
-.contenedorPrincipal .formGestion textarea,
-.contenedorPrincipal .formGestion select {
-  width: 100%;
-  padding: 14px 16px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-family: 'Montserrat', sans-serif;
-  margin-bottom: 1rem;
-  box-sizing: border-box;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
-  background-color: #fff;
-  resize: vertical;
-}
-
-.contenedorPrincipal .formGestion input:focus,
-.contenedorPrincipal .formGestion textarea:focus,
-.contenedorPrincipal .formGestion select:focus {
-  outline: none;
-  border-color: #ae4bff;
-  box-shadow: 0 0 0 3px #ae4bff33;
-  transform: translateY(-1px);
-}
-
-.contenedorPrincipal .formGestion textarea {
-  min-height: 100px;
-}
-
-/* ===================== MATERIAL / TRABAJOS ===================== */
-.contenedorPrincipal .materialItem {
+/* ── Columns ─────────────────────────────── */
+.columna {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  background-color: #f9f9f9;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #9571e9;
-  position: relative;
-  overflow: hidden;
-}
-
-.contenedorPrincipal .materialItem::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(to right, #ae4bff, #557dff);
-}
-
-.contenedorPrincipal .materialItem:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  transform: translateY(-2px);
-}
-
-.contenedorPrincipal .materialItem h4 {
-  font-size: 1.25rem;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #000000;
-}
-
-.contenedorPrincipal .materialItem p {
-  color: #555;
-  font-size: 0.95rem;
-  margin: 0.25rem 0;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* ===================== HEADER COLUMNA ===================== */
-.contenedorPrincipal .headerColumna {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-/* ===================== MODALES ===================== */
-.contenedorPrincipal .modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-.contenedorPrincipal .modalContenido {
-  background: linear-gradient(to right, #ae4bff, #557dff);
-  padding: 2rem;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  position: relative;
-  text-align: left;
-  box-sizing: border-box;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-  overflow-y: auto;
-  animation: modalSlideIn 0.3s ease;
-  color: #000000;
-  border: 1px solid rgba(149, 113, 233, 0.3);
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.contenedorPrincipal .modalCerrar {
-  position: absolute;
-  top: 1rem;
-  right: 1.5rem;
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  color: #fff;
-  transition: all 0.3s ease;
-  padding: 0.5rem;
-  border-radius: 50%;
-}
-
-.contenedorPrincipal .modalCerrar:hover {
-  color: #fff;
-  background-color: rgba(255,255,255,0.2);
-}
-
-/* ===================== CAMPOS ADICIONALES ===================== */
-.contenedorPrincipal .camposLibretta {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.contenedorPrincipal .camposLibretta input {
-  flex: 1;
-  min-width: 120px;
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
+  gap: 1.5rem;
   transition: all 0.3s ease;
 }
 
-/* ===================== LISTA ALUMNOS ===================== */
-.contenedorPrincipal #lista-alumnos > div,
-.contenedorPrincipal #lista-materiales > div {
-  background-color: #f9f9f9;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #9571e9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.columna:hover {
+  border-color: rgba(124, 58, 237, 0.15);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.contenedorPrincipal #lista-alumnos > div:hover,
-.contenedorPrincipal #lista-materiales > div:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  transform: translateX(4px);
-}
-
-/* ===================== FOOTER ===================== */
-.contenedorPrincipal footer {
-  text-align: center;
-  padding: 2rem;
-  color: #555;
-  font-size: 0.9rem;
-  background: transparent;
-  grid-column: 1 / -1;
-  border-top: 1px solid #eee;
-}
-
-/* ===================== LIBRETA DE NOTAS ===================== */
-.contenedorPrincipal #contenedor-libreta {
-  padding: 1rem 0;
-  max-height: calc(90vh - 120px);
-  overflow-y: auto;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 10px;
-  margin: 1rem;
-}
-
-.contenedorPrincipal #contenedor-libreta h3 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
+.columna h2 {
+  font-size: 1.35rem;
   font-weight: 800;
-  background: linear-gradient(to right, #17285f, hsl(0, 0%, 0%));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  color: #f1f5f9;
+  letter-spacing: -0.02em;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 0;
 }
 
-/* Tabla de notas */
-.contenedorPrincipal #contenedor-libreta table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-bottom: 1rem;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.95rem;
-}
-
-.contenedorPrincipal #contenedor-libreta thead {
-  background: linear-gradient(to right, #652f92, #334994);
-}
-
-.contenedorPrincipal #contenedor-libreta thead th {
-  padding: 14px 12px;
-  text-align: left;
-  color: #fff;
-  font-weight: 600;
-  font-size: 1rem;
-  border: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.contenedorPrincipal #contenedor-libreta tbody tr {
-  transition: background-color 0.3s ease;
-  border-bottom: 1px solid #eee;
-}
-
-.contenedorPrincipal #contenedor-libreta tbody tr:hover {
-  background-color: rgba(174, 75, 255, 0.05);
-}
-
-.contenedorPrincipal #contenedor-libreta tbody td {
-  padding: 12px;
-  border: none;
-  color: #000000;
-  vertical-align: middle;
-}
-
-.contenedorPrincipal #contenedor-libreta tbody td:first-child {
-  font-weight: 600;
-  color: #333333;
-}
-
-.contenedorPrincipal #contenedor-libreta .nota {
-  text-align: center;
-  font-weight: 600;
-  color: #555;
-}
-
-.contenedorPrincipal #contenedor-libreta .promedio {
-  font-weight: bold;
-  color: #7c3aed;
-  text-align: center;
-  background: rgba(124, 58, 237, 0.1);
-  border-radius: 5px;
-  padding: 4px 8px;
-}
-
-/* Estados para notas */
-.contenedorPrincipal #contenedor-libreta .nota.aprobada {
-  color: #28a745;
-}
-
-.contenedorPrincipal #contenedor-libreta .nota.reprobada {
-  color: #dc3545;
-}
-
-.contenedorPrincipal #contenedor-libreta .btn-nota {
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  border-radius: 15px;
-  background: linear-gradient(to right, #557dff, #ae4bff);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0 2px;
-}
-
-.contenedorPrincipal #contenedor-libreta .btn-nota:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(85, 125, 255, 0.3);
-}
-
-.contenedorPrincipal #contenedor-libreta .libreta-vacia {
-  text-align: center;
-  color: #888;
-  padding: 3rem 1rem;
-  font-style: italic;
-}
-
-.contenedorPrincipal #contenedor-libreta .libreta-vacia::before {
-  content: "📊";
-  display: block;
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.contenedorPrincipal {
-  max-width: 1000px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-  align-items: start;
-  text-align: left;
-  font-family: 'Montserrat', sans-serif;
-}
-
-/* ===================== HEADER / MENÚ ACTAS Y LIBRETA ===================== */
 .headerColumna {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .headerColumna h2 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #222;
-  margin: 0.5rem 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0;
 }
 
-.headerColumna div {
+/* ── Form components ─────────────────────── */
+.formGestion {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1.25rem;
+  border-radius: 14px;
+}
+
+.formGestion h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #a78bfa;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.formGestion form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.formGestion input,
+.formGestion textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.88rem;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.formGestion input::placeholder,
+.formGestion textarea::placeholder {
+  color: #475569;
+}
+
+.formGestion input:focus,
+.formGestion textarea:focus {
+  border-color: rgba(124, 58, 237, 0.5);
+  background: rgba(124, 58, 237, 0.04);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.formGestion textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.camposLibretta {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
 }
 
-/* ===================== BOTONES ===================== */
-.btn {
-  background: linear-gradient(to right, #652f92, #334994);
-  color: #fff;
-  border: none;
-  border-radius: 25px;
-  padding: 10px 20px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+.camposLibretta input {
+  flex: 1;
 }
 
-.btn:hover {
-  background: linear-gradient(to right, #557dff, #ae4bff);
+/* ── Material Items ──────────────────────── */
+.materialItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1.1rem;
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.materialItem::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4);
+  opacity: 0.5;
+}
+
+.materialItem:hover {
   transform: translateY(-2px);
+  border-color: rgba(124, 58, 237, 0.25);
+  background: rgba(124, 58, 237, 0.04);
 }
 
-.btnPrincipal {
-  background: linear-gradient(to right, #28a745, #1e7e34);
+.materialItem h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
 }
 
-.btnPrincipal:hover {
-  background: linear-gradient(to right, #1e7e34, #28a745);
+.materialItem p {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
 }
 
-/* ===================== LISTA ALUMNOS ===================== */
-#lista-alumnos > div {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  transition: background 0.3s ease;
+/* ── Alumno / Student Items ──────────────── */
+.alumnoItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
 }
 
-#lista-alumnos > div:hover {
-  background-color: #e9ecef;
+.alumnoItem:hover {
+  background: rgba(124, 58, 237, 0.05);
+  border-color: rgba(124, 58, 237, 0.2);
+  transform: translateX(4px);
 }
 
-/* ===================== MODALES ACTAS/LIBRETA ===================== */
+/* ── Modals / Libreta / Acts ──────────────── */
 .modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background: rgba(3, 0, 20, 0.75);
+  backdrop-filter: blur(6px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
 }
 
 .modalContenido {
-  background: #fff;
-  border-radius: 16px;
+  background: rgba(13, 9, 39, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
   padding: 2rem;
-  max-width: 700px;
-  width: 90%;
+  width: min(560px, calc(100vw - 2rem));
   max-height: 85vh;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
   position: relative;
   overflow-y: auto;
-  animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  color: #f1f5f9;
 }
 
 .modalCerrar {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 2rem;
+  top: 1rem; right: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   cursor: pointer;
-  color: #666;
-  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: all 0.2s;
 }
 
 .modalCerrar:hover {
-  color: #000;
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #f87171;
 }
 
-.modalContenido h2 {
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-/* ===================== CONTENEDOR LIBRETA Y ACTAS ===================== */
-#contenedor-libreta,
-#contenedor-actas {
-  margin-top: 1rem;
+/* Table Libreta */
+#contenedor-libreta {
+  margin-top: 1.25rem;
   overflow-x: auto;
-  max-height: 60vh;
-  padding: 1rem;
-  background: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid #ddd;
 }
 
-/* ===================== TABLA DE NOTAS ===================== */
 #contenedor-libreta table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #fff;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
-#contenedor-libreta thead {
-  background: linear-gradient(to right, #652f92, #334994);
-}
-
-#contenedor-libreta thead th {
-  padding: 14px 12px;
+#contenedor-libreta th {
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+  padding: 0.85rem;
   text-align: left;
-  color: #fff;
-  font-weight: 600;
-  font-size: 1rem;
-  border: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-#contenedor-libreta tbody tr {
-  transition: background-color 0.3s ease;
-  border-bottom: 1px solid #eee;
+#contenedor-libreta td {
+  padding: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
 }
 
-#contenedor-libreta tbody tr:hover {
-  background-color: rgba(174, 75, 255, 0.05);
+#contenedor-libreta tr:last-child td {
+  border-bottom: none;
 }
 
-#contenedor-libreta tbody td {
-  padding: 12px;
-  border: none;
-  color: #000000;
-  vertical-align: middle;
+#contenedor-libreta tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
-#contenedor-libreta tbody td:first-child {
-  font-weight: 600;
-  color: #333333;
+.promedio {
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
 }
 
-#contenedor-libreta .nota {
-  text-align: center;
-  font-weight: 600;
-  color: #555;
-}
-
-#contenedor-libreta .promedio {
-  font-weight: bold;
-  color: #7c3aed;
-  text-align: center;
-  background: rgba(124, 58, 237, 0.1);
-  border-radius: 5px;
-  padding: 4px 8px;
-}
-
-/* Estados opcionales */
-#contenedor-libreta .nota.aprobada {
-  color: #28a745;
-}
-
-#contenedor-libreta .nota.reprobada {
-  color: #dc3545;
-}
-
-/* ===================== BOTONES DENTRO DE LA LIBRETA ===================== */
-#contenedor-libreta .btn-nota {
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  border-radius: 15px;
-  background: linear-gradient(to right, #557dff, #ae4bff);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0 2px;
-}
-
-#contenedor-libreta .btn-nota:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(85, 125, 255, 0.3);
-}
-
-/* Mensaje vacío */
-#contenedor-libreta .libreta-vacia {
-  text-align: center;
-  color: #888;
-  padding: 3rem 1rem;
-  font-style: italic;
-}
-
-#contenedor-libreta .libreta-vacia::before {
-  content: "📊";
-  display: block;
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-/* ===================== RESPONSIVE DESIGN ===================== */
-@media (max-width: 1024px) {
-  .contenedorPrincipal {
-    padding: 1.5rem;
-    margin: 1rem auto;
-  }
-}
-
-@media (max-width: 768px) {
-  .contenedorPrincipal {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 1rem;
-    margin: 1rem auto;
-  }
-
-  .headerColumna {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .headerColumna div {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
-    padding: 12px;
-  }
-
-  .modalContenido {
-    width: 95%;
-    padding: 1.5rem;
-    margin: 1rem;
-  }
-
-  #contenedor-libreta table,
-  #contenedor-libreta thead,
-  #contenedor-libreta tbody,
-  #contenedor-libreta th,
-  #contenedor-libreta td,
-  #contenedor-libreta tr {
-    display: block;
-    width: 100%;
-  }
-
-  #contenedor-libreta thead {
-    display: none;
-  }
-
-  #contenedor-libreta tbody tr {
-    margin-bottom: 1rem;
-    border-bottom: 2px solid #eee;
-  }
-
-  #contenedor-libreta tbody td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-  }
-
-  #contenedor-libreta tbody td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 0;
-    width: 50%;
-    padding-left: 15px;
-    font-weight: 600;
-    text-align: left;
-  }
-}
+/* Upload Box for Student */
 .uploadBox {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1.25rem;
+  border-radius: 12px;
+  align-items: center;
+  transition: all 0.2s ease;
 }
 
-/* ===================== RESPONSIVE DESIGN ===================== */
-@media (max-width: 1024px) {
-  .contenedorPrincipal {
-    padding: 1.5rem;
-    margin: 1rem auto;
-  }
+.uploadBox:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.02);
 }
 
+/* Buttons style locally used */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btnPrincipal {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+
+.btnPrincipal:hover {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+}
+
+/* ── Responsive ─────────────────────────── */
 @media (max-width: 768px) {
   .contenedorPrincipal {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    padding: 1rem;
-    margin: 1rem auto;
-  }
-
-  .contenedorPrincipal .headerColumna {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-
-  .contenedorPrincipal .btn {
-    width: 100%;
-    margin: 0.5rem 0;
-    padding: 12px;
-  }
-
-  .contenedorPrincipal .camposLibretta {
-    flex-direction: column;
-  }
-
-  .contenedorPrincipal .camposLibretta input {
-    min-width: 100%;
-  }
-
-  .contenedorPrincipal .modalContenido {
-    width: 95%;
-    padding: 1.5rem;
-    margin: 1rem;
-  }
-
-  .contenedorPrincipal .formGestion {
-    padding: 1.5rem;
-  }
-
-  .contenedorPrincipal .columna h2 {
-    font-size: 1.6rem;
-  }
-
-  .contenedorPrincipal .formGestion input,
-  .contenedorPrincipal .formGestion textarea {
-    font-size: 0.95rem;
-  }
-
-  .contenedorPrincipal #contenedor-libreta {
-    margin: 0.5rem;
-  }
-
-  .contenedorPrincipal #contenedor-libreta h3 {
-    font-size: 1.3rem;
-  }
-
-  .contenedorPrincipal #contenedor-libreta table,
-  .contenedorPrincipal #contenedor-libreta thead,
-  .contenedorPrincipal #contenedor-libreta tbody,
-  .contenedorPrincipal #contenedor-libreta th,
-  .contenedorPrincipal #contenedor-libreta td,
-  .contenedorPrincipal #contenedor-libreta tr {
-    display: block;
-    width: 100%;
-  }
-
-  .contenedorPrincipal #contenedor-libreta thead {
-    display: none;
-  }
-
-  .contenedorPrincipal #contenedor-libreta tbody td {
-    padding: 8px;
-    text-align: right;
-    position: relative;
-  }
-
-  .contenedorPrincipal #contenedor-libreta tbody td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 8px;
-    text-align: left;
-    font-weight: 600;
-    color: #333;
   }
 }

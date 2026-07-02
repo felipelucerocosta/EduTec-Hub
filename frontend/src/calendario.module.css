@@ -1,255 +1,261 @@
-:root {
-  --primario: #2156a5;
-  --secundario: #f7f9fb;
-  --texto: #1c1c1c;
-  --borde: #d0d7de;
-  --sombra: rgba(0, 0, 0, 0.08);
-  --exito: #335e77;
-  --peligro: #dc3545;
-  --atencion: #ffc107;
-  --blanco: #ffffff;
-  --nota-bg: #6c5ce7;
-  --nota-texto: #fff;
-}
+/* ============================================
+   CALENDARIO - Premium Calendar View
+   ============================================ */
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background-color: var(--secundario);
-  color: var(--texto);
-}
-
-/* ================== CONTENEDOR ================== */
-.contenedor {
-  max-width: 1000px;
-  margin: 30px auto;
-  padding: 30px;
-  background: linear-gradient(to right, #ae4bff9c, #557dffa2);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px var(--sombra);
-}
-
-/* ================== ENCABEZADO INTERNO ================== */
-.encabezado {
+.calBody {
+  min-height: 100vh;
+  background: #030014;
+  color: #f1f5f9;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.encabezado h2 {
-  font-size: 1.8rem;
-  color: #000000;
-  margin: 0;
-}
-
-.encabezado button {
-  background-color: var(--primario);
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.encabezado button:hover {
-  background-color: #163e77;
-  transform: translateY(-2px);
-}
-
-/* ================== FORMULARIO ================== */
-.formulario-nota {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.formulario-nota input,
-.formulario-nota select {
-  padding: 10px 12px;
-  font-size: 1rem;
-  border: 1px solid var(--borde);
-  border-radius: 8px;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
-}
-
-.formulario-nota input:focus,
-.formulario-nota select:focus {
-  outline: none;
-  border-color: var(--primario);
-  box-shadow: 0 0 5px var(--primario);
-}
-
-.formulario-nota button {
-  background-color: var(--exito);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.formulario-nota button:hover {
-  background-color: #218838;
-  transform: translateY(-2px);
-}
-
-/* ================== CALENDARIO ================== */
-table#calendario {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: var(--blanco);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 0 10px var(--sombra);
-  font-size: 1rem;
-}
-
-th {
-  background-color: var(--primario);
-  color: white;
-  padding: 12px;
-  font-weight: 600;
-  text-align: center;
-}
-
-td {
+  flex-direction: column;
   position: relative;
-  border: 1px solid var(--borde);
-  height: 100px;
-  vertical-align: top;
-  padding: 8px;
-  background-color: #fdfdfd;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-  border-radius: 8px;
 }
 
-td:hover {
-  background-color: #eaf4ff;
-  cursor: pointer;
-  box-shadow: 0 2px 10px var(--sombra);
+.calBody::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -10%;
+  width: 55%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* ================== NÚMERO DE DÍA ================== */
-.dia-num {
-  position: absolute;
-  top: 5px;
-  left: 8px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: #555;
+.calContent {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  width: 100%;
+  flex: 1;
 }
 
-/* ================== NOTAS EN CELDA (UX/UI MEJORADO) ================== */
-td ul {
-  margin: 25px 0 0 0;
-  padding-left: 0;
-  list-style-type: none;
-  max-height: 70px;
-  overflow-y: auto;
+/* ── Calendar Header ──────────────────────── */
+.calHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-td ul li {
+.calMonthTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.calNavBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 8px;
-  margin-bottom: 5px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--nota-texto);
-  background: var(--nota-bg);
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease, background 0.3s ease;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+}
+.calNavBtn:hover {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.3);
+  color: #a78bfa;
 }
 
-td ul li:hover {
-  transform: translateY(-2px);
-  background: #5a4cd8;
+/* ── Calendar Grid ────────────────────────── */
+.calGrid {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  overflow: hidden;
 }
 
-/* Colores opcionales por índice */
-.nota-color-0 { background-color: #e74c3c; }
-.nota-color-1 { background-color: #8e44ad; }
-.nota-color-2 { background-color: #3498db; }
-.nota-color-3 { background-color: #16a085; }
-.nota-color-4 { background-color: #27ae60; }
-.nota-color-5 { background-color: #f39c12; }
-.nota-color-6 { background-color: #d35400; }
-.nota-color-7 { background-color: #c0392b; }
-.nota-color-8 { background-color: #2980b9; }
-.nota-color-9 { background-color: #2c3e50; }
+.calDaysHeader {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: rgba(124, 58, 237, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
 
-/* ================== FOOTER ================== */
-footer {
-  color: #777;
-  font-size: 13px;
+.calDayLabel {
+  padding: 0.75rem 0;
   text-align: center;
-  padding: 40px 10px 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
-/* ================== RESPONSIVE ================== */
+.calCells {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calCell {
+  min-height: 100px;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.5rem;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.calCell:nth-child(7n) { border-right: none; }
+
+.calCell:hover {
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.calCellDay {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.4rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.calCellToday .calCellDay {
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  color: #fff;
+}
+
+.calCellOtherMonth .calCellDay {
+  color: #334155;
+}
+
+/* ── Events ──────────────────────────────── */
+.calEvent {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.45rem;
+  border-radius: 5px;
+  margin-bottom: 0.2rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.2s;
+}
+
+.calEvent:hover { filter: brightness(1.2); }
+
+.calEventPurple {
+  background: rgba(124, 58, 237, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.calEventCyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: #67e8f9;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.calEventAmber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* ── Nota/Event Modal ────────────────────── */
+.notaModal {
+  background: rgba(13, 9, 39, 0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 2rem;
+  width: min(400px, calc(100vw - 2rem));
+}
+
+.notaInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.72rem 1rem;
+  color: #f1f5f9;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+  margin-bottom: 0.75rem;
+}
+
+.notaInput::placeholder { color: #475569; }
+.notaInput:focus {
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+/* ── Sidebar / Notes List ─────────────────── */
+.calSidebar {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 1.5rem;
+}
+
+.sidebarTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.notaItem {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.notaItem:hover {
+  border-color: rgba(124, 58, 237, 0.2);
+  background: rgba(124, 58, 237, 0.04);
+}
+
+.notaTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.25rem;
+}
+
+.notaDate {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* ── Responsive ─────────────────────────── */
 @media (max-width: 768px) {
-  .contenedor {
-    padding: 20px;
-  }
-
-  table#calendario {
-    font-size: 0.85rem;
-  }
-
-  td {
-    height: 80px;
-    padding: 5px;
-  }
-
-  .encabezado h2 {
-    font-size: 1.5rem;
-  }
-
-  .formulario-nota input,
-  .formulario-nota button {
-    font-size: 1rem;
-    padding: 10px 12px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .contenedor {
-    max-width: 1400px;
-    padding: 40px;
-  }
-
-  table#calendario {
-    font-size: 1.15rem;
-    min-width: 900px;
-    margin: 0 auto;
-  }
-
-  th,
-  td {
-    padding: 18px;
-    height: 120px;
-  }
-
-  .encabezado h2 {
-    font-size: 2rem;
-  }
-
-  .formulario-nota input,
-  .formulario-nota button {
-    font-size: 1.15rem;
-    padding: 14px 20px;
+  .calContent { padding: 1.5rem 1rem; }
+  .calCell { min-height: 65px; }
+  .calEvent { display: none; }
+  .calCell:has(.calEvent) .calCellDay::after {
+    content: '•';
+    color: #a78bfa;
+    margin-left: 2px;
   }
 }

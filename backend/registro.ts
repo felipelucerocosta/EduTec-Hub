@@ -20,141 +20,125 @@ interface RegistroProfesorBody {
   contrasena: string;
 }
 
-// Registro de alumno
+// ── Registro de alumno ────────────────────────────────────────
 router.post(
   '/registro-alumno',
   async (req: Request<{}, any, RegistroAlumnoBody>, res: Response) => {
     const { nombre_completo, correo, curso, DNI, contrasena } = req.body;
 
-    if (!nombre_completo || !correo || !curso || !DNI || !contrasena) {
-      return res.status(400).send('Datos incompletos.');
-    }
-
-    // Validar dominio institucional para alumnos
-    if (!correo.endsWith('@alu.tecnica29de6.edu.ar')) {
-      return res.status(400).send('Solo se permiten correos institucionales de alumnos (@alu.tecnica29de6.edu.ar).');
+    if (!nombre_completo || !correo || !DNI || !contrasena) {
+      return res.status(400).json({ error: 'Datos incompletos. Nombre, correo, DNI y contraseña son obligatorios.' });
     }
 
     try {
-      // 1. Verificar si el usuario ya existe
-      const verificarQuery = `SELECT * FROM usuarios WHERE correo = $1 OR DNI = $2`;
-      const verificarResult = await pool.query(verificarQuery, [correo, DNI]);
-
+      // 1. Verificar si ya existe
+      const verificarResult = await pool.query(
+        `SELECT id_usuario FROM usuarios WHERE correo = ? OR DNI = ?`,
+        [correo.toLowerCase().trim(), DNI.trim()]
+      );
       if (verificarResult.rows.length > 0) {
-        return res.send('El correo o DNI ya está registrado.');
+        return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
       }
 
-      // Hasheamos la contraseña antes de guardarla
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(contrasena, saltRounds);
+      // 2. Hashear contraseña
+      const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-      // Insertar en la tabla principal de usuarios
-      const insertUsuario = `
-        INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING ID_Usuario
-      `;
-      const usuarioResult = await pool.query(insertUsuario, [
-        hashedPassword,
-        nombre_completo,
-        correo,
-        DNI,
-        curso,
-      ]);
-      const ID_Usuario = usuarioResult.rows[0].id_usuario;
-
-      // Insertar en la tabla "alumno"
-      const [nombre, ...resto] = nombre_completo.split(' ');
-      const apellido = resto.join(' ');
-
-      const cursoResult = await pool.query(
-        `SELECT ID_Curso FROM curso WHERE nombre_curso = $1`,
-        [curso]
+      // 3. Insertar en usuarios
+      const usuarioResult = await pool.query(
+        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol)
+         VALUES (?, ?, ?, ?, ?, 'alumno')`,
+        [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null]
       );
-      const ID_Curso = cursoResult.rows.length > 0 ? cursoResult.rows[0].id_curso : null;
 
-      const insertAlumno = `
-        INSERT INTO alumno (DNI, nombre_completo, apellido, ID_Curso, ID_Usuario, correo, contrasena)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `;
-      await pool.query(insertAlumno, [
-        DNI,
-        nombre,
-        apellido,
-        ID_Curso,
-        ID_Usuario,
-        correo,
-        hashedPassword,
-      ]);
+      // Obtener el ID del usuario recién insertado
+      const ID_Usuario = usuarioResult.rows[0]?.id_usuario ?? usuarioResult.insertId;
+      if (!ID_Usuario) {
+        throw new Error('No se pudo obtener el ID del usuario creado.');
+      }
 
-      res.send('¡Alumno registrado exitosamente!');
-    } catch (err) {
+      // 4. Obtener ID del curso (si existe)
+      let ID_Curso: number | null = null;
+      if (curso) {
+        const cursoResult = await pool.query(
+          `SELECT id_curso FROM curso WHERE nombre_curso = ?`,
+          [curso]
+        );
+        ID_Curso = cursoResult.rows.length > 0 ? cursoResult.rows[0].id_curso : null;
+      }
+
+      // 5. Separar nombre y apellido
+      const partes = nombre_completo.trim().split(' ');
+      const nombre = partes[0];
+      const apellido = partes.slice(1).join(' ') || '';
+
+      // 6. Insertar en tabla alumno
+      await pool.query(
+        `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [DNI.trim(), nombre, apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword]
+      );
+
+      return res.status(201).json({ success: true, message: '¡Alumno registrado exitosamente!' });
+    } catch (err: any) {
       console.error('Error en registro de alumno:', err);
-      res.status(500).send('Error interno del servidor.');
+      if (err.message?.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
+      }
+      return res.status(500).json({ error: 'Error interno del servidor al registrar el alumno.' });
     }
   }
 );
 
-// Registro de profesor
+// ── Registro de profesor ──────────────────────────────────────
 router.post(
   '/registro-profesor',
   async (req: Request<{}, any, RegistroProfesorBody>, res: Response) => {
     const { nombre_completo, correo, materia, DNI, contrasena } = req.body;
 
-    if (!nombre_completo || !correo || !materia || !DNI || !contrasena) {
-      return res.status(400).send('Datos incompletos.');
-    }
-
-    // Validar dominio institucional para profesores
-    if (!correo.endsWith('@tecnica29de6.edu.ar') || correo.includes('@alu.')) {
-      return res.status(400).send('Solo se permiten correos institucionales de profesores (@tecnica29de6.edu.ar).');
+    if (!nombre_completo || !correo || !DNI || !contrasena) {
+      return res.status(400).json({ error: 'Datos incompletos. Nombre, correo, DNI y contraseña son obligatorios.' });
     }
 
     try {
-      // 1. Verificar si el usuario ya existe
-      const verificarQuery = `SELECT * FROM usuarios WHERE correo = $1 OR DNI = $2`;
-      const verificarResult = await pool.query(verificarQuery, [correo, DNI]);
-
+      // 1. Verificar si ya existe
+      const verificarResult = await pool.query(
+        `SELECT id_usuario FROM usuarios WHERE correo = ? OR DNI = ?`,
+        [correo.toLowerCase().trim(), DNI.trim()]
+      );
       if (verificarResult.rows.length > 0) {
-        return res.send('El correo o DNI ya está registrado.');
+        return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
       }
 
-      // Hasheamos la contraseña antes de guardarla
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(contrasena, saltRounds);
+      // 2. Hashear contraseña
+      const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-      const insertUsuario = `
-        INSERT INTO usuarios (contrasena, usuario, nombre_completo, correo, DNI, curso)
-        VALUES ($1, $2, $3, $4, $5, NULL)
-        RETURNING ID_Usuario
-      `;
-      const usuarioResult = await pool.query(insertUsuario, [
-        hashedPassword,
-        correo,
-        nombre_completo,
-        correo,
-        DNI,
-      ]);
-      const ID_Usuario = usuarioResult.rows[0].id_usuario;
+      // 3. Insertar en usuarios (sin campo 'usuario' — no existe en el schema)
+      const usuarioResult = await pool.query(
+        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, rol)
+         VALUES (?, ?, ?, ?, 'profesor')`,
+        [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim()]
+      );
 
-      // Insertar en la tabla específica de profesores
-      const insertProfesor = `
-        INSERT INTO profesor (ID_Usuario, correo, DNI, nombre_completo, materia, contrasena)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `;
-      await pool.query(insertProfesor, [
-        ID_Usuario,
-        correo,
-        DNI,
-        nombre_completo,
-        materia,
-        hashedPassword,
-      ]);
+      // Obtener el ID del usuario recién insertado
+      const ID_Usuario = usuarioResult.rows[0]?.id_usuario ?? usuarioResult.insertId;
+      if (!ID_Usuario) {
+        throw new Error('No se pudo obtener el ID del usuario creado.');
+      }
 
-      res.send('¡Profesor registrado exitosamente!');
-    } catch (err) {
+      // 4. Insertar en tabla profesor
+      await pool.query(
+        `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [ID_Usuario, correo.toLowerCase().trim(), DNI.trim(), nombre_completo.trim(), materia || '', hashedPassword]
+      );
+
+      return res.status(201).json({ success: true, message: '¡Profesor registrado exitosamente!' });
+    } catch (err: any) {
       console.error('Error en registro de profesor:', err);
-      res.status(500).send('Error interno del servidor.');
+      if (err.message?.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
+      }
+      return res.status(500).json({ error: 'Error interno del servidor al registrar el profesor.' });
     }
   }
 );

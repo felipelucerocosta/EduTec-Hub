@@ -1,33 +1,55 @@
-/* Home page CSS module */
+/* ============================================
+   HOME PAGE - Premium Dark Landing
+   ============================================ */
 
 .homeBody {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at top left, #1e1b4b, #0f172a);
-  color: #ffffff;
-  font-family: 'Montserrat', sans-serif;
+  background: var(--bg-primary, #030014);
+  color: #f8fafc;
   overflow-x: hidden;
   position: relative;
 }
 
-/* Background image overlay with blur */
+/* Ambient background glow */
+.homeBody::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -10%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.homeBody::after {
+  content: '';
+  position: fixed;
+  bottom: -20%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Background image overlay */
 .homeBackground {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-image: url('/fondo.png');
-  background-repeat: no-repeat;
-  background-position: center;
   background-size: cover;
-  opacity: 0.15;
-  filter: blur(4px);
+  background-position: center;
+  opacity: 0.04;
   z-index: 0;
   pointer-events: none;
 }
 
+/* ── Content Layout ──────────────────────── */
 .homeContent {
   position: relative;
   z-index: 1;
@@ -36,190 +58,225 @@
   flex-direction: column;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
+  padding: 4rem 1.5rem 3rem;
   width: 100%;
 }
 
+/* ── Hero Section ────────────────────────── */
 .heroSection {
   text-align: center;
-  margin-bottom: 4rem;
-  animation: fadeInDown 0.8s ease;
+  margin-bottom: 5rem;
+  animation: fadeInDown 0.7s ease;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  border-radius: 50px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  color: #a78bfa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1.75rem;
 }
 
 .title {
-  font-size: 3rem;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
   font-weight: 800;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #a78bfa, #60a5fa, #38bdf8);
+  margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, #e2d9f3 0%, #a78bfa 35%, #38bdf8 70%, #e2d9f3 100%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -1px;
+  background-clip: text;
+  letter-spacing: -2px;
+  line-height: 1.1;
+  animation: shimmer 5s linear infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
 }
 
 .subtitle {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 2vw, 1.2rem);
   color: #94a3b8;
-  max-width: 700px;
+  max-width: 620px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.7;
   font-weight: 400;
 }
 
+/* ── Level Selector ──────────────────────── */
 .levelSelectorTitle {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 2rem;
-  color: #f8fafc;
-  letter-spacing: 0.5px;
+  margin-bottom: 1.75rem;
+  color: #f1f5f9;
+  letter-spacing: -0.02em;
+}
+
+.levelSelectorTitle span {
+  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .cardsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
+  gap: 1.5rem;
   margin-bottom: 5rem;
-  animation: fadeInUp 0.8s ease 0.2s forwards;
-  opacity: 0;
+  animation: fadeInUp 0.7s ease 0.15s both;
 }
 
-/* Customize colors inside reusable cards through module overrides if needed */
-.cardsGrid :global(.components_card__VlFoS) { /* matches local module class */
-  height: 100%;
-}
-
+/* ── Features Section ────────────────────── */
 .featuresSection {
-  background: rgba(30, 41, 59, 0.4);
+  background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 24px;
-  padding: 3rem 2rem;
+  padding: 3.5rem 2.5rem;
   margin-bottom: 4rem;
-  text-align: center;
-  animation: fadeInUp 0.8s ease 0.4s forwards;
-  opacity: 0;
+  animation: fadeInUp 0.7s ease 0.3s both;
+  position: relative;
+  overflow: hidden;
+}
+
+.featuresSection::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), rgba(6, 182, 212, 0.4), transparent);
 }
 
 .featuresTitle {
-  font-size: 1.8rem;
+  font-size: 1.65rem;
   font-weight: 700;
-  margin-bottom: 2.5rem;
+  margin-bottom: 0.6rem;
   color: #f1f5f9;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.featuresSubtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 3rem;
 }
 
 .featuresGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2.5rem;
+  gap: 2rem;
 }
 
 .featureItem {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.featureItem:hover {
+  background: rgba(124, 58, 237, 0.05);
+  border-color: rgba(124, 58, 237, 0.15);
+  transform: translateY(-3px);
 }
 
 .featureIcon {
-  font-size: 2.5rem;
+  font-size: 1.6rem;
   color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
-  width: 70px;
-  height: 70px;
-  border-radius: 20px;
+  background: rgba(56, 189, 248, 0.1);
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.1rem;
+  border: 1px solid rgba(56, 189, 248, 0.15);
   transition: all 0.3s ease;
 }
 
 .featureItem:hover .featureIcon {
-  transform: rotate(10deg) scale(1.1);
-  background: rgba(56, 189, 248, 0.25);
-  color: #60a5fa;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: rotate(-6deg) scale(1.05);
 }
 
 .featureItemTitle {
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   margin-bottom: 0.5rem;
-  color: #f8fafc;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
 }
 
 .featureItemDesc {
-  font-size: 0.9rem;
-  color: #94a3b8;
-  line-height: 1.5;
+  font-size: 0.84rem;
+  color: #64748b;
+  line-height: 1.6;
 }
 
+/* ── Quick Actions ───────────────────────── */
 .quickActions {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: 2rem;
-  animation: fadeInUp 0.8s ease 0.6s forwards;
-  opacity: 0;
+  animation: fadeInUp 0.7s ease 0.45s both;
 }
 
+/* ── Footer ─────────────────────────────── */
 .footer {
   text-align: center;
   padding: 2rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  color: #64748b;
-  font-size: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  color: #334155;
+  font-size: 0.8rem;
   z-index: 1;
+  position: relative;
 }
 
-/* Animations */
+/* ── Animations ─────────────────────────── */
 @keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-25px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(25px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive design */
-@media (max-width: 968px) {
-  .cardsGrid, .featuresGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .cardsGrid {
-    gap: 1.5rem;
-  }
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 900px) {
+  .cardsGrid { grid-template-columns: repeat(2, 1fr); }
+  .featuresGrid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 640px) {
-  .title {
-    font-size: 2.2rem;
-  }
-  .subtitle {
-    font-size: 1rem;
-  }
-  .cardsGrid, .featuresGrid {
-    grid-template-columns: 1fr;
-  }
-  .quickActions {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 0 2rem;
-  }
-  .featuresSection {
-    padding: 2rem 1rem;
-  }
+  .homeContent { padding: 2rem 1rem; }
+  .heroSection { margin-bottom: 3rem; }
+  .cardsGrid { grid-template-columns: 1fr; gap: 1rem; }
+  .featuresGrid { grid-template-columns: 1fr; }
+  .quickActions { flex-direction: column; padding: 0 1rem; }
+  .featuresSection { padding: 2rem 1.25rem; }
+  .featureItem { align-items: flex-start; }
 }

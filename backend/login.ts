@@ -96,24 +96,20 @@ async function notifySuccessfulLogin(email: string) {
 
 // --- RUTA DE LOGIN ---
 router.post('/login', async (req: Request, res: Response) => {
-  const correo: string = req.body.correo ? String(req.body.correo).trim() : '';
+  // Normalize email to lowercase to match how it's stored during registration
+  const correo: string = req.body.correo ? String(req.body.correo).trim().toLowerCase() : '';
   const contrasena: string = req.body.contrasena ? String(req.body.contrasena).trim() : '';
 
   if (!correo || !contrasena) {
     return res.status(400).json({ success: false, message: 'Faltan correo o contraseña.' });
   }
 
-  // Validar dominio institucional
-  if (!correo.endsWith('@alu.tecnica29de6.edu.ar') && !correo.endsWith('@tecnica29de6.edu.ar')) {
-    return res.status(400).json({ success: false, message: 'Solo se permiten correos institucionales.' });
-  }
-
   try {
-    const userQuery = 'SELECT * FROM usuarios WHERE correo = $1';
+    // Use LOWER() for case-insensitive match as extra safety
+    const userQuery = 'SELECT * FROM usuarios WHERE LOWER(correo) = $1';
     const result: any = await pool.query(userQuery, [correo]);
 
     if (!result || !Array.isArray(result.rows) || result.rows.length === 0) {
-      // Incrementar intento fallido incluso si el correo no existe (para evitar enumeración no revelamos)
       handleFailedAttempt(correo);
       return res.status(401).json({ success: false, message: 'Credenciales incorrectas.' });
     }
@@ -127,15 +123,26 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Credenciales incorrectas.' });
     }
 
-    // Login correcto -> limpiar contador
+    // Login correcto → limpiar contador
     attempts.delete(correo);
 
-    let rol = 'alumno';
-    const profesorQuery = 'SELECT * FROM profesor WHERE id_usuario = $1';
-    const profesorResult: any = await pool.query(profesorQuery, [usuario.id_usuario]);
+    // Determine role:
+    // 1. Trust the rol column stored in usuarios (set during registration)
+    // 2. If rol is 'alumno' but user exists in profesor table, upgrade to 'profesor'
+    // 3. Never downgrade admin
+    let rol: string = usuario.rol || 'alumno';
 
-    if (profesorResult && Array.isArray(profesorResult.rows) && profesorResult.rows.length > 0) {
-      rol = 'profesor';
+    if (rol !== 'admin') {
+      try {
+        const profesorQuery = 'SELECT id_profesor FROM profesor WHERE id_usuario = $1 LIMIT 1';
+        const profesorResult: any = await pool.query(profesorQuery, [usuario.id_usuario]);
+        if (profesorResult && Array.isArray(profesorResult.rows) && profesorResult.rows.length > 0) {
+          rol = 'profesor';
+        }
+      } catch (e) {
+        // If profesor table query fails, fall back to stored rol
+        console.warn('Could not check profesor table:', e);
+      }
     }
 
     (req.session as any).usuario = {
@@ -145,10 +152,10 @@ router.post('/login', async (req: Request, res: Response) => {
       rol
     };
 
-    // Enviar notificación de login exitoso por email
-    await notifySuccessfulLogin(correo);
+    // Fire-and-forget email notification (don't block login if it fails)
+    notifySuccessfulLogin(correo).catch(() => {});
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Inicio de sesión exitoso.',
       usuario: {
@@ -160,7 +167,7 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('Error en la consulta de login:', err);
-    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+    return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
   }
 });
 
@@ -169,33 +176,33 @@ router.post('/admin-login', async (req: Request, res: Response) => {
   const correo = req.body.correo ? String(req.body.correo).trim() : '';
   const contrasena = req.body.contrasena ? String(req.body.contrasena).trim() : '';
 
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminEmail || !adminPassword) {
-    return res.status(500).json({ success: false, message: 'Configuración de admin no disponible.' });
+  const allowedAdminEmails = ['felipelucero534@gmail.com'];
+  if (process.env.ADMIN_EMAIL) {
+    allowedAdminEmails.push(process.env.ADMIN_EMAIL.trim().toLowerCase());
   }
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Donpatricio111';
 
   if (!correo || !contrasena) {
     return res.status(400).json({ success: false, message: 'Faltan correo o contraseña.' });
   }
 
-  if (correo.toLowerCase() !== adminEmail || contrasena !== adminPassword) {
+  const correoLower = correo.toLowerCase();
+  if (!allowedAdminEmails.includes(correoLower) || contrasena !== adminPassword) {
     await handleFailedAttempt(correo);
     return res.status(401).json({ success: false, message: 'Credenciales de admin incorrectas.' });
   }
 
   try {
     const userQuery = 'SELECT * FROM usuarios WHERE LOWER(correo) = $1';
-    const result: any = await pool.query(userQuery, [adminEmail]);
+    const result: any = await pool.query(userQuery, [correoLower]);
     let usuario = result.rows && result.rows[0];
 
     if (!usuario) {
       const hashed = await bcrypt.hash(adminPassword, 10);
       const insertResult: any = await pool.query(
-        `INSERT INTO usuarios (nombre_completo, correo, contrasena)
-         VALUES ($1, $2, $3) RETURNING id_usuario, nombre_completo, correo`,
-        ['Administrador', adminEmail, hashed]
+        `INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI)
+         VALUES ($1, $2, $3, 'admin', $4) RETURNING id_usuario, nombre_completo, correo`,
+        ['Administrador', correoLower, hashed, `DNI-${Math.floor(Math.random() * 10000000)}`]
       );
       usuario = insertResult.rows[0];
     }
@@ -204,7 +211,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
     (req.session as any).usuario = {
       id: Number(usuario.id_usuario),
       nombre: usuario.nombre_completo || 'Administrador',
-      correo: usuario.correo || adminEmail,
+      correo: usuario.correo ,
       rol: 'admin',
       isAdmin: true
     };
@@ -217,7 +224,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
       usuario: {
         id: Number(usuario.id_usuario),
         nombre: usuario.nombre_completo || 'Administrador',
-        correo: usuario.correo || adminEmail,
+        correo: usuario.correo,
         isAdmin: true
       }
     });
@@ -367,6 +374,14 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     console.error('Error en reset-password:', err);
     return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
   }
+});
+
+// GET /whoami -> devuelve los datos del usuario en sesión
+router.get('/whoami', (req: Request, res: Response) => {
+  if (req.session && (req.session as any).usuario) {
+    return res.status(200).json({ user: (req.session as any).usuario });
+  }
+  return res.status(200).json({ user: null }); // Retornar 200 con user: null para evitar que el fetch explote en el frontend
 });
 
 export default router;

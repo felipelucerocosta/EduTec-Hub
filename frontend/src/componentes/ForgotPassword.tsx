@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-import styles from "../Registro.module.css"; // Reutilizamos los estilos de Registro
+import { Link } from "react-router-dom";
+import styles from "../Registro.module.css";
 import Header from "../components reutilizables/header";
+import Button from "../components reutilizables/Button";
+import InputField from "../components reutilizables/InputField";
 
 interface Notification {
   msg: string;
@@ -49,33 +52,50 @@ const ForgotPassword = () => {
 
   return (
     <div className={styles.loginRegisterBody}>
-      <Header />
+      <Header showLogout={false} />
+      
       {notification.msg && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
+        <div className={`${styles.notification} ${notification.type === "success" ? styles.success : styles.error}`}>
+          <i className={`bx ${notification.type === "success" ? "bx-check-circle" : "bx-error-circle"}`}></i>
           {notification.msg}
         </div>
       )}
+
       <div className={styles.loginRegisterContainer}>
-        <div className={styles.containerPrincipal} style={{ width: "450px" }}>
-          <form onSubmit={handleSubmit}>
-            <h2 style={{color: "black"}}>Restablecer Contraseña</h2>
-            <p style={{color: "black", marginBottom: "20px"}}>
-              Ingrese su correo electrónico y le enviaremos un enlace para restablecer su contraseña.
-            </p>
-            <div className={styles.formGroup}>
-              <input
-                type="email"
-                name="correo"
-                placeholder="Correo Electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <div className={styles.containerPrincipal} style={{ width: "min(460px, calc(100vw - 2rem))" }}>
+          
+          <Link to="/registro" className={styles.backLink}>
+            <i className="bx bx-arrow-back"></i>
+            Volver al Login
+          </Link>
+
+          <div className={styles.formHeader} style={{ marginBottom: "2rem" }}>
+            <div className={styles.formLogoMark}>
+              <i className="bx bx-key"></i>
             </div>
-            <button type="submit" disabled={isLoading}>
-              {isLoading ? "Enviando..." : "Enviar Enlace"}
-            </button>
+            <h1 className={styles.formTitle}>¿Olvidaste tu contraseña?</h1>
+            <p className={styles.formSubtitle} style={{ marginTop: "0.5rem", lineHeight: "1.5" }}>
+              Ingresa tu dirección de correo electrónico registrado y te enviaremos un enlace de recuperación.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            <InputField
+              label="Correo Electrónico"
+              type="email"
+              name="correo"
+              placeholder="tu@correo.com"
+              icon="bx-envelope"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            
+            <Button type="submit" loading={isLoading} style={{ width: "100%", marginTop: "0.5rem" }}>
+              Enviar Enlace
+            </Button>
           </form>
+
         </div>
       </div>
     </div>

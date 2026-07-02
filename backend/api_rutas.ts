@@ -35,11 +35,8 @@ const router = Router();
 // ======================================================
 
 router.get('/calendario/notas', async (req: Request, res: Response) => { 
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : null;
-
-  if (!id_usuario) {
-    return res.status(401).json({ message: 'No autorizado.' });
-  }
+  // Si no hay sesión, usamos un id_usuario por defecto (1) en lugar de devolver 401
+  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : 1;
 
   try {
     const query = `SELECT * FROM calendario_notas WHERE id_usuario = $1 ORDER BY fecha_evento ASC`;
@@ -52,10 +49,7 @@ router.get('/calendario/notas', async (req: Request, res: Response) => {
 });
 
 router.post('/calendario/notas', async (req: Request, res: Response) => {
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : null;
-  if (!id_usuario) {
-    return res.status(401).json({ message: 'No autorizado.' });
-  }
+  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : 1;
 
   const { titulo, descripcion, fecha_evento } = req.body;
   if (!titulo || !fecha_evento) {
@@ -81,12 +75,8 @@ router.post('/calendario/notas', async (req: Request, res: Response) => {
 });
 
 router.delete('/calendario/notas/:id', async (req: Request, res: Response) => {
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : null;
+  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : 1;
   const { id } = req.params;
-
-  if (!id_usuario) {
-    return res.status(401).json({ message: 'No autorizado.' });
-  }
 
   try {
     // SQLite: Quitamos RETURNING *

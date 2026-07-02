@@ -1,203 +1,208 @@
-@import url('https://fonts.googleapis.com/css?family=Montserrat:400,600,800');
+/* ============================================
+   FORO - Premium Chat/Forum Layout
+   ============================================ */
 
-/* ======== ESTILOS GENERALES ======== */
-body {
-  background: url('../public/fondo.png') no-repeat center center fixed;
-  background-size: cover;
-  font-family: 'Montserrat', Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  color: #000000;
-  line-height: 1.6;
+.body {
+  min-height: 100vh;
+  background: #030014;
+  color: #f1f5f9;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* Links */
-a {
-  text-decoration: none;
-  color: inherit;
-  transition: transform 0.2s ease, color 0.3s ease;
-}
-a:hover {
-  transform: scale(1.05);
+/* Ambient glow */
+.body::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-
-/* ======== CONTENEDOR FORO ======== */
 .container {
+  position: relative;
+  z-index: 1;
   max-width: 900px;
-  margin: 2rem auto;
-  padding: 2rem;
-   background: linear-gradient(to right, #ae4bff, #557dff);
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  margin: 2rem auto 4rem;
+  padding: 0 1.5rem;
+  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* TITULO FORO */
-.main-content h2 {
-  text-align: center;
-  margin-top: 0;
-  margin-bottom: 1.5rem;
+.mainContent {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.mainContent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), rgba(6, 182, 212, 0.4), transparent);
+}
+
+.forumTitle {
+  font-size: 1.8rem;
   font-weight: 800;
-  font-size: 2rem;
-  background: linear-gradient(to right, #17285f, hsl(0, 0%, 0%));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Mejor legibilidad */
+  color: #f1f5f9;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.25rem;
+  text-align: left;
 }
 
-/* FORMULARIO MENSAJE */
-textarea {
-  width: 100%;
-  padding: 14px 16px;
-  font-size: 1rem;
-  font-family: 'Montserrat', sans-serif;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  resize: vertical;
-  box-sizing: border-box;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
-}
-textarea:focus {
-  outline: none;
-  border-color: #ae4bff;
-  box-shadow: 0 0 0 3px #ae4bff33;
+.forumSubtitle {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin-bottom: 2rem;
 }
 
-/* BOTONES */
-button {
-  display: inline-block;
-  padding: 12px 30px;
-  font-size: 1rem;
-  font-weight: bold;
-  border: none;
-  border-radius: 25px;
-  background: linear-gradient(to right, #652f92, #334994);
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 10px;
-  margin-bottom: 10px ;
-  border: 1.5px solid #000000;
-}
-button:hover {
-  background: linear-gradient(to right, #557dff, #ae4bff);
-  transform: translateY(-2px);
-}
-button:active {
-  transform: scale(0.97);
-}
-
-/* MENSAJES */
-#mensajes {
-  border-top: 1px solid #eee;
-  padding: 1rem;
-  margin-top: 20px;
-  background: #fafafa;
-  min-height: 120px;
-  border-radius: 8px;
-  overflow-y: auto;
-  max-height: 400px; /* Scroll si hay muchos mensajes */
-}
-
-.mensaje-item {
-  background-color: #f9f9f9;
-  border: 1px solid #9571e9;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 1rem;
-}
-
-.mensaje-item p {
-  margin: 0 0 10px 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.mensaje-footer {
+/* ── TEXTAREA / COMPOSER ────────────────── */
+.composerWrapper {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: #555;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1.25rem;
+  border-radius: 16px;
 }
 
-.btn-eliminar {
-  background: none;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: bold;
+.textarea {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.92rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
 }
 
-.mensaje-vacio {
-  text-align: center;
-  color: #888;
-  padding: 2rem;
+.textarea::placeholder {
+  color: #475569;
 }
 
-/* ADMIN */
-.admin-title {
-  text-align: center;
-  margin-top: 20px;
-  color: #555;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  font-weight: 600;
+.textarea:focus {
+  border-color: rgba(124, 58, 237, 0.5);
+  background: rgba(124, 58, 237, 0.04);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
 }
 
-/* FOOTER */
-footer {
-  text-align: center;
-  padding: 2rem;
-  color: #555;
-  font-size: 0.9rem;
+/* ── MESSAGES LIST ──────────────────────── */
+.mensajesList {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Custom Scrollbar for messages */
+.mensajesList::-webkit-scrollbar {
+  width: 6px;
+}
+.mensajesList::-webkit-scrollbar-track {
   background: transparent;
 }
-
-/* ======== RESPONSIVE ======== */
-@media (max-width: 1024px) {
-  .container {
-    padding: 1.5rem;
-    margin: 1rem;
-  }
+.mensajesList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+.mensajesList::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.3);
 }
 
-@media (max-width: 768px) {
-  .container {
-    padding: 1rem;
-    margin: 1rem;
-  }
-
-  .main-content h2 {
-    font-size: 1.6rem;
-  }
-
-  textarea {
-    font-size: 0.95rem;
-  }
-
-  button {
-    width: 100%;
-    padding: 12px;
-  }
+/* Style the raw generated HTML divs */
+.mensajesList > div > div {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 14px !important;
+  padding: 1rem 1.25rem !important;
+  font-size: 0.92rem !important;
+  line-height: 1.6 !important;
+  color: #e2e8f0 !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+  margin-bottom: 0.75rem !important;
 }
 
-@media (max-width: 480px) {
-  .container {
-    padding: 0.8rem;
-  }
+.mensajesList > div > div:hover {
+  border-color: rgba(124, 58, 237, 0.2) !important;
+  background: rgba(124, 58, 237, 0.03) !important;
+  transform: translateY(-1px);
+}
 
-  .main-content h2 {
-    font-size: 1.4rem;
-  }
+/* Bold timestamp wrapper from backend */
+.mensajesList > div > div b {
+  font-size: 0.75rem !important;
+  color: #a78bfa !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+}
 
-  .admin-title {
-    font-size: 0.8rem;
+.mensajeVacio {
+  text-align: center;
+  color: #475569;
+  padding: 3rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* ── Admin Badge ────────────────────────── */
+.adminTitle {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #475569;
+  text-transform: uppercase;
+  margin-top: 1rem;
+}
+
+/* ── Footer ─────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  color: #334155;
+  font-size: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  z-index: 1;
+}
+
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 640px) {
+  .mainContent {
+    padding: 1.5rem 1.25rem;
+    border-radius: 20px;
+  }
+  .forumTitle {
+    font-size: 1.5rem;
   }
 }

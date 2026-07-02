@@ -1,289 +1,280 @@
-@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+/* ============================================
+   CLASES / DASHBOARD - Premium Panel Layout
+   ============================================ */
 
 :root {
-  --color-primario: #a250e1;
-  --color-secundario: #f5f7fa;
-  --color-acento: #ffb347;
-  --color-texto: #222;
-  --color-borde: #e0e0e0;
-  --color-fondo: #fff;
-}
-
-/* Reset básico */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --color-primario: #7c3aed;
+  --color-secundario: #06b6d4;
+  --color-acento: #f59e0b;
+  --color-texto: #f1f5f9;
+  --color-borde: rgba(255, 255, 255, 0.08);
+  --color-fondo: #030014;
 }
 
 .body {
-  font-family: 'Montserrat', sans-serif;
-  background: url('/fondo.png') no-repeat center center fixed;
-  background-size: cover;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--color-fondo);
   color: var(--color-texto);
+  min-height: 100vh;
 }
 
-
-/* Main container */
-.container {
-  background: linear-gradient(to right, #ae4bff, #557dff);
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+/* ── Page Shell ──────────────────────────── */
+.pageWrapper {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  max-width: 400px;
-  width: 100%;
-  transition: transform 0.3s ease;
+  background: #030014;
+  position: relative;
 }
 
-.illustration {
-  width: 80px;
-  margin-bottom: 1rem;
+.pageWrapper::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.buttons {
+/* ── Main Layout ─────────────────────────── */
+.mainLayout {
+  position: relative;
+  z-index: 1;
   display: flex;
-  justify-content: center;
-  margin-top: 1rem;
-  gap: 1rem;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  width: 100%;
+  gap: 2rem;
 }
 
-/* Botones */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  display: inline-block;
-  margin: 0 0.5rem;
+/* ── Page Title ──────────────────────────── */
+.pageTitle {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.25rem;
 }
 
-.btnPrimary {
-  background-color: #6C5CE7;
-  color: #ffffff;
-  border: 1.5px solid #000000;
-}
-.btnPrimary:hover {
-  background-color: #5945c2;
-  border-color: #000000;
-  transform: translateY(-2px);
+.pageSubtitle {
+  font-size: 0.9rem;
+  color: #64748b;
 }
 
-.btnOutline {
-  background-color: #fff;
-  color: #ffffff;
-  border: 1.5px solid #000000;
-}
-.btnOutline:hover {
-  background-color: #6C5CE7;
-  color: #ffffff;
-  transform: translateY(-2px);
+/* ── Top Action Bar ──────────────────────── */
+.actionBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.btnFocus {
-  outline: 2px solid #ffb347;
+/* ── Class Grid ──────────────────────────── */
+.coursesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
 }
 
-/* Formularios */
-.formContainer {
-  max-width: 400px;
-  background: linear-gradient(to right, #ae4bff, #557dff);
-  border-radius: 8px;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+/* ── Class Card ──────────────────────────── */
+.claseItem {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.claseItem::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.claseItem:hover {
+  transform: translateY(-5px);
+  border-color: rgba(124, 58, 237, 0.25);
+  box-shadow: 0 12px 36px rgba(124, 58, 237, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.claseItem:hover::before {
+  opacity: 1;
+}
+
+.claseItem h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.claseItem p {
+  font-size: 0.84rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.claseMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.claseBadge {
+  padding: 0.2rem 0.65rem;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 50px;
+  color: #a78bfa;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Modals / Form Containers ─────────────── */
+.container {
+  background: rgba(13, 9, 39, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  transition: all 0.4s ease;
+}
+
+.formContainer {
+  background: rgba(13, 9, 39, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
 .formInput {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.72rem 1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+  outline: none;
   margin-bottom: 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--color-borde);
-  font-size: 1rem;
-  background: #f9f9f9;
 }
 
-.mainLayout {
+.formInput::placeholder { color: #475569; }
+.formInput:focus {
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  background: rgba(124, 58, 237, 0.04);
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+/* ── Buttons (local overrides) ────────────── */
+.buttons {
   display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
-  gap: 2rem;
-  max-width: 1200px;
-  margin-left: 20px;
-  margin-top: 40px;
-}
-
-/* Lista de cursos */
-.coursesList {
-  width: 100%;
-  max-width: 800px;
-  margin: 2rem auto 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  justify-items: center;
-  align-items: stretch;
-}
-
-.claseItem {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  padding: 1rem 1.5rem;
-  min-width: 250px;
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  transition: all 0.25s ease;
-  cursor: pointer;
-  text-align: left;
-  border: 1px solid #e6e6e6;
-}
-
-.claseItem:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-  border-color: #6C5CE7;
-}
-
-.claseItem h3 {
-  color: #5c5c5c;
-  margin-bottom: 0.5rem;
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-
-.claseItem p {
-  margin: 0.25rem 0;
-  font-size: 1rem;
-  color: #222;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-  .container,
-  .formContainer,
-  .coursesList {
-    max-width: 95vw;
-    padding: 1rem;
-  }
-  .logoImg {
-    width: 36px;
-    height: 36px;
-  }
-  .claseItem h3 {
-    font-size: 1.2rem;
-  }
-  .coursesList {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    max-width: 95vw;
-    padding: 1rem;
-  }
-  .claseItem {
-    min-width: unset;
-    min-height: 140px;
-    padding: 1rem;
-  }
-}
-
-@media (min-width: 1900px) {
-  .body {
-    font-size: 1.1rem;
-    background-size: cover;
-  }
-  .buttons {
-    gap: 90px;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .container {
-    max-width: 1600px;
-  }
-  .illustration {
-    height: 150px;
-    width: 150px;
-  }
-
-  .formContainer {
-    max-width: 1000px;
-    padding: 2.5rem;
-  }
-
-  .claseItem {
-    padding: 2rem;
-  }
-
-  .logoImg {
-    width: 104px;
-    height: 104px;
-  }
-
-  .nombreLogo {
-    font-size: 2.5rem;
-  }
-
-  .coursesList {
-    max-width: 90%;
-  }
-}
-
-/* ================== OVERRIDES: centrar + animaciones ================== */
-
-/* Centrar mainLayout (sobreescribe el anterior) */
-.mainLayout {
-  display: flex;
-  justify-content: center;       /* Centra horizontalmente */
-  align-items: flex-start;       /* Alinea arriba */
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 40px auto;             /* centra con margen automático */
-  position: relative;
-  transition: all 0.4s ease;     /* transición general */
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-/* Añadir transición suave al contenedor (sobreescribe/añade) */
-.container {
-  /* mantiene tus reglas anteriores y agrega transición para movimiento */
-  transition: transform 0.4s ease, opacity 0.4s ease;
+.btn {
+  padding: 0.65rem 1.4rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  border: 1.5px solid transparent;
 }
 
-/* Clase que se aplica desde React para desplazar el contenedor a la derecha */
-.containerShifted {
-  transform: translateX(80px);  /* mueve el contenedor */
-  opacity: 0.95;                /* leve cambio de opacidad */
+.btnPrimary {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
 }
+.btnPrimary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124, 58, 237, 0.45); }
 
-/* Clase para aplicar la animación al formContainer (usás styles.slideIn) */
-.slideIn {
-  animation: fadeSlideIn 0.4s ease forwards;
+.btnOutline {
+  background: transparent;
+  border-color: rgba(124, 58, 237, 0.4);
+  color: #a78bfa;
 }
+.btnOutline:hover { background: rgba(124, 58, 237, 0.1); transform: translateY(-2px); }
 
-/* Keyframes para el fade + slide in */
+.btnFocus { outline: 2px solid #7c3aed; outline-offset: 2px; }
+
+/* ── Slide animation ─────────────────────── */
+.containerShifted { transform: translateX(80px); opacity: 0.95; }
+.slideIn { animation: fadeSlideIn 0.35s ease forwards; }
+
 @keyframes fadeSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Responsive: menos desplazamiento en pantallas pequeñas */
-@media (max-width: 600px) {
-  .containerShifted {
-    transform: translateX(40px);
-  }
+/* ── Empty State ─────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  gap: 1rem;
+}
+
+.emptyStateIcon {
+  font-size: 3rem;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.emptyStateText {
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 768px) {
+  .mainLayout { padding: 1.5rem 1rem; }
+  .coursesList { grid-template-columns: 1fr; }
+  .actionBar { gap: 0.5rem; }
+  .containerShifted { transform: translateX(30px); }
 }
