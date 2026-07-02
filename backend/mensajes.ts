@@ -14,7 +14,7 @@ class MensajeController {
 
     try {
       await pool.query(
-        'INSERT INTO tablon_mensajes (mensaje, fecha) VALUES ($1, NOW())',
+        'INSERT INTO tablon_mensajes (mensaje) VALUES ($1)',
         [mensaje]
       );
       res.sendStatus(200);

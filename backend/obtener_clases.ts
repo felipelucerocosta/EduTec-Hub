@@ -6,8 +6,8 @@ const router = Router();
 // Ruta GET para obtener clases (CORREGIDA PARA POSTGRESQL)
 router.get('/clases', async (_req: Request, res: Response) => { // 👈 2. Convertido a async
   
-  // 👈 3. Consulta SQL corregida (usa "creador" como dice el error)
-  const sql = 'SELECT nombre, seccion, materia, aula, creador, codigo FROM clases ORDER BY id DESC';
+  // 👈 3. Consulta SQL corregida para incluir el ID
+  const sql = 'SELECT id, nombre, seccion, materia, aula, creador, codigo FROM clases ORDER BY id DESC';
 
   try {
     // 👈 4. Usa pool.query con await (sin callbacks)

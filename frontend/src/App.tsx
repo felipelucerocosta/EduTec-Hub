@@ -25,11 +25,11 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/registro" element={<Registro />} />
         <Route path="/clases" element={<Clases />} />
-        <Route path="/gestionClase" element={<GestionClase />} />
+        <Route path="/gestionClase/:claseId" element={<GestionClase />} />
         <Route path="/foro" element={<Foro />} />
         <Route path="/calendario" element={<Calendario />} />
         <Route path="/alumno" element={<ClasesAlumno />} />
-        <Route path="/alumno/gestion" element={<TrabajosAlumno />} />
+        <Route path="/alumno/gestion/:claseId" element={<TrabajosAlumno />} />
         <Route path="/admin" element={<AdminDashboard />} />
         
         {/* === NUEVAS RUTAS === */}

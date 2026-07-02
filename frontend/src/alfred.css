@@ -1,52 +1,76 @@
+/* ============================================
+   ALFRED CHAT WIDGET - Premium Dark Glassmorphic Design
+   ============================================ */
+
 /* Botón flotante para abrir el chat */
 .alfred-toggle-button {
   position: fixed;
   bottom: 25px;
   right: 25px;
-  background-color: #007bff;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
   cursor: pointer;
-  z-index: 1000;
-  transition: transform 0.2s ease-in-out;
+  z-index: 2000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .alfred-toggle-button:hover {
-  transform: scale(1.1);
-  background-color: #0056b3;
+  transform: scale(1.08) translateY(-3px);
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.6);
+}
+
+.alfred-toggle-button:active {
+  transform: scale(0.95);
 }
 
 /* Ventana principal del chat */
 .alfred-chat-window {
   position: fixed;
-  bottom: 100px;
+  bottom: 95px;
   right: 25px;
-  width: 350px;
-  max-width: 90vw;
-  height: 500px;
-  max-height: 70vh;
-  background-color: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  height: 550px;
+  max-height: 75vh;
+  background: rgba(13, 9, 39, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 58, 237, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 1000;
-  font-family: sans-serif;
+  z-index: 2000;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  animation: alfredEntrance 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes alfredEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Encabezado del chat */
 .alfred-header {
-  background-color: #007bff;
-  color: white;
-  padding: 15px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.1rem 1.4rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -54,42 +78,86 @@
 
 .alfred-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .alfred-close-button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+}
+
+.alfred-close-button:hover {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #f87171;
 }
 
 /* Área de mensajes */
 .alfred-messages {
   flex-grow: 1;
-  padding: 15px;
+  padding: 1.25rem;
   overflow-y: auto;
-  background-color: #f4f7f9;
+  background: radial-gradient(circle at top right, rgba(124, 58, 237, 0.04), transparent 60%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Scrollbar */
+.alfred-messages::-webkit-scrollbar {
+  width: 5px;
+}
+.alfred-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.alfred-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+}
+.alfred-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.25);
 }
 
 .alfred-message {
-  margin-bottom: 12px;
   display: flex;
+  animation: msgFadeIn 0.25s ease-out;
+}
+
+@keyframes msgFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .alfred-message p {
-  padding: 10px 15px;
-  border-radius: 18px;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
   max-width: 80%;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
+  font-size: 0.86rem;
 }
 
 /* Mensajes de Alfred (izquierda) */
 .alfred-message.alfred p {
-  background-color: #e9ecef;
-  color: #333;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
   border-bottom-left-radius: 4px;
 }
 
@@ -99,76 +167,92 @@
 }
 
 .alfred-message.user p {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
   color: white;
   border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
 }
 
 /* Formulario de entrada */
 .alfred-input-form {
   display: flex;
-  padding: 10px;
-  border-top: 1px solid #ddd;
-  background-color: #fff;
+  padding: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.01);
+  gap: 0.5rem;
 }
 
 .alfred-input-form input {
   flex-grow: 1;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  padding: 10px 15px;
-  margin-right: 10px;
-  font-size: 1rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+  outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all 0.2s;
+}
+
+.alfred-input-form input::placeholder {
+  color: #475569;
 }
 
 .alfred-input-form input:focus {
-  outline: none;
-  border-color: #007bff;
+  border-color: rgba(124, 58, 237, 0.5);
+  background: rgba(124, 58, 237, 0.04);
 }
 
 .alfred-input-form button {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
   color: white;
   border: none;
-  border-radius: 20px;
-  padding: 10px 20px;
+  border-radius: 12px;
+  padding: 0 1.25rem;
   cursor: pointer;
-  font-weight: bold;
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all 0.2s;
 }
 
 .alfred-input-form button:disabled {
-    background-color: #a0c3e6;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .alfred-input-form button:hover:not(:disabled) {
-  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
 /* Indicador de "escribiendo..." */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.6rem 0.85rem !important;
+}
+
 .typing-indicator span {
-    height: 8px;
-    width: 8px;
-    background-color: #9e9ea1;
-    border-radius: 50%;
-    display: inline-block;
-    animation: bounce 1.3s infinite;
-    margin: 0 2px;
+  height: 6px;
+  width: 6px;
+  background-color: #a78bfa;
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce 1.3s infinite;
 }
 
 .typing-indicator span:nth-child(2) {
-    animation-delay: 0.15s;
+  animation-delay: 0.15s;
 }
 
 .typing-indicator span:nth-child(3) {
-    animation-delay: 0.3s;
+  animation-delay: 0.3s;
 }
 
 @keyframes bounce {
-    0%, 60%, 100% {
-        transform: translateY(0);
-    }
-    30% {
-        transform: translateY(-6px);
-    }
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
 }

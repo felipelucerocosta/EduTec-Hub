@@ -26,7 +26,8 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
     // Esta consulta une la tabla 'alumnos_clases' con 'clases'
     // para obtener el nombre real de la clase y del profesor (creador)
     const query = `
-      SELECT 
+      SELECT DISTINCT
+        c.id,
         c.nombre, 
         c.materia, 
         c.seccion, 
@@ -34,9 +35,9 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
         c.creador, 
         c.codigo
       FROM clases c
-      JOIN alumnos_clases ac ON c.codigo = ac.codigo
-      WHERE ac.alumno_id = $1
-      ORDER BY ac.id DESC
+      LEFT JOIN alumnos_clases ac ON c.codigo = ac.codigo
+      WHERE ac.alumno_id = $1 OR c.seccion = 'Secundario'
+      ORDER BY c.id DESC
     `;
 
     const result = await pool.query(query, [alumno_id]);
