@@ -28,5 +28,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["frontend/src", "backend/index.ts"]
+  "include": ["frontend/src/**/*", "backend/**/*.ts", "backend/types/**/*.d.ts"]
 }

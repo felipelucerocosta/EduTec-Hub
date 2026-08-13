@@ -1,17 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import 'express-session';
-import pool from './conexion_pg'; // Importa el pool de PostgreSQL
-
-// 👇 ESTA DEFINICIÓN DEBE COINCIDIR CON LA DE api_rutas.ts
-declare module 'express-session' {
-  interface SessionData {
-    usuario?: {
-      id: number;
-      rol?: string;
-      [key: string]: any; // 👈 ESTA ES LA LÍNEA QUE FALTABA
-    };
-  }
-}
+import pool from './conexion_pg';
 
 const router = Router();
 

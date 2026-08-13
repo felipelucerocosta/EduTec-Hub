@@ -1,7 +1,7 @@
-import type { Request, Response } from 'express';
-const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
+import express, { type Request, type Response } from 'express';
+import cors from 'cors';
+import session from 'express-session';
+import path from 'path';
 import * as dotenv from 'dotenv'; 
 
 dotenv.config(); 
@@ -21,6 +21,12 @@ const unirseClaseRouter = interop(require('./unirse_clase'));
 const obtenerClasesRouter = interop(require('./obtener_clases'));
 const obtenerClasesAlumnoRouter = interop(require('./obtener_clases_alumno'));
 
+// Nuevas importaciones de APIs educativas
+const trabajosRouter = interop(require('./trabajos'));
+const entregasRouter = interop(require('./entregas'));
+const materialesApiRouter = interop(require('./materiales_api'));
+const notificacionesRouter = interop(require('./notificaciones'));
+
 // 👇 IMPORTAR EL SETUP DE LA BASE DE DATOS (SQLite)
 const setupDb = interop(require('./setup_db'));
 
@@ -35,15 +41,17 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'una-clave-muy-secreta-y-larga',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000  // 7 días
   }
 }));
 
@@ -57,6 +65,10 @@ app.use('/api', crearClaseRouter);
 app.use('/api', unirseClaseRouter);
 app.use('/api', obtenerClasesRouter);
 app.use('/api', obtenerClasesAlumnoRouter);
+app.use('/api', trabajosRouter);
+app.use('/api', entregasRouter);
+app.use('/api', materialesApiRouter);
+app.use('/api', notificacionesRouter);
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('Servidor del Backend de EduTecHub funcionando!');

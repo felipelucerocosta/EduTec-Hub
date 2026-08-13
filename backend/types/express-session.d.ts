@@ -1,10 +1,17 @@
-// types/express-session.d.ts
-import { SessionData } from 'express-session';
+import 'express-session';
 
-declare global {
-  namespace Express {
-    interface Request {
-      session: SessionData;
-    }
+declare module 'express-session' {
+  interface UsuarioSession {
+    id: number;
+    nombre: string;
+    correo: string;
+    rol: 'alumno' | 'profesor' | 'admin' | string;
+    isAdmin?: boolean;
+  }
+
+  interface SessionData {
+    usuario?: UsuarioSession;
+    nombre_completo?: string;
+    alumno_id?: number;
   }
 }

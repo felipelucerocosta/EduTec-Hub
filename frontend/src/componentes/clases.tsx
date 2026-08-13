@@ -29,7 +29,7 @@ const Clases: React.FC = () => {
     solicitudes: [],
   });
   const [currentUser, setCurrentUser] = useState<{ id?: number; rol?: string; nombre?: string } | null>(null);
-  const [accessMap, setAccessMap] = useState<Record<number, boolean>>({});
+  const [, setAccessMap] = useState<Record<number, boolean>>({});
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "" }>({ msg: "", type: "" });
 
   const showToast = (msg: string, type: "success" | "error") => {
@@ -112,47 +112,7 @@ const Clases: React.FC = () => {
     }
   };
 
-  const checkAccessForClass = async (claseId?: number) => {
-    if (!claseId || !currentUser) return;
-    try {
-      const r = await fetch("http://localhost:3001/api/campus/has-access-batch", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clase_ids: [claseId] }),
-      });
-      const d = await r.json();
-      if (r.ok && d.access) {
-        setAccessMap((prev) => ({ ...prev, [claseId]: !!d.access[claseId] }));
-      }
-    } catch (err) {
-      console.error("Error checking access for class", err);
-    }
-  };
 
-  const solicitarAcceso = async (claseId?: number) => {
-    if (!claseId) {
-      showToast("Esta clase no tiene id válido.", "error");
-      return;
-    }
-    try {
-      const res = await fetch("http://localhost:3001/api/campus/solicitar", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clase_id: claseId }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showToast(data.message || "Solicitud de acceso enviada correctamente.", "success");
-      } else {
-        showToast(data.error || "No se pudo solicitar acceso.", "error");
-      }
-    } catch (err) {
-      console.error("Error solicitar acceso", err);
-      showToast("Error al solicitar acceso.", "error");
-    }
-  };
 
   const abrirSolicitudes = async (claseId?: number) => {
     if (!claseId) {

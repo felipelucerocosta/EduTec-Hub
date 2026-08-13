@@ -1,5 +1,5 @@
-import { Router, Request, Response } from 'express';
-import axios, { AxiosRequestConfig } from 'axios';
+import { Router, type Request, type Response } from 'express';
+import axios from 'axios';
 import pool from './conexion_pg'; // 👈 IMPORTAMOS LA CONEXIÓN A POSTGRESQL
 import * as bcrypt from 'bcrypt'; // 👈 IMPORTAMOS BCRYPT
 import * as nodemailer from 'nodemailer'; // <- cambiado desde "import nodemailer from 'nodemailer'"
@@ -23,11 +23,9 @@ interface GeneratePasswordBody {
 
 const router: Router = Router();
 
-import 'express-session';
-
 // Middleware: permitir acceso a usuarios autenticados (admin, profesor, alumno)
 function requireAuth(req: Request, res: Response, next: any) {
-    const rol = (req.session as any)?.usuario?.rol;
+    const rol = req.session?.usuario?.rol;
     if (!rol) return res.status(401).json({ error: 'Unauthorized', message: 'Inicia sesión para usar Alfred.' });
     const allowed = ['admin', 'profesor', 'alumno'];
     if (allowed.includes(String(rol))) return next();
@@ -107,8 +105,7 @@ router.post('/ask-alfred', requireAuth, async (req: Request<{}, {}, AskAlfredBod
         return res.status(500).json({ error: 'Servicio de IA no configurado.' });
     }
     
-    const apiUrl: string = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-        const payload: { contents: ChatContent[] } = { contents: chatHistory };
+    const payload: { contents: ChatContent[] } = { contents: chatHistory };
 
         try {
             const apiResponse = await callGeminiWithRetry(apiKey, payload);
@@ -174,9 +171,6 @@ router.post('/generate-password', async (req: Request<{}, {}, GeneratePasswordBo
                 { role: "user", parts: [{ text: prompt }] }
             ];
             const payload = { contents: chatHistory };
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const config: AxiosRequestConfig = { headers: { 'Content-Type': 'application/json' } };
-            
             const apiResponse = await callGeminiWithRetry(apiKey, payload);
             if (!apiResponse.data?.candidates || apiResponse.data.candidates.length === 0) {
                 console.error('La API de IA no generó una contraseña:', apiResponse.data);
@@ -248,8 +242,6 @@ router.post('/verify-email-code', async (req: Request<{}, {}, { email: string; c
             { role: "user", parts: [{ text: prompt }] }
         ];
         const payload = { contents: chatHistory };
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-        const config: AxiosRequestConfig = { headers: { 'Content-Type': 'application/json' } };
 
         try {
             const apiResponse = await callGeminiWithRetry(apiKey, payload);

@@ -1,19 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import 'express-session';
 import pool from './conexion_pg';
-
-// Ampliar el tipo de sesión para que TypeScript reconozca req.session.usuario
-declare module 'express-session' {
-  interface SessionData {
-    usuario?: {
-      id: number;
-      nombre?: string;
-      correo?: string;
-      rol?: string;
-      [key: string]: any;
-    };
-  }
-}
 
 const router = Router();
 
