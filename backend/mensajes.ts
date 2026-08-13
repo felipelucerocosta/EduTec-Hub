@@ -3,70 +3,68 @@ import pool from './conexion_pg';
 
 const router = Router();
 
-class MensajeController {
-  static async guardar(req: Request, res: Response): Promise<void> {
-    const { mensaje } = req.body as { mensaje?: string };
+// POST /api/guardar-mensaje - Post message to forum (supports class-specific or global)
+router.post('/guardar-mensaje', async (req: Request, res: Response) => {
+  const { mensaje, clase_id } = req.body as { mensaje?: string; clase_id?: number };
 
-    if (!mensaje || mensaje.trim() === '') {
-      res.status(400).send('Mensaje vacío');
-      return;
-    }
+  if (!mensaje || mensaje.trim() === '') {
+    return res.status(400).json({ error: 'El mensaje no puede estar vacío.' });
+  }
 
-    try {
+  const userId = req.session?.usuario?.id || null;
+  const userNombre = req.session?.usuario?.nombre || 'Usuario';
+
+  try {
+    if (clase_id) {
+      // Save as class announcement
+      await pool.query(
+        'INSERT INTO anuncios (clase_id, autor_id, contenido) VALUES ($1, $2, $3)',
+        [clase_id, userId || 1, mensaje.trim()]
+      );
+    } else {
+      // Save to global forum
+      const formatted = userId ? `[${userNombre}] ${mensaje.trim()}` : mensaje.trim();
       await pool.query(
         'INSERT INTO tablon_mensajes (mensaje) VALUES ($1)',
-        [mensaje]
+        [formatted]
       );
-      res.sendStatus(200);
-    } catch (err) {
-      console.error('❌ Error al guardar mensaje:', err);
-      res.status(500).send('Error al guardar el mensaje');
     }
+    return res.status(201).json({ success: true, message: 'Mensaje publicado' });
+  } catch (err) {
+    console.error('❌ Error al guardar mensaje:', err);
+    return res.status(500).json({ error: 'Error al guardar el mensaje' });
   }
+});
 
-  static async mostrar(_req: Request, res: Response): Promise<void> {
-    try {
+// GET /api/mensajes - List forum messages as JSON
+router.get('/mensajes', async (req: Request, res: Response) => {
+  const clase_id = req.query.clase_id;
+
+  try {
+    if (clase_id) {
+      const query = `
+        SELECT a.id, a.contenido as mensaje, a.fecha, u.nombre_completo as autor_nombre, u.rol as autor_rol
+        FROM anuncios a
+        LEFT JOIN usuarios u ON a.autor_id = u.id_usuario
+        WHERE a.clase_id = $1
+        ORDER BY a.fecha DESC
+        LIMIT 50
+      `;
+      const result = await pool.query(query, [clase_id]);
+      return res.json(result.rows);
+    } else {
       const result: any = await pool.query(`
-        SELECT mensaje, fecha 
+        SELECT id, mensaje, fecha 
         FROM tablon_mensajes 
         ORDER BY id DESC 
-        LIMIT 30
+        LIMIT 50
       `);
-
-      const rows = Array.isArray(result.rows) ? result.rows : [];
-
-      let html = '';
-      rows.forEach((row: { mensaje: string; fecha: string | Date }) => {
-        const fecha = new Date(row.fecha);
-        const fechaFormateada = `${fecha.getDate().toString().padStart(2, '0')}/${(fecha.getMonth() + 1)
-          .toString()
-          .padStart(2, '0')}/${fecha.getFullYear()} ${fecha.getHours().toString().padStart(2, '0')}:${fecha
-          .getMinutes()
-          .toString()
-          .padStart(2, '0')}`;
-        const mensaje = MensajeController.escapeHtml(row.mensaje);
-        html += `<div style='margin-bottom:10px;'><b>${fechaFormateada}:</b> ${mensaje}</div>`;
-      });
-
-      res.send(html);
-    } catch (err) {
-      console.error('❌ Error al obtener mensajes:', err);
-      res.status(500).send('Error en el servidor.');
+      return res.json(result.rows || []);
     }
+  } catch (err) {
+    console.error('❌ Error al obtener mensajes:', err);
+    return res.status(500).json({ error: 'Error en el servidor al obtener mensajes' });
   }
-
-  static escapeHtml(unsafe: string): string {
-    return unsafe
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-}
-
-// Rutas
-router.post('/guardar-mensaje', MensajeController.guardar);
-router.get('/mensajes', MensajeController.mostrar);
+});
 
 export default router;

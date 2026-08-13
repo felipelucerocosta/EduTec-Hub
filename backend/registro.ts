@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
 

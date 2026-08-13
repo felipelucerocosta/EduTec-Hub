@@ -3,21 +3,33 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"magenta,cyan\" \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "cd backend && ts-node-dev --respawn --transpile-only server.ts",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "clean:db": "node backend/clean_database.js",
+    "clean:db:force": "node backend/clean_database.js --yes",
+    "build:exe": "node build_exe.js",
+    "predist": "npm run clean:db:force && npm run build"
   },
   "dependencies": {
     "boxicons": "^2.1.4",
+    "express-session": "^1.19.0",
     "pg": "^8.21.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.16.0"
   },
   "devDependencies": {
+    "@types/express-session": "^1.19.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "concurrently": "^9.1.2",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"
   }

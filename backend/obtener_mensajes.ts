@@ -1,6 +1,5 @@
-// archivo: routes/mostrarMensajes.js
 import { Router, type Request, type Response } from 'express';
-import conexion from './conexion_pg';
+import pool from './conexion_pg';
 
 const router = Router();
 
@@ -9,8 +8,7 @@ interface MensajeRow {
   fecha: Date | string;
 }
 
-// Ruta para obtener mensajes del tablón
-router.get('/mensajes', (_req: Request, res: Response) => {
+router.get('/mensajes-legacy', async (_req: Request, res: Response) => {
   const sql = `
     SELECT mensaje, fecha 
     FROM tablon_mensajes 
@@ -18,16 +16,10 @@ router.get('/mensajes', (_req: Request, res: Response) => {
     LIMIT 30
   `;
 
-  conexion.query(sql, (err: any, result: any) => {
-    if (err) {
-      console.error("❌ Error al obtener mensajes:", err);
-      return res.status(500).send("Error en el servidor.");
-    }
-
-    // Obtener filas desde result.rows (pg QueryResult) y tiparlas como MensajeRow[]
+  try {
+    const result = await pool.query(sql);
     const results: MensajeRow[] = result && Array.isArray(result.rows) ? result.rows : [];
 
-    // Construir HTML (igual que en PHP)
     let html = '';
     results.forEach(row => {
       const fecha = new Date(row.fecha);
@@ -37,10 +29,12 @@ router.get('/mensajes', (_req: Request, res: Response) => {
     });
 
     res.send(html);
-  });
+  } catch (err) {
+    console.error("❌ Error al obtener mensajes:", err);
+    res.status(500).send("Error en el servidor.");
+  }
 });
 
-// Función para escapar HTML (similar a htmlspecialchars en PHP)
 function escapeHtml(unsafe: string): string {
   return unsafe
     .replace(/&/g, "&amp;")

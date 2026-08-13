@@ -1,17 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import 'express-session';
 import pool from './conexion_pg';
-
-declare module 'express-session' {
-  interface SessionData {
-    nombre_completo?: string;
-    usuario?: { 
-      id: number;
-      rol?: string;
-      [key: string]: any;
-    };
-  }
-}
 
 const router = Router();
 
@@ -28,7 +16,7 @@ router.post('/crear-clase', async (req: Request, res: Response) => {
 
   // Usar id de sesión si existe (profesor creador)
   const creador_id = req.session?.usuario?.id ?? null;
-  const creador_nombre = (req.session as any)?.usuario?.nombre || req.session?.nombre_completo || 'Anónimo';
+  const creador_nombre = req.session?.usuario?.nombre || req.session?.nombre_completo || 'Anónimo';
 
   // Generar código único simple
   const codigo = (materia.substring(0, 3) || 'XXX').toUpperCase() + Math.floor(1000 + Math.random() * 9000);

@@ -1,0 +1,78 @@
+{
+  "name": "edutechhub",
+  "productName": "EduTechHub",
+  "version": "1.0.0",
+  "description": "Plataforma de Gestión Educativa para Escuelas Técnicas",
+  "main": "electron/main.js",
+  "author": "EduTechHub Team",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "electron:dev": "electron .",
+    "electron:build": "npm run build:all && electron-builder --win",
+    "build:all": "npm run build && cd backend && npx tsc -p ../tsconfig.app.json"
+  },
+  "build": {
+    "appId": "com.edutechhub.app",
+    "productName": "EduTechHub",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "database/**/*",
+      "uploads/**/*",
+      "!node_modules/**/*",
+      "!backend/**/*.ts",
+      "!frontend/**/*",
+      "!backend/node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "**/*.js",
+          "**/*.json",
+          "!node_modules/**",
+          "!**/*.ts"
+        ]
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules"
+      },
+      {
+        "from": "database",
+        "to": "database"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "frontend/public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "frontend/public/favicon.ico",
+      "uninstallerIcon": "frontend/public/favicon.ico",
+      "installerHeaderIcon": "frontend/public/favicon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "EduTechHub"
+    },
+    "portable": {
+      "artifactName": "EduTechHub-Portable.exe"
+    }
+  }
+}

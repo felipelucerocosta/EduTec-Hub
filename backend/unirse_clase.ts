@@ -1,12 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import 'express-session';
-import pool from './conexion_pg'; // 👈 1. Importa el POOL de PostgreSQL
-
-declare module 'express-session' {
-  interface SessionData {
-    alumno_id?: number;
-  }
-}
+import pool from './conexion_pg';
 
 const router = Router();
 

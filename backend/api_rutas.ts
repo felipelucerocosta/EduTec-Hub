@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import 'express-session';
 import pool from './conexion_pg';
 import multer from 'multer';
@@ -15,18 +15,6 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
-
-// Extender tipos de sesión para TypeScript
-declare module 'express-session' {
-  interface SessionData {
-    usuario?: {
-      id: number;
-      rol?: string;
-      nombre?: string;
-      [key: string]: any;
-    };
-  }
-}
 
 const router = Router();
 
@@ -120,7 +108,7 @@ router.post('/subir-acta', upload.single('acta'), async (req: Request, res: Resp
 });
 
 // LISTAR ACTAS
-router.get('/actas', async (req: Request, res: Response) => {
+router.get('/actas', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query('SELECT * FROM actas ORDER BY uploaded_at DESC');
     res.json(result.rows);
@@ -164,8 +152,7 @@ router.get('/actas/descargar/:id', async (req: Request, res: Response) => {
 // 3. LOGOUT (Solución al error TS2339 y tipos any)
 // ======================================================
 router.post('/logout', (req: Request, res: Response) => {
-  // TypeScript no ve 'destroy' en SessionData por defecto, casteamos a 'any'
-  (req.session as any).destroy((err: any) => {
+  req.session.destroy((err) => {
     if (err) {
       console.error('Error al cerrar sesión:', err);
       return res.status(500).json({ message: 'No se pudo cerrar la sesión' });

@@ -323,7 +323,7 @@ interface Message {
 // ─── Componente ────────────────────────────────────────────────────────────
 const Alfred: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentNode, setCurrentNode] = useState<string>("start");
+  const [, setCurrentNode] = useState<string>("start");
   const [messages, setMessages] = useState<Message[]>([]);
   const [emailInput, setEmailInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -379,7 +379,7 @@ const Alfred: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/forgot-password", {
+      await fetch("http://localhost:3001/api/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correo: email }),

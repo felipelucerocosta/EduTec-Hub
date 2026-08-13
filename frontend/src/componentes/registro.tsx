@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import Header from "../components reutilizables/header";
 import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
@@ -44,6 +45,7 @@ const Registro: React.FC = () => {
   const [adminError, setAdminError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -87,6 +89,10 @@ const Registro: React.FC = () => {
         setAdminError(data.message || "Credenciales de admin incorrectas.");
         return;
       }
+      // ✅ Actualizar AuthContext antes de navegar
+      if (data.usuario) {
+        login({ ...data.usuario, rol: 'admin' as const });
+      }
       navigate("/admin");
     } catch (error: any) {
       setAdminError(error.message || "Error de conexión con el servidor.");
@@ -110,14 +116,25 @@ const Registro: React.FC = () => {
         credentials: "include",
       });
       const data = await response.json();
-      if (response.ok) {
+      if (response.ok && data.usuario) {
+        // ✅ Actualizar AuthContext con los datos del usuario ANTES de navegar.
+        // Sin esto, ProtectedRoute encuentra user=null y redirige de vuelta al login.
+        login({
+          id: data.usuario.id,
+          nombre: data.usuario.nombre,
+          correo: data.usuario.correo,
+          rol: data.usuario.rol as 'alumno' | 'profesor' | 'admin',
+        });
         showNotification("¡Bienvenido de nuevo!", "success");
-        setTimeout(() => {
-          if (data.usuario?.rol === "profesor") navigate("/clases");
-          else if (data.usuario?.rol === "alumno") navigate("/alumno");
-          else if (data.usuario?.rol === "admin") navigate("/admin");
-          else showNotification("Rol de usuario desconocido.", "error");
-        }, 600);
+        // Redirigir según rol
+        const destino = data.usuario.rol === 'profesor' ? '/clases'
+          : data.usuario.rol === 'admin' ? '/admin'
+          : '/dashboard';
+        setTimeout(() => navigate(destino), 300);
+      } else if (response.ok) {
+        // Respuesta OK pero sin datos de usuario: raro, pero manejamos igual
+        showNotification("¡Bienvenido de nuevo!", "success");
+        setTimeout(() => navigate('/dashboard'), 300);
       } else {
         throw new Error(data.message || "Credenciales incorrectas.");
       }

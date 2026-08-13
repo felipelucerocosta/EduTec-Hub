@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "../styles.module.css";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Header from "../components reutilizables/header";
 import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";

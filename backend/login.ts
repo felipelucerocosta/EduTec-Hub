@@ -1,22 +1,10 @@
 import { Router, type Request, type Response } from 'express';
-import 'express-session';
 import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 
 const router = Router();
-
-declare module 'express-session' {
-  interface SessionData {
-    usuario?: {
-      id: number;
-      rol?: string;
-      nombre?: string;
-      [key: string]: any;
-    };
-  }
-}
 
 // Configurar transporter (usar variables de entorno)
 const mailTransporter = (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
@@ -145,7 +133,7 @@ router.post('/login', async (req: Request, res: Response) => {
       }
     }
 
-    (req.session as any).usuario = {
+    req.session.usuario = {
       id: Number(usuario.id_usuario),
       nombre: usuario.nombre_completo || '',
       correo: usuario.correo || correo,
@@ -208,10 +196,10 @@ router.post('/admin-login', async (req: Request, res: Response) => {
     }
 
     attempts.delete(correo);
-    (req.session as any).usuario = {
+    req.session.usuario = {
       id: Number(usuario.id_usuario),
       nombre: usuario.nombre_completo || 'Administrador',
-      correo: usuario.correo ,
+      correo: usuario.correo,
       rol: 'admin',
       isAdmin: true
     };
@@ -225,6 +213,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
         id: Number(usuario.id_usuario),
         nombre: usuario.nombre_completo || 'Administrador',
         correo: usuario.correo,
+        rol: 'admin',
         isAdmin: true
       }
     });
@@ -378,10 +367,10 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 
 // GET /whoami -> devuelve los datos del usuario en sesión
 router.get('/whoami', (req: Request, res: Response) => {
-  if (req.session && (req.session as any).usuario) {
-    return res.status(200).json({ user: (req.session as any).usuario });
+  if (req.session && req.session.usuario) {
+    return res.status(200).json({ user: req.session.usuario });
   }
-  return res.status(200).json({ user: null }); // Retornar 200 con user: null para evitar que el fetch explote en el frontend
+  return res.status(200).json({ user: null });
 });
 
 export default router;

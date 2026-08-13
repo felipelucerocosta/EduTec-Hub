@@ -1,5 +1,5 @@
 // backend/guardar_mensaje.ts (CORREGIDO)
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg'; // Importa el pool de PostgreSQL
 
 const router = Router();
