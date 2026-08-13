@@ -2,9 +2,9 @@ import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import path from 'path';
-import * as dotenv from 'dotenv'; 
+import * as dotenv from 'dotenv';
 
-dotenv.config(); 
+dotenv.config();
 
 function interop(m: any) { return m && (m.default ?? m); }
 
@@ -12,56 +12,69 @@ function interop(m: any) { return m && (m.default ?? m); }
 const apiRutasRouter = interop(require('./api_rutas'));
 const mensajesRouter = interop(require('./mensajes'));
 const registroRouter = interop(require('./registro'));
-const loginRouter = interop(require('./login'));
-const alfredRouter = interop(require('./alfred')); 
+const loginRouter    = interop(require('./login'));
+const alfredRouter   = interop(require('./alfred'));
 
-// Importaciones para las clases
-const crearClaseRouter = interop(require('./crear_clase')); 
-const unirseClaseRouter = interop(require('./unirse_clase')); 
-const obtenerClasesRouter = interop(require('./obtener_clases'));
+const crearClaseRouter         = interop(require('./crear_clase'));
+const unirseClaseRouter        = interop(require('./unirse_clase'));
+const obtenerClasesRouter      = interop(require('./obtener_clases'));
 const obtenerClasesAlumnoRouter = interop(require('./obtener_clases_alumno'));
 
-// Nuevas importaciones de APIs educativas
-const trabajosRouter = interop(require('./trabajos'));
-const entregasRouter = interop(require('./entregas'));
+const trabajosRouter      = interop(require('./trabajos'));
+const entregasRouter      = interop(require('./entregas'));
 const materialesApiRouter = interop(require('./materiales_api'));
 const notificacionesRouter = interop(require('./notificaciones'));
 
-// 👇 IMPORTAR EL SETUP DE LA BASE DE DATOS (SQLite)
 const setupDb = interop(require('./setup_db'));
 
 // --- 2. INICIALIZAR LA APP ---
 const app = express();
 const PORT: number = Number(process.env.PORT) || 3001;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // --- 3. CONFIGURAR MIDDLEWARE ---
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
+// En producción el frontend se sirve desde este mismo servidor (sin CORS cross-origin)
+if (!IS_PRODUCTION) {
+  app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true
+  }));
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Archivos subidos por usuarios
+const uploadsPath = IS_PRODUCTION
+  ? path.join(process.cwd(), 'uploads')
+  : path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadsPath));
+
+// Archivos del frontend (solo en producción)
+if (IS_PRODUCTION) {
+  const distPath = path.join(__dirname, '../dist');
+  app.use(express.static(distPath));
+}
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'una-clave-muy-secreta-y-larga',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,          // false incluso en producción Electron (HTTP local)
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000  // 7 días
   }
 }));
 
-// --- 4. USAR LAS RUTAS DE LA API ---
+// --- 4. RUTAS DE LA API ---
 app.use('/api', mensajesRouter);
 app.use('/api', registroRouter);
 app.use('/api', loginRouter);
 app.use('/api', apiRutasRouter);
-app.use('/api', alfredRouter); 
-app.use('/api', crearClaseRouter); 
+app.use('/api', alfredRouter);
+app.use('/api', crearClaseRouter);
 app.use('/api', unirseClaseRouter);
 app.use('/api', obtenerClasesRouter);
 app.use('/api', obtenerClasesAlumnoRouter);
@@ -70,14 +83,21 @@ app.use('/api', entregasRouter);
 app.use('/api', materialesApiRouter);
 app.use('/api', notificacionesRouter);
 
-app.get('/', (_req: Request, res: Response) => {
-  res.send('Servidor del Backend de EduTecHub funcionando!');
-});
+// Ruta base — en producción sirve el index.html del frontend (SPA fallback)
+if (IS_PRODUCTION) {
+  app.get('*', (_req: Request, res: Response) => {
+    const distPath = path.join(__dirname, '../dist', 'index.html');
+    res.sendFile(distPath);
+  });
+} else {
+  app.get('/', (_req: Request, res: Response) => {
+    res.send('Servidor del Backend de EduTecHub funcionando!');
+  });
+}
 
-// 👇 INICIALIZAR TABLAS ANTES DE ARRANCAR
+// --- 5. INICIALIZAR TABLAS Y ARRANCAR ---
 setupDb();
 
-// --- 5. INICIAR EL SERVIDOR ---
 app.listen(PORT, () => {
   console.log(`✅ Servidor del Backend corriendo en http://localhost:${PORT}`);
 });

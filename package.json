@@ -1,18 +1,74 @@
 {
-  "name": "edutec-hub",
+  "name": "edutechhub",
+  "productName": "EduTechHub",
   "version": "1.0.0",
+  "description": "Plataforma de Gestión Educativa para Escuelas Técnicas",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"magenta,cyan\" \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:frontend": "vite",
     "dev:backend": "cd backend && ts-node-dev --respawn --transpile-only server.ts",
-    "build": "tsc && vite build",
+    "build": "tsc -p tsconfig.app.json && vite build",
+    "build:backend": "tsc -p tsconfig.backend.json",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "clean:db": "node backend/clean_database.js",
     "clean:db:force": "node backend/clean_database.js --yes",
-    "build:exe": "node build_exe.js",
-    "predist": "npm run clean:db:force && npm run build"
+    "build:exe": "npm run build && npm run build:backend && npx electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.edutechhub.app",
+    "productName": "EduTechHub",
+    "copyright": "EduTechHub Team",
+    "directories": {
+      "output": "release",
+      "buildResources": "electron/assets"
+    },
+    "files": [
+      "electron/main.js",
+      "dist/**/*",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist_backend",
+        "to": "app/backend",
+        "filter": ["**/*.js"]
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "app/backend/node_modules"
+      },
+      {
+        "from": "database",
+        "to": "app/database"
+      },
+      {
+        "from": "uploads",
+        "to": "app/uploads"
+      },
+      {
+        "from": "backend/.env",
+        "to": "app/backend/.env"
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "EduTechHub"
+    },
+    "portable": {
+      "artifactName": "EduTechHub-Portable.exe"
+    }
   },
   "dependencies": {
     "boxicons": "^2.1.4",
