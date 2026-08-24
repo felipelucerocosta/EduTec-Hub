@@ -21,7 +21,7 @@ const Sidebar: React.FC = () => {
     { label: 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
     ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín', to: '/boletin', icon: 'bx-receipt' }] : []),
     { label: 'Calendario', to: '/calendario', icon: 'bx-calendar' },
-    { label: 'Foro de Consultas', to: '/foro', icon: 'bx-conversation' },
+    ...(user.rol !== 'profesor' ? [{ label: 'Foro de Consultas', to: '/foro', icon: 'bx-conversation' }] : []),
     { label: 'Mi Perfil', to: '/perfil', icon: 'bx-user-circle' },
   ];
 

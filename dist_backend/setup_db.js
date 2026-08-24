@@ -189,12 +189,18 @@ const crearTablas = async () => {
                 fecha_limite TIMESTAMP,
                 puntos_max INTEGER DEFAULT 100,
                 estado TEXT DEFAULT 'publicado',
+                tipo_entrega TEXT DEFAULT 'individual',
                 creado_por INTEGER,
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(clase_id) REFERENCES clases(id) ON DELETE CASCADE,
                 FOREIGN KEY(creado_por) REFERENCES usuarios(id_usuario)
             );
         `);
+        // Migración segura: agregar tipo_entrega si la tabla ya existía
+        try {
+            await conexion_pg_1.default.query(`ALTER TABLE trabajos ADD COLUMN tipo_entrega TEXT DEFAULT 'individual';`);
+        }
+        catch (_e) { /* columna ya existe, ok */ }
         // 12. Tabla ENTREGAS (Submissions)
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS entregas (
@@ -211,6 +217,18 @@ const crearTablas = async () => {
                 fecha_calificacion TIMESTAMP,
                 FOREIGN KEY(trabajo_id) REFERENCES trabajos(id) ON DELETE CASCADE,
                 FOREIGN KEY(alumno_id) REFERENCES usuarios(id_usuario)
+            );
+        `);
+        // 12b. Tabla ENTREGA_INTEGRANTES (Group submission members)
+        await conexion_pg_1.default.query(`
+            CREATE TABLE IF NOT EXISTS entrega_integrantes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entrega_id INTEGER NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                calificacion_individual INTEGER,
+                FOREIGN KEY(entrega_id) REFERENCES entregas(id) ON DELETE CASCADE,
+                FOREIGN KEY(usuario_id) REFERENCES usuarios(id_usuario),
+                UNIQUE(entrega_id, usuario_id)
             );
         `);
         // 13. Tabla MATERIALES (Class Materials)
