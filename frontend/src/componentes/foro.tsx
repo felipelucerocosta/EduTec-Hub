@@ -4,6 +4,9 @@ import styles from "../foro.module.css";
 import Header from "../components reutilizables/header";
 import Button from "../components reutilizables/Button";
 
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
 const API_URL = "http://localhost:3001/api";
 const SOCKET_URL = "http://localhost:3001";
 
@@ -35,10 +38,18 @@ const formatearFecha = (fechaStr: string) => {
 };
 
 const Foro: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [mensaje, setMensaje] = useState<string>("");
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && user.rol === "profesor") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const cargarMensajes = useCallback(async () => {
     try {

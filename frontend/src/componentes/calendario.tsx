@@ -168,6 +168,7 @@ export default function Calendario() {
   const currentClaseId = localStorage.getItem("current_clase_id");
   const currentClaseRole = localStorage.getItem("current_clase_role");
   const isAlumno = currentClaseRole === "alumno";
+  const isProfesor = currentClaseRole === "profesor";
 
   const zonaTrabajoLink = currentClaseId
     ? (isAlumno ? `/alumno/gestion/${currentClaseId}` : `/gestionClase/${currentClaseId}`)
@@ -175,7 +176,7 @@ export default function Calendario() {
 
   const navLinks = [
     { label: "Zona de Trabajo", to: zonaTrabajoLink, icon: "bx-briefcase" },
-    { label: "Foro", to: "/foro", icon: "bx-conversation" },
+    ...(!isProfesor ? [{ label: "Foro", to: "/foro", icon: "bx-conversation" }] : []),
     { label: "Clases", to: isAlumno ? "/alumno" : "/clases", icon: "bx-book" },
   ];
 
