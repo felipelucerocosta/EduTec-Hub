@@ -24,6 +24,9 @@ const trabajosRouter      = interop(require('./trabajos'));
 const entregasRouter      = interop(require('./entregas'));
 const materialesApiRouter = interop(require('./materiales_api'));
 const notificacionesRouter = interop(require('./notificaciones'));
+const rendimientoRouter    = interop(require('./rendimiento'));
+const boletinRouter        = interop(require('./boletin'));
+const simuladoresApiRouter = interop(require('./simuladores_api'));
 
 const setupDb = interop(require('./setup_db'));
 
@@ -82,6 +85,9 @@ app.use('/api', trabajosRouter);
 app.use('/api', entregasRouter);
 app.use('/api', materialesApiRouter);
 app.use('/api', notificacionesRouter);
+app.use('/api', rendimientoRouter);
+app.use('/api', boletinRouter);
+app.use('/api', simuladoresApiRouter);
 
 // Ruta base — en producción sirve el index.html del frontend (SPA fallback)
 if (IS_PRODUCTION) {

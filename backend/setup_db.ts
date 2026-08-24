@@ -227,6 +227,48 @@ const crearTablas = async () => {
             );
         `);
 
+        // 16. Tabla PERIODOS_ACADEMICOS
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS periodos_academicos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                tipo TEXT DEFAULT 'bimestre',
+                fecha_inicio TEXT NOT NULL,
+                fecha_fin TEXT NOT NULL,
+                anio INTEGER NOT NULL,
+                activo INTEGER DEFAULT 1
+            );
+        `);
+
+        // 17. Tabla SIMULADORES
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS simuladores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                materia_keyword TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                descripcion TEXT,
+                tipo TEXT NOT NULL,
+                clase_id INTEGER,
+                activo INTEGER DEFAULT 1,
+                FOREIGN KEY(clase_id) REFERENCES clases(id) ON DELETE SET NULL
+            );
+        `);
+
+        // 18. Tabla SESIONES_SIMULADOR
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS sesiones_simulador (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                simulador_id INTEGER NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                datos_sesion TEXT,
+                completado INTEGER DEFAULT 0,
+                duracion_segundos INTEGER,
+                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(simulador_id) REFERENCES simuladores(id),
+                FOREIGN KEY(usuario_id) REFERENCES usuarios(id_usuario)
+            );
+        `);
+
         console.log("✅ Estructura de tablas en SQLite verificada/creada correctamente.");
 
         // 11. Sembrado de Cursos
@@ -241,6 +283,24 @@ const crearTablas = async () => {
             ON CONFLICT (nombre_curso) DO NOTHING;
         `);
         console.log("🌱 Sembrado de cursos completado.");
+
+        // Sembrado de Períodos Académicos 2026
+        const existPeriodos = await pool.query('SELECT id FROM periodos_academicos WHERE anio = 2026');
+        if (existPeriodos.rows.length === 0) {
+            const periodos2026 = [
+                { nombre: '1er Bimestre 2026', tipo: 'bimestre', inicio: '2026-03-01', fin: '2026-04-30' },
+                { nombre: '2do Bimestre 2026', tipo: 'bimestre', inicio: '2026-05-01', fin: '2026-06-30' },
+                { nombre: '3er Bimestre 2026', tipo: 'bimestre', inicio: '2026-07-01', fin: '2026-09-30' },
+                { nombre: '4to Bimestre 2026', tipo: 'bimestre', inicio: '2026-10-01', fin: '2026-12-15' },
+            ];
+            for (const p of periodos2026) {
+                await pool.query(
+                    `INSERT INTO periodos_academicos (nombre, tipo, fecha_inicio, fecha_fin, anio) VALUES ($1, $2, $3, $4, $5)`,
+                    [p.nombre, p.tipo, p.inicio, p.fin, 2026]
+                );
+            }
+            console.log('🌱 Períodos académicos 2026 sembrados.');
+        }
 
         // 12. Sembrado de datos de prueba (solo en desarrollo)
         const saltRounds = 10;

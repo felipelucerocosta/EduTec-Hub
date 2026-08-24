@@ -18,6 +18,8 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { label: 'Dashboard', to: '/dashboard', icon: 'bx-grid-alt' },
     { label: 'Mis Clases', to: user.rol === 'alumno' ? '/alumno' : '/clases', icon: 'bx-book-open' },
+    { label: 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
+    ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín', to: '/boletin', icon: 'bx-receipt' }] : []),
     { label: 'Calendario', to: '/calendario', icon: 'bx-calendar' },
     { label: 'Foro de Consultas', to: '/foro', icon: 'bx-conversation' },
     { label: 'Mi Perfil', to: '/perfil', icon: 'bx-user-circle' },
@@ -26,6 +28,7 @@ const Sidebar: React.FC = () => {
   if (user.rol === 'admin') {
     navItems.push({ label: 'Panel Admin', to: '/admin', icon: 'bx-shield-quarter' });
   }
+
 
   return (
     <>

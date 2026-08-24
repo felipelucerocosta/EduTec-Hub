@@ -116,7 +116,7 @@ const TrabajosAlumno: React.FC = () => {
         </div>
 
         {/* Tab switcher */}
-        <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.5rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.5rem", overflowX: "auto" }}>
           <button
             onClick={() => setActiveTab("trabajos")}
             style={{
@@ -124,7 +124,7 @@ const TrabajosAlumno: React.FC = () => {
               background: activeTab === "trabajos" ? "rgba(124, 58, 237, 0.2)" : "transparent",
               color: activeTab === "trabajos" ? "#f8fafc" : "#94a3b8",
               fontWeight: activeTab === "trabajos" ? 600 : 500, fontSize: "0.9rem",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem"
+              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
           >
             <i className="bx bx-task"></i> Trabajos ({tareas.length})
@@ -136,7 +136,7 @@ const TrabajosAlumno: React.FC = () => {
               background: activeTab === "materiales" ? "rgba(124, 58, 237, 0.2)" : "transparent",
               color: activeTab === "materiales" ? "#f8fafc" : "#94a3b8",
               fontWeight: activeTab === "materiales" ? 600 : 500, fontSize: "0.9rem",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem"
+              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
           >
             <i className="bx bx-folder"></i> Materiales ({materiales.length})
@@ -148,10 +148,32 @@ const TrabajosAlumno: React.FC = () => {
               background: activeTab === "anuncios" ? "rgba(124, 58, 237, 0.2)" : "transparent",
               color: activeTab === "anuncios" ? "#f8fafc" : "#94a3b8",
               fontWeight: activeTab === "anuncios" ? 600 : 500, fontSize: "0.9rem",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem"
+              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
           >
-            <i className="bx bx-news"></i> Tablón / Anuncios ({anuncios.length})
+            <i className="bx bx-news"></i> Tablón ({anuncios.length})
+          </button>
+          <button
+            onClick={() => navigate(`/simuladores/${claseId}`)}
+            style={{
+              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
+              background: "rgba(56, 189, 248, 0.1)", color: "#38bdf8",
+              fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
+            }}
+          >
+            <i className="bx bx-atom"></i> Simuladores
+          </button>
+          <button
+            onClick={() => navigate(`/rendimiento`)}
+            style={{
+              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
+              background: "rgba(16, 185, 129, 0.1)", color: "#34d399",
+              fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
+            }}
+          >
+            <i className="bx bx-bar-chart-alt-2"></i> Mi Rendimiento
           </button>
         </div>
 
@@ -173,7 +195,7 @@ const TrabajosAlumno: React.FC = () => {
                   return (
                     <div
                       key={tarea.id}
-                      onClick={() => setTareaSeleccionada(tarea)}
+                      onClick={() => navigate(`/trabajo/${tarea.id}`)}
                       style={{
                         background: "var(--bg-card)",
                         border: "1px solid var(--border-color)",
