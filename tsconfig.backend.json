@@ -17,5 +17,5 @@
     "noUnusedParameters": false
   },
   "include": ["backend/**/*.ts", "backend/types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "dist_backend", "frontend"]
+  "exclude": ["node_modules", "dist", "dist_backend", "frontend", "backend/calendario.ts", "backend/index.ts"]
 }

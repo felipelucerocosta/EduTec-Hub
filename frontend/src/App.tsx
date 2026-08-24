@@ -18,6 +18,13 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./componentes/AdminDashboard";
 import Alfred from "./componentes/Alfred";                 
 import NotFound from "./pages/NotFound";
+// === NUEVAS PÁGINAS ===
+import Rendimiento from "./pages/Rendimiento";
+import Boletin from "./pages/Boletin";
+import Simuladores from "./pages/Simuladores";
+import TrabajoDetallePage from "./pages/TrabajoDetallePage";
+import TrabajoProfesorPage from "./pages/TrabajoProfesorPage";
+
 
 // Protected route component
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
@@ -109,9 +116,42 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      {/* === NUEVAS RUTAS === */}
+      <Route path="/rendimiento" element={
+        <ProtectedRoute>
+          <Rendimiento />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/boletin" element={
+        <ProtectedRoute allowedRoles={["alumno", "admin"]}>
+          <Boletin />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/simuladores/:claseId" element={
+        <ProtectedRoute>
+          <Simuladores />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/trabajo/:trabajoId" element={
+        <ProtectedRoute allowedRoles={["alumno", "admin"]}>
+          <TrabajoDetallePage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/gestionClase/:claseId/trabajo/:trabajoId" element={
+        <ProtectedRoute allowedRoles={["profesor", "admin"]}>
+          <TrabajoProfesorPage />
+        </ProtectedRoute>
+      } />
+
       {/* Catch-all 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+
+
   );
 }
 
