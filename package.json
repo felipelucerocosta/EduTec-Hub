@@ -34,7 +34,9 @@
       {
         "from": "dist_backend",
         "to": "app/backend",
-        "filter": ["**/*.js"]
+        "filter": [
+          "**/*.js"
+        ]
       },
       {
         "from": "backend/node_modules",
@@ -55,8 +57,18 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -76,7 +88,8 @@
     "pg": "^8.21.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.16.0"
+    "react-router-dom": "^7.16.0",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/express-session": "^1.19.0",

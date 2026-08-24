@@ -8,20 +8,24 @@ const getUserId = (req: Request) => req.session?.usuario?.id;
 // Simuladores por keyword de materia (arquitectura extensible)
 const SIMULADORES_CATALOGO: Record<string, any[]> = {
   matematica: [
-    { tipo: 'ecuaciones', nombre: 'Sistema de Ecuaciones', descripcion: 'Visualiza y resuelve sistemas de dos ecuaciones lineales. Observa el punto de intersección y detecta si hay una, ninguna o infinitas soluciones.' },
-    { tipo: 'funciones', nombre: 'Laboratorio de Funciones', descripcion: 'Grafica funciones matemáticas, explora raíces, vértice e intersecciones modificando los coeficientes en tiempo real.' },
-    { tipo: 'geometria', nombre: 'Geometría Interactiva', descripcion: 'Manipula figuras geométricas (cuadrado, rectángulo, triángulo, círculo) y observa cómo cambian el área y el perímetro.' },
+    { tipo: 'ecuaciones', nombre: 'Sistema de Ecuaciones', descripcion: 'Plano cartesiano interactivo con 2 rectas, punto de intersección (X,Y) y detección en tiempo real de 1, 0 o infinitas soluciones.' },
+    { tipo: 'funciones', nombre: 'Laboratorio de Funciones', descripcion: 'Grafica f(x) = ax² + bx + c y funciones lineales. Modifica coeficientes a, b, c en vivo y visualiza raíces, vértice e intersección.' },
+    { tipo: 'geometria', nombre: 'Geometría Interactiva 2D/3D', descripcion: 'Manipula vértices, dimensiones y figuras (polígonos, círculos, cubos, esferas) observando área, perímetro y volumen en vivo.' },
+    { tipo: 'probabilidad', nombre: 'Probabilidad y Estadística', descripcion: 'Laboratorio de experimentos aleatorios (monedas, dados). Ejecuta de 10 a 1000 tiradas y compara Probabilidad Teórica vs. Experimental.' },
   ],
   redes: [
-    { tipo: 'topologias', nombre: 'Topologías de Red', descripcion: 'Explora las topologías de red (Bus, Estrella, Anillo, Malla) y comprende sus ventajas y desventajas.' },
-    { tipo: 'direccionamiento', nombre: 'Direccionamiento IP', descripcion: 'Practica el cálculo de subredes, máscaras de subred y rangos de direcciones IP.' },
+    { tipo: 'topologias', nombre: 'Constructor de Topologías y Tráfico', descripcion: 'Diseña redes con PCs, Switches, Routers y Servidores. Visualiza paquetes de datos animados, latencia y cortes de enlaces.' },
+    { tipo: 'direccionamiento', nombre: 'Direccionamiento IP y Subredes', descripcion: 'Calculador visual de subredes, máscaras CIDR, rangos de IP útiles y distribución de direcciones en la topología.' },
   ],
   desarrollo: [
-    { tipo: 'metodologias', nombre: 'Simulador de Metodologías', descripcion: 'Experimenta con Waterfall, Scrum y Kanban. Modifica variables del equipo y observa el impacto en el proyecto.' },
-    { tipo: 'ciclo_vida', nombre: 'Ciclo de Vida del Software', descripcion: 'Explora las etapas del ciclo de vida del desarrollo de software y sus características.' },
+    { tipo: 'metodologias', nombre: 'Simulador de Metodologías Ágiles', descripcion: 'Compara Scrum, Waterfall y Kanban. Modifica cantidad de devs, complejidad, tiempo, tasa de errores y retrabajo con avance tipo Gantt.' },
+    { tipo: 'proyectos_evolucion', nombre: 'Evolución de Proyectos', descripcion: 'Monitorea métricas de rendimiento, velocidad de equipo, bugs resueltos y tasa de entrega a lo largo de los sprints.' },
   ],
-  programacion: [
-    { tipo: 'metodologias', nombre: 'Simulador de Proyectos', descripcion: 'Simula el desarrollo de un proyecto de software con diferentes configuraciones de equipo y metodología.' },
+  lengua: [
+    { tipo: 'analisis_textual', nombre: 'Laboratorio de Análisis Textual', descripcion: 'Experimenta con análisis gramatical, sintáctico y categórico. Visualiza la estructura del texto, palabras clave y legibilidad.' },
+  ],
+  ciencia: [
+    { tipo: 'fisica_circuitos', nombre: 'Laboratorio de Física y Circuitos', descripcion: 'Simula circuitos eléctricos aplicando Ley de Ohm (V = I * R) y movimientos físicos observando velocidad y aceleración.' },
   ],
 };
 
@@ -31,10 +35,12 @@ function getKeyword(materia: string): string {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z\s]/g, '').trim();
   
-  if (m.includes('matem')) return 'matematica';
-  if (m.includes('red') || m.includes('network')) return 'redes';
-  if (m.includes('desarrollo') || m.includes('sistemas')) return 'desarrollo';
-  if (m.includes('program')) return 'programacion';
+  if (m.includes('matem') || m.includes('algeb') || m.includes('calc')) return 'matematica';
+  if (m.includes('red') || m.includes('network') || m.includes('telecom')) return 'redes';
+  if (m.includes('desarrollo') || m.includes('sistema') || m.includes('practic')) return 'desarrollo';
+  if (m.includes('program') || m.includes('soft')) return 'desarrollo';
+  if (m.includes('lengua') || m.includes('literat') || m.includes('ciudadan') || m.includes('texto')) return 'lengua';
+  if (m.includes('fisic') || m.includes('electr') || m.includes('cienc') || m.includes('quim')) return 'ciencia';
   return 'general';
 }
 

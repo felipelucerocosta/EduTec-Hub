@@ -5,13 +5,7 @@ import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Button from '../components reutilizables/Button';
 import { useToast } from '../contexts/ToastContext';
-
-// Import simulators
-import EcuacionesSimulator from '../simuladores/matematica/EcuacionesSimulator';
-import FuncionesSimulator from '../simuladores/matematica/FuncionesSimulator';
-import GeometriaSimulator from '../simuladores/matematica/GeometriaSimulator';
-import MetodologiasSimulator from '../simuladores/desarrollo/MetodologiasSimulator';
-import TopologiasSimulator from '../simuladores/redes/TopologiasSimulator';
+import { getSimulatorComponent } from '../simuladores/SimulatorRegistry';
 
 const API_URL = "http://localhost:3001/api";
 
@@ -86,6 +80,8 @@ const Simuladores: React.FC = () => {
     );
   }
 
+  const ActiveComponent = getSimulatorComponent(selectedTipo);
+
   return (
     <AppLayout>
       <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -145,11 +141,15 @@ const Simuladores: React.FC = () => {
 
             {/* Active Simulator Container */}
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '1.75rem', boxShadow: 'var(--shadow-md)' }}>
-              {selectedTipo === 'ecuaciones' && <EcuacionesSimulator onSaveSession={handleSaveSession} />}
-              {selectedTipo === 'funciones' && <FuncionesSimulator onSaveSession={handleSaveSession} />}
-              {selectedTipo === 'geometria' && <GeometriaSimulator onSaveSession={handleSaveSession} />}
-              {selectedTipo === 'metodologias' && <MetodologiasSimulator onSaveSession={handleSaveSession} />}
-              {selectedTipo === 'topologias' && <TopologiasSimulator onSaveSession={handleSaveSession} />}
+              {ActiveComponent ? (
+                <ActiveComponent onSaveSession={handleSaveSession} />
+              ) : (
+                <EmptyState
+                  icon="bx-error"
+                  title="Simulador en preparación"
+                  description="El laboratorio para esta sección se encuentra en desarrollo."
+                />
+              )}
             </div>
 
           </div>
