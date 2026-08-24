@@ -36,11 +36,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const express_session_1 = __importDefault(require("express-session"));
 const path_1 = __importDefault(require("path"));
 const dotenv = __importStar(require("dotenv"));
+const http_1 = __importDefault(require("http"));
+const socket_io_1 = require("socket.io");
 dotenv.config();
 function interop(m) { return m && (m.default ?? m); }
 // --- 1. IMPORTAR LOS ARCHIVOS DE RUTAS ---
@@ -61,10 +64,23 @@ const rendimientoRouter = interop(require('./rendimiento'));
 const boletinRouter = interop(require('./boletin'));
 const simuladoresApiRouter = interop(require('./simuladores_api'));
 const setupDb = interop(require('./setup_db'));
-// --- 2. INICIALIZAR LA APP ---
+// --- 2. INICIALIZAR LA APP Y SOCKET.IO ---
 const app = (0, express_1.default)();
+const httpServer = http_1.default.createServer(app);
 const PORT = Number(process.env.PORT) || 3001;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+exports.io = new socket_io_1.Server(httpServer, {
+    cors: {
+        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+        credentials: true
+    }
+});
+exports.io.on('connection', (socket) => {
+    console.log(`🔌 Cliente Socket.IO conectado: ${socket.id}`);
+    socket.on('disconnect', () => {
+        console.log(`❌ Cliente Socket.IO desconectado: ${socket.id}`);
+    });
+});
 // --- 3. CONFIGURAR MIDDLEWARE ---
 // En producción el frontend se sirve desde este mismo servidor (sin CORS cross-origin)
 if (!IS_PRODUCTION) {
@@ -127,6 +143,6 @@ else {
 }
 // --- 5. INICIALIZAR TABLAS Y ARRANCAR ---
 setupDb();
-app.listen(PORT, () => {
-    console.log(`✅ Servidor del Backend corriendo en http://localhost:${PORT}`);
+httpServer.listen(PORT, () => {
+    console.log(`✅ Servidor del Backend (con Socket.IO) corriendo en http://localhost:${PORT}`);
 });

@@ -137,35 +137,98 @@
   background: rgba(124, 58, 237, 0.3);
 }
 
-/* Style the raw generated HTML divs */
-.mensajesList > div > div {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 14px !important;
-  padding: 1rem 1.25rem !important;
-  font-size: 0.92rem !important;
-  line-height: 1.6 !important;
-  color: #e2e8f0 !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0.35rem !important;
-  margin-bottom: 0.75rem !important;
+/* Message Card Styles */
+.mensajeCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: all 0.25s ease;
+  animation: fadeInSlide 0.35s ease-out forwards;
 }
 
-.mensajesList > div > div:hover {
-  border-color: rgba(124, 58, 237, 0.2) !important;
-  background: rgba(124, 58, 237, 0.03) !important;
-  transform: translateY(-1px);
+.mensajeCard:hover {
+  border-color: rgba(124, 58, 237, 0.3);
+  background: rgba(124, 58, 237, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-/* Bold timestamp wrapper from backend */
-.mensajesList > div > div b {
-  font-size: 0.75rem !important;
-  color: #a78bfa !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.03em !important;
-  text-transform: uppercase !important;
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+  text-transform: uppercase;
+}
+
+.mensajeContenido {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.mensajeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.usuarioNombre {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.rolBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: rgba(6, 182, 212, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  text-transform: capitalize;
+}
+
+.mensajeFecha {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-left: auto;
+}
+
+.mensajeTexto {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .mensajeVacio {

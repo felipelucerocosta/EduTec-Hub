@@ -131,10 +131,20 @@ const crearTablas = async () => {
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS tablon_mensajes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER,
+                usuario_nombre TEXT,
                 mensaje TEXT NOT NULL,
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
+        try {
+            await conexion_pg_1.default.query(`ALTER TABLE tablon_mensajes ADD COLUMN usuario_id INTEGER;`);
+        }
+        catch (e) { }
+        try {
+            await conexion_pg_1.default.query(`ALTER TABLE tablon_mensajes ADD COLUMN usuario_nombre TEXT;`);
+        }
+        catch (e) { }
         // 8. Tabla PASSWORD_RESETS
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS password_resets (

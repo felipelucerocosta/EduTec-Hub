@@ -3,6 +3,8 @@ import cors from 'cors';
 import session from 'express-session';
 import path from 'path';
 import * as dotenv from 'dotenv';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 
 dotenv.config();
 
@@ -30,10 +32,26 @@ const simuladoresApiRouter = interop(require('./simuladores_api'));
 
 const setupDb = interop(require('./setup_db'));
 
-// --- 2. INICIALIZAR LA APP ---
+// --- 2. INICIALIZAR LA APP Y SOCKET.IO ---
 const app = express();
+const httpServer = http.createServer(app);
+
 const PORT: number = Number(process.env.PORT) || 3001;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+export const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log(`🔌 Cliente Socket.IO conectado: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`❌ Cliente Socket.IO desconectado: ${socket.id}`);
+  });
+});
 
 // --- 3. CONFIGURAR MIDDLEWARE ---
 // En producción el frontend se sirve desde este mismo servidor (sin CORS cross-origin)
@@ -104,6 +122,7 @@ if (IS_PRODUCTION) {
 // --- 5. INICIALIZAR TABLAS Y ARRANCAR ---
 setupDb();
 
-app.listen(PORT, () => {
-  console.log(`✅ Servidor del Backend corriendo en http://localhost:${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`✅ Servidor del Backend (con Socket.IO) corriendo en http://localhost:${PORT}`);
 });
+
