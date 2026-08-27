@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import styles from "../foro.module.css";
-import Header from "../components reutilizables/header";
+import AppLayout from "../components/layout/AppLayout";
 import Button from "../components reutilizables/Button";
 
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const API_URL = "http://localhost:3001/api";
 const SOCKET_URL = "http://localhost:3001";
@@ -58,64 +58,27 @@ const Foro: React.FC = () => {
       });
       if (!res.ok) throw new Error("Error al cargar mensajes");
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setMensajes(data);
-      }
+      setMensajes(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
-      setError("No se pudieron cargar los mensajes. Verifica la conexión.");
+      console.error("Error al obtener mensajes:", err);
+      setError("No se pudieron cargar los mensajes del foro.");
     }
   }, []);
-
-  const enviarMensaje = async () => {
-    if (mensaje.trim() === "") return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/guardar-mensaje`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ mensaje: mensaje.trim() }),
-      });
-      if (!res.ok) throw new Error("Error al guardar el mensaje");
-      const data = await res.json();
-      setMensaje("");
-      if (data.nuevoMensaje) {
-        setMensajes((prev) => {
-          if (prev.some((m) => m.id === data.nuevoMensaje.id)) return prev;
-          return [data.nuevoMensaje, ...prev];
-        });
-      } else {
-        await cargarMensajes();
-      }
-    } catch (err: any) {
-      setError("No se pudo enviar el mensaje. Intenta de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      enviarMensaje();
-    }
-  };
 
   useEffect(() => {
     cargarMensajes();
 
-    // Socket.IO para actualización en tiempo real
     const socket: Socket = io(SOCKET_URL, {
       withCredentials: true,
-      transports: ["websocket", "polling"],
+    });
+
+    socket.on("connect", () => {
+      console.log("🟢 Conectado al Socket del Foro");
     });
 
     socket.on("nuevo_mensaje", (nuevoMsg: Mensaje) => {
-      setMensajes((prev) => {
-        if (prev.some((m) => m.id === nuevoMsg.id)) return prev;
-        return [nuevoMsg, ...prev];
-      });
+      setMensajes((prev) => [nuevoMsg, ...prev]);
     });
 
     return () => {
@@ -124,133 +87,176 @@ const Foro: React.FC = () => {
   }, [cargarMensajes]);
 
   const currentClaseId = localStorage.getItem("current_clase_id");
-  const currentClaseRole = localStorage.getItem("current_clase_role");
-  const isAlumno = currentClaseRole === "alumno";
+  const isAlumno = user?.rol === "alumno";
 
-  const zonaTrabajoLink = currentClaseId
-    ? isAlumno
-      ? `/alumno/gestion/${currentClaseId}`
-      : `/gestionClase/${currentClaseId}`
-    : isAlumno
-    ? "/alumno"
-    : "/clases";
+  const activeClaseLink = currentClaseId
+    ? (isAlumno ? `/alumno/gestion/${currentClaseId}` : `/gestionClase/${currentClaseId}`)
+    : (isAlumno ? "/alumno" : "/clases");
 
-  const navLinks = [
-    { label: "Zona de Trabajo", to: zonaTrabajoLink, icon: "bx-briefcase" },
-    { label: "Calendario", to: "/calendario", icon: "bx-calendar" },
-    { label: "Clases", to: isAlumno ? "/alumno" : "/clases", icon: "bx-book" },
-  ];
+  const enviarMensaje = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!mensaje.trim()) return;
+
+    const texto = mensaje.trim();
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/guardar-mensaje`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ mensaje: texto }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Error al enviar el mensaje");
+      }
+
+      setMensaje("");
+    } catch (err: any) {
+      console.error("Error al enviar mensaje:", err);
+      setError(err.message || "Error al enviar mensaje");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className={styles.body}>
-      <Header navLinks={navLinks} />
+    <AppLayout>
+      <div className={styles.body} style={{ padding: 0, minHeight: 'auto', background: 'transparent' }}>
+        <div className={styles.container} style={{ maxWidth: '100%', padding: 0 }}>
+          <main className={styles.mainContent}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <h1 className={styles.forumTitle}>Foro de Consultas</h1>
+                <p className={styles.forumSubtitle}>
+                  Comparte tus dudas, debate con tus compañeros y recibe asistencia de los profesores en tiempo real.
+                </p>
+              </div>
 
-      <div className={styles.container}>
-        <main className={styles.mainContent}>
-          <h1 className={styles.forumTitle}>Foro de Consultas</h1>
-          <p className={styles.forumSubtitle}>
-            Comparte tus dudas, debate con tus compañeros y recibe asistencia de los profesores en tiempo real.
-          </p>
-
-          {error && (
-            <div
-              style={{
-                color: "#fb7185",
-                background: "rgba(244, 63, 94, 0.1)",
-                border: "1px solid rgba(244, 63, 94, 0.2)",
-                borderRadius: "12px",
-                padding: "0.85rem 1.25rem",
-                fontSize: "0.88rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                marginBottom: "1.5rem",
-              }}
-            >
-              <i className="bx bx-error-circle" style={{ fontSize: "1.1rem" }}></i>
-              {error}
-            </div>
-          )}
-
-          <div className={styles.composerWrapper}>
-            <textarea
-              className={styles.textarea}
-              value={mensaje}
-              onChange={(e) => setMensaje(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Escribe tu mensaje aquí... (Presiona Enter para enviar)"
-              rows={4}
-              disabled={loading}
-            />
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.25rem" }}>
-              <Button
-                onClick={enviarMensaje}
-                disabled={loading || mensaje.trim() === ""}
-                loading={loading}
-                icon="bx-send"
-              >
-                Enviar Mensaje
-              </Button>
-            </div>
-          </div>
-
-          <h2
-            style={{
-              fontSize: "1.1rem",
-              fontWeight: 700,
-              color: "#f1f5f9",
-              marginBottom: "1rem",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Mensajes Recientes
-          </h2>
-
-          <div className={styles.mensajesList}>
-            {mensajes.length > 0 ? (
-              mensajes.map((item) => {
-                const nombreUsuario = item.usuario || "Usuario";
-                const inicial = nombreUsuario.charAt(0).toUpperCase();
-
-                return (
-                  <div key={item.id} className={styles.mensajeCard}>
-                    <div className={styles.avatar}>{inicial}</div>
-                    <div className={styles.mensajeContenido}>
-                      <div className={styles.mensajeHeader}>
-                        <strong className={styles.usuarioNombre}>{nombreUsuario}</strong>
-                        {item.rol && <span className={styles.rolBadge}>{item.rol}</span>}
-                        <span className={styles.mensajeFecha}>{formatearFecha(item.fecha)}</span>
-                      </div>
-                      <p className={styles.mensajeTexto}>{item.mensaje}</p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className={styles.mensajeVacio}>
-                <i
-                  className="bx bx-chat"
+              {currentClaseId && (
+                <Link
+                  to={activeClaseLink}
                   style={{
-                    fontSize: "2rem",
-                    color: "#334155",
-                    marginBottom: "0.5rem",
-                    display: "block",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "10px",
+                    background: "rgba(56, 189, 248, 0.15)",
+                    color: "#38bdf8",
+                    border: "1px solid rgba(56, 189, 248, 0.3)",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem"
                   }}
-                ></i>
-                No hay mensajes aún. ¡Sé el primero en escribir!
+                >
+                  <i className="bx bx-left-arrow-alt"></i> Volver a la Clase Activa
+                </Link>
+              )}
+            </div>
+
+            {error && (
+              <div
+                style={{
+                  color: "#fb7185",
+                  background: "rgba(244, 63, 94, 0.1)",
+                  border: "1px solid rgba(244, 63, 94, 0.2)",
+                  borderRadius: "12px",
+                  padding: "0.85rem 1.25rem",
+                  fontSize: "0.88rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <i className="bx bx-error-circle" style={{ fontSize: "1.1rem" }}></i>
+                {error}
               </div>
             )}
-          </div>
-        </main>
 
-        <div className={styles.adminTitle}>— CANAL EDUCATIVO OFICIAL —</div>
+            {/* Input Form */}
+            <div className={styles.inputContainer}>
+              <form onSubmit={enviarMensaje} className={styles.inputForm}>
+                <div style={{ flex: 1 }}>
+                  <textarea
+                    className={styles.textarea}
+                    placeholder="Escribe tu consulta o mensaje para la comunidad..."
+                    value={mensaje}
+                    onChange={(e) => setMensaje(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button type="submit" loading={loading} icon="bx-send" disabled={!mensaje.trim()}>
+                    Publicar Consulta
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Message Feed */}
+            <div className={styles.messageFeed}>
+              {mensajes.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <i className="bx bx-conversation" style={{ fontSize: "2.5rem", color: "#475569" }}></i>
+                  <p style={{ margin: "0.5rem 0 0 0", color: "#64748b", fontSize: "0.95rem" }}>
+                    No hay mensajes en el foro aún. ¡Sé el primero en iniciar una conversación!
+                  </p>
+                </div>
+              ) : (
+                mensajes.map((msg) => {
+                  const esProfesor = msg.rol === "profesor" || msg.rol === "admin";
+                  const esMiMensaje = user && msg.usuario_id === user.id;
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`${styles.messageCard} ${esProfesor ? styles.messageTeacher : ""} ${
+                        esMiMensaje ? styles.messageOwn : ""
+                      }`}
+                    >
+                      <div className={styles.messageHeader}>
+                        <div className={styles.userInfo}>
+                          <div className={`${styles.avatar} ${esProfesor ? styles.avatarTeacher : ""}`}>
+                            {msg.usuario ? msg.usuario.charAt(0).toUpperCase() : "U"}
+                          </div>
+                          <div>
+                            <span className={styles.userName}>{msg.usuario || "Usuario"}</span>
+                            {msg.rol && (
+                              <span
+                                className={`badge ${
+                                  msg.rol === "profesor"
+                                    ? "badge-purple"
+                                    : msg.rol === "admin"
+                                    ? "badge-amber"
+                                    : "badge-green"
+                                }`}
+                                style={{ marginLeft: "0.5rem", fontSize: "0.7rem", padding: "2px 8px" }}
+                              >
+                                {msg.rol}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className={styles.messageTime}>{formatearFecha(msg.fecha)}</span>
+                      </div>
+                      <div className={styles.messageContent}>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{msg.mensaje}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </main>
+        </div>
       </div>
-
-      <footer className={styles.footer}>
-        <p>Edutech &copy; {new Date().getFullYear()} - Tablón de Consultas</p>
-      </footer>
-    </div>
+    </AppLayout>
   );
 };
 
-export default Foro;
+export default Foro;

@@ -9,7 +9,7 @@ const router = (0, express_1.Router)();
 const getUserId = (req) => req.session?.usuario?.id;
 // ─────────────────────────────────────────────────────────────
 // GET /api/boletin
-// Boletín del alumno logueado, agrupado por períodos académicos
+// Boletín del alumno logueado con las clases en las que está inscripto
 // ─────────────────────────────────────────────────────────────
 router.get('/boletin', async (req, res) => {
     const userId = getUserId(req);
@@ -19,47 +19,53 @@ router.get('/boletin', async (req, res) => {
         return res.status(403).json({ error: 'Solo los alumnos pueden consultar el boletín' });
     }
     try {
-        // 1. Obtener períodos académicos ordenados
+        // 1. Obtener períodos académicos (con fallback si la tabla está vacía)
         const periodosRes = await conexion_pg_1.default.query('SELECT * FROM periodos_academicos ORDER BY anio DESC, fecha_inicio ASC');
-        const periodos = periodosRes.rows;
-        // 2. Obtener clases del alumno
+        let periodos = periodosRes.rows;
+        if (!periodos || periodos.length === 0) {
+            const currentYear = new Date().getFullYear();
+            periodos = [{
+                    id: 1,
+                    nombre: 'Ciclo Lectivo Actual',
+                    tipo: 'Anual',
+                    anio: currentYear,
+                    fecha_inicio: `${currentYear}-01-01`,
+                    fecha_fin: `${currentYear}-12-31`
+                }];
+        }
+        // 2. Obtener clases del alumno (usando la misma consulta que 'Mis clases')
         const clasesQ = `
-      SELECT c.id, c.nombre, c.materia, c.codigo
+      SELECT DISTINCT c.id, c.nombre, c.materia, c.codigo
       FROM clases c
-      JOIN alumnos_clases ac ON ac.codigo = c.codigo
-      WHERE ac.alumno_id = $1
+      LEFT JOIN alumnos_clases ac ON c.codigo = ac.codigo
+      WHERE ac.alumno_id = $1 OR c.seccion = 'Secundario'
+      ORDER BY c.id DESC
     `;
         const clasesRes = await conexion_pg_1.default.query(clasesQ, [userId]);
         const clases = clasesRes.rows;
         if (clases.length === 0) {
-            return res.json({ periodos: [], boletin: [] });
+            return res.json([]);
         }
-        // 3. Para cada período, calcular promedios por materia
+        // 3. Para cada período, calcular promedios por clase/materia del alumno
         const boletinPorPeriodo = [];
         for (const periodo of periodos) {
             const materias = [];
             for (const clase of clases) {
-                // Entregas calificadas en ese período
+                // Entregas calificadas en esa clase para este alumno
                 const entregasQ = `
-          SELECT e.calificacion, e.fecha_calificacion, t.titulo
+          SELECT e.calificacion, e.fecha_calificacion, e.fecha_entrega, t.titulo
           FROM entregas e
           JOIN trabajos t ON t.id = e.trabajo_id
           WHERE t.clase_id = $1
             AND e.alumno_id = $2
-            AND e.estado = 'corregido'
             AND e.calificacion IS NOT NULL
-            AND e.fecha_calificacion >= $3
-            AND e.fecha_calificacion <= $4
         `;
-                const entregasRes = await conexion_pg_1.default.query(entregasQ, [
-                    clase.id, userId, periodo.fecha_inicio, periodo.fecha_fin + ' 23:59:59'
-                ]);
+                const entregasRes = await conexion_pg_1.default.query(entregasQ, [clase.id, userId]);
                 const entregas = entregasRes.rows;
                 if (entregas.length === 0) {
-                    // Incluir igual con sin calificaciones
                     materias.push({
                         clase_id: clase.id,
-                        materia: clase.materia,
+                        materia: clase.materia || clase.nombre,
                         nombre: clase.nombre,
                         promedio: null,
                         cantidad_calificadas: 0,
@@ -68,7 +74,8 @@ router.get('/boletin', async (req, res) => {
                     continue;
                 }
                 const califs = entregas.map((e) => Number(e.calificacion));
-                const promedio = Math.round((califs.reduce((a, b) => a + b, 0) / califs.length) * 10) / 10;
+                const promedioRaw = califs.reduce((a, b) => a + b, 0) / califs.length;
+                const promedio = Math.round(promedioRaw * 10) / 10;
                 let estado = 'Regular';
                 if (promedio >= 9)
                     estado = 'Excelente';
@@ -84,14 +91,13 @@ router.get('/boletin', async (req, res) => {
                     estado = 'Bajo';
                 materias.push({
                     clase_id: clase.id,
-                    materia: clase.materia,
+                    materia: clase.materia || clase.nombre,
                     nombre: clase.nombre,
                     promedio,
                     cantidad_calificadas: entregas.length,
                     estado,
                 });
             }
-            // Promedio general del período
             const promediosValidos = materias.filter(m => m.promedio !== null).map(m => m.promedio);
             const promedio_general = promediosValidos.length > 0
                 ? Math.round((promediosValidos.reduce((a, b) => a + b, 0) / promediosValidos.length) * 10) / 10
@@ -107,7 +113,7 @@ router.get('/boletin', async (req, res) => {
                 periodo: {
                     id: periodo.id,
                     nombre: periodo.nombre,
-                    tipo: periodo.tipo,
+                    tipo: periodo.tipo || 'Anual',
                     fecha_inicio: periodo.fecha_inicio,
                     fecha_fin: periodo.fecha_fin,
                     anio: periodo.anio,
@@ -124,10 +130,7 @@ router.get('/boletin', async (req, res) => {
         return res.status(500).json({ error: 'Error al obtener el boletín' });
     }
 });
-// ─────────────────────────────────────────────────────────────
 // GET /api/boletin/periodos
-// Lista de períodos académicos disponibles
-// ─────────────────────────────────────────────────────────────
 router.get('/boletin/periodos', async (_req, res) => {
     try {
         const result = await conexion_pg_1.default.query('SELECT * FROM periodos_academicos ORDER BY anio DESC, fecha_inicio ASC');

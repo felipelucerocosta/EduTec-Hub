@@ -165,15 +165,15 @@ const TrabajosAlumno: React.FC = () => {
             <i className="bx bx-atom"></i> Simuladores
           </button>
           <button
-            onClick={() => navigate(`/rendimiento`)}
+            onClick={() => navigate(`/boletin`)}
             style={{
               padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: "rgba(16, 185, 129, 0.1)", color: "#34d399",
+              background: "rgba(124, 58, 237, 0.15)", color: "#a78bfa",
               fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
               display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
           >
-            <i className="bx bx-bar-chart-alt-2"></i> Mi Rendimiento
+            <i className="bx bx-receipt"></i> Mi Boletín
           </button>
         </div>
 
@@ -241,6 +241,11 @@ const TrabajosAlumno: React.FC = () => {
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        {(tarea as any).calificacion !== undefined && (tarea as any).calificacion !== null && (
+                          <span className="badge badge-green" style={{ fontWeight: 800 }}>
+                            Nota: {(tarea as any).calificacion} / {tarea.puntos_max || 100}
+                          </span>
+                        )}
                         <span className={`badge ${
                           estado === 'corregido' ? 'badge-green' :
                           estado === 'entregado' ? 'badge-purple' :

@@ -1,25 +1,31 @@
 import { Router, type Request, type Response } from 'express';
-import pool from './conexion_pg'; // 👈 1. Importa el POOL de PostgreSQL
+import pool from './conexion_pg';
 
 const router = Router();
 
-// Ruta GET para obtener clases (CORREGIDA PARA POSTGRESQL)
-router.get('/clases', async (_req: Request, res: Response) => { // 👈 2. Convertido a async
-  
-  // 👈 3. Consulta SQL corregida para incluir el ID
-  const sql = 'SELECT id, nombre, seccion, materia, aula, creador, codigo FROM clases ORDER BY id DESC';
+// GET /api/clases - Obtener lista de clases con la cantidad real de alumnos inscriptos
+router.get('/clases', async (_req: Request, res: Response) => {
+  const sql = `
+    SELECT 
+      c.id, 
+      c.nombre, 
+      c.seccion, 
+      c.materia, 
+      c.aula, 
+      c.creador, 
+      c.codigo,
+      (SELECT COUNT(*) FROM alumnos_clases ac WHERE ac.codigo = c.codigo) AS cantidad_alumnos
+    FROM clases c
+    ORDER BY c.id DESC
+  `;
 
   try {
-    // 👈 4. Usa pool.query con await (sin callbacks)
     const result = await pool.query(sql);
-    
-    // pg's QueryResult expone las filas en un array 'rows'
     const rows = result && result.rows ? result.rows : [];
     res.json(rows);
-
-  } catch (err) { // 👈 5. Captura de errores
+  } catch (err) {
     console.error('❌ Error al consultar clases:', err);
-    return res.json([]); // Devolver un array vacío en caso de error
+    return res.json([]);
   }
 });
 

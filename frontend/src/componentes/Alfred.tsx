@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../alfred.css";
+import { useAuth } from "../contexts/AuthContext";
+
+const API_URL = "http://localhost:3001/api";
 
 // ─── Árbol de decisiones ────────────────────────────────────────────────────
 interface TreeNode {
@@ -20,12 +23,13 @@ interface Option {
 const TREE: Record<string, TreeNode> = {
   start: {
     id: "start",
-    text: "¡Buenas! Soy Alfred 🎩, el asistente de Edutech. ¿En qué le puedo ayudar hoy?",
+    text: "¡Buenas! Soy Alfred 🎩, el asistente de Edutech. ¿En qué le puedo ayudar hoy? Puede elegir una opción rápida o escribirme una pregunta libre directamente.",
     options: [
       { label: "🔑 Problemas con mi cuenta", icon: "bx-key", nextId: "cuenta" },
       { label: "📚 Cómo usar la plataforma", icon: "bx-help-circle", nextId: "plataforma" },
       { label: "🏫 Clases y materias", icon: "bx-book", nextId: "clases" },
       { label: "📅 Calendario y foro", icon: "bx-calendar", nextId: "calendario" },
+      { label: "🤖 Hacer consulta a la IA (Gemini)", icon: "bx-bot", nextId: "modo_ia" },
       { label: "💬 Otro tema", icon: "bx-chat", nextId: "otro" },
     ],
   },
@@ -55,7 +59,7 @@ const TREE: Record<string, TreeNode> = {
 
   email_reset: {
     id: "email_reset",
-    text: "Por favor, ingrese su dirección de correo electrónico registrada y le enviamos el enlace.",
+    text: "Por favor, ingrese su dirección de correo electrónico registrada en el campo de texto y le enviamos el enlace.",
     inputRequired: "email",
   },
 
@@ -88,7 +92,7 @@ const TREE: Record<string, TreeNode> = {
 
   correo_no_funciona: {
     id: "correo_no_funciona",
-    text: "Puede ingresar con cualquier correo electrónico válido (Gmail, Outlook, etc.). ¿El error que le aparece es...?",
+    text: "Puede ingresar con cualquier correo electrónico válido. ¿El error que le aparece es...?",
     options: [
       { label: "❌ 'Credenciales incorrectas'", nextId: "credenciales_incorrectas" },
       { label: "🚫 'Usuario no encontrado'", nextId: "usuario_no_encontrado" },
@@ -99,7 +103,7 @@ const TREE: Record<string, TreeNode> = {
 
   credenciales_incorrectas: {
     id: "credenciales_incorrectas",
-    text: "Si aparece 'credenciales incorrectas', significa que el correo o la contraseña no coinciden. Verifique:\n\n• Que esté usando el correo con el que se registró\n• Que la contraseña no tenga espacios de más\n• Que MAYÚSCULAS y minúsculas sean correctas\n\nSi olvidó la contraseña, puedo ayudarle a recuperarla.",
+    text: "Si aparece 'credenciales incorrectas', significa que el correo o la contraseña no coinciden. Verifique:\n\n• Que esté usando el correo registrado\n• Que la contraseña no tenga espacios extra\n• Que mayúsculas y minúsculas sean correctas",
     options: [
       { label: "🔑 Recuperar contraseña", nextId: "olvide_password" },
       { label: "✅ Voy a intentarlo", nextId: "cierre" },
@@ -109,7 +113,7 @@ const TREE: Record<string, TreeNode> = {
 
   usuario_no_encontrado: {
     id: "usuario_no_encontrado",
-    text: "Si su correo no está registrado en el sistema, deberá crear una cuenta nueva. Desde la pantalla de login, seleccione la pestaña 'Crear Cuenta'.",
+    text: "Si su correo no está registrado en el sistema, deberá crear una cuenta nueva desde la pestaña 'Crear Cuenta'.",
     options: [
       { label: "✅ Entendido", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
@@ -118,7 +122,7 @@ const TREE: Record<string, TreeNode> = {
 
   error_servidor: {
     id: "error_servidor",
-    text: "Un error del servidor es algo que debemos reportar. Puede intentar:\n\n• Refrescar la página y volver a intentar\n• Esperar unos minutos\n• Contactar al administrador: felipelucero534@gmail.com",
+    text: "Si hay un error del servidor, intente refrescar la página o contacte al administrador: felipelucero534@gmail.com",
     options: [
       { label: "📧 Anotado, gracias", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
@@ -127,17 +131,16 @@ const TREE: Record<string, TreeNode> = {
 
   cuenta_bloqueada: {
     id: "cuenta_bloqueada",
-    text: "Las cuentas pueden bloquearse temporalmente tras varios intentos de acceso fallidos (más de 3 intentos en 15 minutos). En ese caso:\n\n• Espere 15 minutos e intente de nuevo\n• O recupere su contraseña para desbloquear el acceso inmediatamente",
+    text: "Las cuentas se bloquean temporalmente tras varios intentos fallidos. Espere 15 minutos o recupere su contraseña.",
     options: [
       { label: "🔑 Recuperar contraseña", nextId: "olvide_password" },
-      { label: "⏱️ Esperaré 15 min", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
   cambiar_datos: {
     id: "cambiar_datos",
-    text: "Actualmente los cambios de datos personales deben ser gestionados por el administrador del sistema. Por favor, contacte a:\n\n📧 felipelucero534@gmail.com\n\nIndique su nombre completo y el cambio que necesita realizar.",
+    text: "Los cambios de datos personales deben solicitarse al administrador: felipelucero534@gmail.com",
     options: [
       { label: "📧 Entendido", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
@@ -159,27 +162,25 @@ const TREE: Record<string, TreeNode> = {
 
   como_registrarse: {
     id: "como_registrarse",
-    text: "Para registrarse:\n\n1️⃣ Vaya a la página principal y haga clic en 'Comenzar ahora'\n2️⃣ Seleccione la pestaña 'Crear Cuenta'\n3️⃣ Elija su rol: Alumno o Profesor\n4️⃣ Complete nombre, correo, DNI y contraseña\n5️⃣ ¡Listo! Inicie sesión con sus credenciales",
+    text: "Para registrarse:\n1️⃣ Vaya a la pantalla inicial\n2️⃣ Seleccione 'Crear Cuenta'\n3️⃣ Elija rol (Alumno o Profesor)\n4️⃣ Ingrese sus datos y contraseña",
     options: [
-      { label: "✅ Claro, gracias", nextId: "cierre" },
-      { label: "❓ Tengo otro problema", nextId: "plataforma" },
+      { label: "✅ Gracias", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
   como_clases: {
     id: "como_clases",
-    text: "Para acceder a sus clases:\n\n👨‍🎓 Si es Alumno: vaya a 'Mis Clases', busque su materia y haga clic en la tarjeta para entrar.\n\n👨‍🏫 Si es Profesor: vaya a 'Panel de Clases', sus clases aparecen listadas. Haga clic en una tarjeta para gestionar trabajos y alumnos.",
+    text: "👨‍🎓 Alumnos: Vayan a 'Mis Clases' e ingresen con el código del profesor.\n👨‍🏫 Profesores: En 'Mis Clases' pueden crear aulas y ver sus alumnos.",
     options: [
       { label: "✅ Entendido", nextId: "cierre" },
-      { label: "📚 Más sobre clases", nextId: "clases" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
   como_trabajo: {
     id: "como_trabajo",
-    text: "Para ver los trabajos asignados:\n\n1️⃣ Ingrese a una clase desde 'Mis Clases'\n2️⃣ Dentro de la clase verá la sección 'Trabajos y Materiales'\n3️⃣ Haga clic en un trabajo para ver sus detalles\n\n⚠️ Los trabajos aparecen solo cuando el docente los publica.",
+    text: "Para entregar un trabajo:\n1️⃣ Ingrese a la clase correspondiente\n2️⃣ Haga clic en la tarea publicada\n3️⃣ Adjunte el archivo o comentario y presione Entregar.",
     options: [
       { label: "✅ Perfecto", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
@@ -188,7 +189,7 @@ const TREE: Record<string, TreeNode> = {
 
   como_calendario: {
     id: "como_calendario",
-    text: "El calendario está disponible dentro de cada clase. Desde el menú de navegación superior, verá el enlace 'Calendario' cuando esté dentro de una clase.\n\nAllí puede ver y agregar recordatorios de tareas y eventos importantes.",
+    text: "El calendario permite anotar recordatorios de exámenes y entregas. Lo encuentra en la barra de navegación.",
     options: [
       { label: "✅ Entendido", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
@@ -202,98 +203,52 @@ const TREE: Record<string, TreeNode> = {
     options: [
       { label: "🔗 Cómo unirme a una clase", nextId: "como_unirse" },
       { label: "📌 No veo mis clases", nextId: "no_veo_clases" },
-      { label: "👥 Sobre alumnos inscriptos", nextId: "alumnos_inscriptos" },
-      { label: "📄 Sobre materiales", nextId: "sobre_materiales" },
       { label: "← Volver", nextId: "start" },
     ],
   },
 
   como_unirse: {
     id: "como_unirse",
-    text: "Para unirse a una clase necesita el código de acceso que le provee su docente.\n\n1️⃣ Vaya a 'Mis Clases'\n2️⃣ Haga clic en 'Unirse a una Clase'\n3️⃣ Ingrese el nombre de la materia y el código\n4️⃣ ¡Listo! La clase aparecerá en su listado",
+    text: "Para unirse a una clase, pídale al profesor el código de 6 caracteres e ingréselo en 'Unirse a clase'.",
     options: [
       { label: "✅ Entendido", nextId: "cierre" },
-      { label: "❓ No tengo el código", nextId: "sin_codigo" },
-      { label: "🏠 Menú principal", nextId: "start" },
-    ],
-  },
-
-  sin_codigo: {
-    id: "sin_codigo",
-    text: "Si no tiene el código de acceso, debe solicitárselo a su docente. El código es generado automáticamente cuando el profesor crea la clase y aparece en la tarjeta de la clase (visible para el docente).",
-    options: [
-      { label: "✅ Gracias", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
   no_veo_clases: {
     id: "no_veo_clases",
-    text: "Si no ve sus clases, pruebe lo siguiente:\n\n1️⃣ Haga clic en 'Sincronizar' en el Panel de Clases\n2️⃣ Verifique que esté usando la cuenta correcta\n3️⃣ Si es alumno, asegúrese de haberse unido con el código\n4️⃣ Si es profesor, sus clases deben aparecer automáticamente",
-    options: [
-      { label: "✅ Voy a intentarlo", nextId: "cierre" },
-      { label: "🏠 Menú principal", nextId: "start" },
-    ],
-  },
-
-  alumnos_inscriptos: {
-    id: "alumnos_inscriptos",
-    text: "La sección de 'Alumnos Inscriptos' solo es visible para el docente titular de la clase. Aparece con los alumnos que hayan sido aprobados.\n\nSi es docente y no ve alumnos, significa que aún no hay solicitudes aprobadas.",
+    text: "Verifique estar usando la cuenta adecuada y que haya ingresado correctamente el código de clase.",
     options: [
       { label: "✅ Entendido", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
-  sobre_materiales: {
-    id: "sobre_materiales",
-    text: "Los materiales y trabajos son publicados por el docente dentro de cada clase. Como alumno, los verá en la sección 'Trabajos y Materiales' al ingresar a una clase.\n\n⚠️ Si la sección está vacía, el docente aún no ha publicado nada.",
-    options: [
-      { label: "✅ Entendido", nextId: "cierre" },
-      { label: "🏠 Menú principal", nextId: "start" },
-    ],
-  },
-
-  // ── CALENDARIO ─────────────────────────────────────────────────────────────
   calendario: {
     id: "calendario",
-    text: "¿Qué necesita saber sobre el Calendario o el Foro?",
+    text: "En la sección Calendario puede agendar tareas y fechas importantes.",
     options: [
-      { label: "📅 Cómo agregar un recordatorio", nextId: "agregar_recordatorio" },
-      { label: "💬 Cómo usar el foro", nextId: "usar_foro" },
-      { label: "← Volver", nextId: "start" },
-    ],
-  },
-
-  agregar_recordatorio: {
-    id: "agregar_recordatorio",
-    text: "Para agregar un recordatorio al calendario:\n\n1️⃣ Ingrese a una clase\n2️⃣ Haga clic en 'Calendario' en el menú superior\n3️⃣ Seleccione la fecha deseada\n4️⃣ Complete el título y descripción\n5️⃣ Guarde el recordatorio\n\nSolo usted verá sus propios recordatorios.",
-    options: [
-      { label: "✅ Perfecto", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
-  usar_foro: {
-    id: "usar_foro",
-    text: "El Foro es un espacio de consultas dentro de cada clase. Desde allí puede:\n\n• Publicar preguntas o comentarios\n• Ver los mensajes del docente y compañeros\n• Es accesible desde el menú 'Foro' dentro de una clase",
+  modo_ia: {
+    id: "modo_ia",
+    text: "💡 Modo Inteligencia Artificial activo (Gemini). Escriba cualquier consulta técnica, académica o duda abajo y con gusto le responderé.",
     options: [
-      { label: "✅ Gracias", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
-  // ── OTRO ──────────────────────────────────────────────────────────────────
   otro: {
     id: "otro",
-    text: "Entiendo. Para temas no contemplados en este asistente, puede contactar directamente con el equipo de Edutech:\n\n📧 felipelucero534@gmail.com\n\nDescriba su consulta y recibirá una respuesta a la brevedad.",
+    text: "Escriba su consulta en el campo de texto abajo o contacte a felipelucero534@gmail.com",
     options: [
-      { label: "👍 Gracias", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
     ],
   },
 
-  // ── CIERRE ────────────────────────────────────────────────────────────────
   cierre: {
     id: "cierre",
     text: "¡Ha sido un placer asistirle! ¿Hay algo más en lo que pueda ayudarle?",
@@ -305,7 +260,7 @@ const TREE: Record<string, TreeNode> = {
 
   adios: {
     id: "adios",
-    text: "¡Hasta luego! Que tenga un excelente día. Estaré aquí si necesita algo. 🎩",
+    text: "¡Hasta luego! Que tenga un excelente día. Estaré aquí si me necesita. 🎩",
     options: [
       { label: "🏠 Volver al menú", nextId: "start" },
     ],
@@ -317,20 +272,18 @@ interface Message {
   sender: "user" | "alfred";
   text: string;
   options?: Option[];
-  isInput?: boolean;
 }
 
-// ─── Componente ────────────────────────────────────────────────────────────
 const Alfred: React.FC = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [, setCurrentNode] = useState<string>("start");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [emailInput, setEmailInput] = useState("");
+  const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Iniciar con el nodo de inicio cuando se abre
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const node = TREE["start"];
@@ -341,7 +294,7 @@ const Alfred: React.FC = () => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const addAlfredMessage = (nodeId: string) => {
     const node = TREE[nodeId];
@@ -355,40 +308,125 @@ const Alfred: React.FC = () => {
 
     if (node.inputRequired === "email") {
       setAwaitingEmail(true);
+    } else {
+      setAwaitingEmail(false);
     }
   };
 
   const handleOption = (option: Option) => {
-    // Agregar el mensaje del usuario
     setMessages(prev => [...prev, { sender: "user", text: option.label }]);
-    // Navegar al siguiente nodo con delay para simular que Alfred "escribe"
     setIsLoading(true);
     setTimeout(() => {
       addAlfredMessage(option.nextId);
       setIsLoading(false);
-    }, 500);
+    }, 400);
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  // Enviar mensaje libre o email a backend / Gemini
+  const handleFreeInputSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailInput.trim()) return;
-    const email = emailInput.trim();
-    setMessages(prev => [...prev, { sender: "user", text: email }]);
-    setEmailInput("");
-    setAwaitingEmail(false);
+    const query = inputText.trim();
+    if (!query) return;
+
+    setMessages(prev => [...prev, { sender: "user", text: query }]);
+    setInputText("");
     setIsLoading(true);
 
+    if (awaitingEmail) {
+      setAwaitingEmail(false);
+      try {
+        const res = await fetch(`${API_URL}/forgot-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ correo: query }),
+        });
+        const data = await res.json();
+        setIsLoading(false);
+        if (res.ok) {
+          addAlfredMessage("reset_enviado");
+        } else {
+          setMessages(prev => [...prev, { sender: "alfred", text: data.reply || data.error || "No se pudo procesar la solicitud." }]);
+        }
+      } catch {
+        setIsLoading(false);
+        addAlfredMessage("reset_error");
+      }
+      return;
+    }
+
+    // Consulta libre con Gemini AI en /api/ask-alfred
+    if (!user) {
+      setIsLoading(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          sender: "alfred",
+          text: "Para realizar consultas con IA con Alfred, por favor inicia sesión en la plataforma primero.",
+          options: [{ label: "🏠 Menú principal", nextId: "start" }]
+        }
+      ]);
+      return;
+    }
+
+    // Armar historial de conversación
+    const historyPayload = messages
+      .filter(m => m.text && !m.text.includes("¡Buenas! Soy Alfred"))
+      .slice(-6)
+      .map(m => ({
+        role: m.sender === "user" ? ("user" as const) : ("model" as const),
+        parts: [{ text: m.text }]
+      }));
+
+    historyPayload.push({
+      role: "user" as const,
+      parts: [{ text: query }]
+    });
+
     try {
-      await fetch("http://localhost:3001/api/forgot-password", {
+      const res = await fetch(`${API_URL}/ask-alfred`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo: email }),
+        credentials: "include",
+        body: JSON.stringify({ chatHistory: historyPayload }),
       });
+
+      const data = await res.json();
       setIsLoading(false);
-      addAlfredMessage("reset_enviado");
-    } catch {
+
+      const aiText = data.response || data.reply || data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (res.ok && aiText && !data.error) {
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: "alfred",
+            text: aiText,
+            options: [
+              { label: "🤖 Otra consulta IA", nextId: "modo_ia" },
+              { label: "🏠 Menú principal", nextId: "start" }
+            ]
+          }
+        ]);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: "alfred",
+            text: data.reply || data.error || "Disculpe, la IA no pudo responder en este momento.",
+            options: [{ label: "🏠 Menú principal", nextId: "start" }]
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error("Error al consultar Alfred AI:", err);
       setIsLoading(false);
-      addAlfredMessage("reset_error");
+      setMessages(prev => [
+        ...prev,
+        {
+          sender: "alfred",
+          text: "⚠️ No fue posible conectar con el servidor de la IA. Verifique su conexión.",
+          options: [{ label: "🏠 Menú principal", nextId: "start" }]
+        }
+      ]);
     }
   };
 
@@ -396,7 +434,7 @@ const Alfred: React.FC = () => {
     setMessages([]);
     setCurrentNode("start");
     setAwaitingEmail(false);
-    setEmailInput("");
+    setInputText("");
     const node = TREE["start"];
     setTimeout(() => {
       setMessages([{ sender: "alfred", text: node.text, options: node.options }]);
@@ -405,7 +443,6 @@ const Alfred: React.FC = () => {
 
   return (
     <>
-      {/* Toggle button */}
       <button
         onClick={() => setIsOpen(prev => !prev)}
         className="alfred-toggle-button"
@@ -428,7 +465,7 @@ const Alfred: React.FC = () => {
               }}>🎩</div>
               <div>
                 <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>Alfred</h3>
-                <p style={{ margin: 0, fontSize: "0.7rem", color: "#94a3b8" }}>Asistente Edutech</p>
+                <p style={{ margin: 0, fontSize: "0.7rem", color: "#94a3b8" }}>Asistente EduTec-Hub (IA Gemini)</p>
               </div>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -461,7 +498,6 @@ const Alfred: React.FC = () => {
                   <p style={{ whiteSpace: "pre-line", margin: 0 }}>{msg.text}</p>
                 </div>
 
-                {/* Options — only show on the LAST alfred message */}
                 {msg.sender === "alfred" && msg.options && index === messages.length - 1 && !isLoading && (
                   <div className="alfred-options">
                     {msg.options.map((opt, i) => (
@@ -478,7 +514,6 @@ const Alfred: React.FC = () => {
               </div>
             ))}
 
-            {/* Typing indicator */}
             {isLoading && (
               <div className="alfred-message alfred typing-indicator">
                 <span></span><span></span><span></span>
@@ -488,23 +523,41 @@ const Alfred: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Email input (only when needed) */}
-          {awaitingEmail && !isLoading && (
-            <form onSubmit={handleEmailSubmit} className="alfred-input-form">
-              <input
-                type="email"
-                value={emailInput}
-                onChange={e => setEmailInput(e.target.value)}
-                placeholder="tu@correo.com"
-                autoComplete="off"
-                required
-                autoFocus
-              />
-              <button type="submit" disabled={!emailInput.trim()}>
-                <i className="bx bx-send"></i>
-              </button>
-            </form>
-          )}
+          {/* Formulario de entrada libre para cualquier pregunta o correo */}
+          <form onSubmit={handleFreeInputSubmit} className="alfred-input-form" style={{ padding: '8px', display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <input
+              type="text"
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder={awaitingEmail ? "tu@correo.com" : "Escribe tu duda o consulta a Alfred..."}
+              autoComplete="off"
+              disabled={isLoading}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: 'rgba(30, 41, 59, 0.8)',
+                color: '#f8fafc',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                fontSize: '0.85rem'
+              }}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !inputText.trim()}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #7c3aed, #38bdf8)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              <i className="bx bx-send"></i>
+            </button>
+          </form>
         </div>
       )}
     </>

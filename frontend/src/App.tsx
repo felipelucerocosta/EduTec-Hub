@@ -118,7 +118,7 @@ function AppRoutes() {
 
       {/* === NUEVAS RUTAS === */}
       <Route path="/rendimiento" element={
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["profesor", "admin"]}>
           <Rendimiento />
         </ProtectedRoute>
       } />

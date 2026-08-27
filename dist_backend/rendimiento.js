@@ -17,7 +17,6 @@ router.get('/rendimiento/alumno', async (req, res) => {
     if (!userId)
         return res.status(401).json({ error: 'No autorizado' });
     try {
-        // Obtener todas las clases del alumno
         const clasesQ = `
       SELECT c.id, c.nombre, c.materia, c.codigo
       FROM clases c
@@ -31,11 +30,9 @@ router.get('/rendimiento/alumno', async (req, res) => {
         }
         const materias = [];
         for (const clase of clases) {
-            // Trabajos de esta clase
-            const trabajosQ = `SELECT id, titulo, fecha_limite, fecha_creacion FROM trabajos WHERE clase_id = $1 ORDER BY fecha_creacion ASC`;
+            const trabajosQ = `SELECT id, titulo, fecha_limite, fecha_creacion FROM trabajos WHERE clase_id = $1 ORDER BY fecha_creacion ASC, id ASC`;
             const trabajosRes = await conexion_pg_1.default.query(trabajosQ, [clase.id]);
             const trabajos = trabajosRes.rows;
-            // Entregas del alumno en esta clase
             const entregasQ = `
         SELECT e.trabajo_id, e.estado, e.calificacion, e.fecha_entrega, e.fecha_calificacion, e.feedback
         FROM entregas e
@@ -49,7 +46,7 @@ router.get('/rendimiento/alumno', async (req, res) => {
             let pendientes = 0;
             let enCorreccion = 0;
             let fueraDeTiempo = 0;
-            const trabajosDetalle = trabajos.map((t) => {
+            const trabajosDetalle = trabajos.map((t, index) => {
                 const entrega = entregasMap.get(t.id);
                 let estadoFinal = 'sin_entregar';
                 if (entrega) {
@@ -78,6 +75,8 @@ router.get('/rendimiento/alumno', async (req, res) => {
                 }
                 return {
                     id: t.id,
+                    orden: index + 1,
+                    label: `Trabajo ${index + 1}`,
                     titulo: t.titulo,
                     fecha_limite: t.fecha_limite,
                     estado: estadoFinal,
@@ -107,7 +106,6 @@ router.get('/rendimiento/alumno', async (req, res) => {
                 trabajos: trabajosDetalle,
             });
         }
-        // Resumen general
         const promediosValidos = materias.filter(m => m.promedio !== null).map(m => m.promedio);
         const promedio_general = promediosValidos.length > 0
             ? Math.round((promediosValidos.reduce((a, b) => a + b, 0) / promediosValidos.length) * 10) / 10
@@ -128,7 +126,6 @@ router.get('/rendimiento/alumno', async (req, res) => {
 });
 // ─────────────────────────────────────────────────────────────
 // GET /api/rendimiento/evolucion
-// Evolución temporal de calificaciones del alumno (por mes)
 // ─────────────────────────────────────────────────────────────
 router.get('/rendimiento/evolucion', async (req, res) => {
     const userId = getUserId(req);
@@ -165,7 +162,7 @@ router.get('/rendimiento/evolucion', async (req, res) => {
 });
 // ─────────────────────────────────────────────────────────────
 // GET /api/rendimiento/clase/:claseId
-// Rendimiento de todos los alumnos en una clase (solo profesor)
+// Rendimiento completo del curso (General y por Trabajos)
 // ─────────────────────────────────────────────────────────────
 router.get('/rendimiento/clase/:claseId', async (req, res) => {
     const { claseId } = req.params;
@@ -175,24 +172,61 @@ router.get('/rendimiento/clase/:claseId', async (req, res) => {
         return res.status(403).json({ error: 'Solo los profesores pueden ver el rendimiento del curso.' });
     }
     try {
-        // Info de la clase
         const claseRes = await conexion_pg_1.default.query('SELECT * FROM clases WHERE id = $1', [claseId]);
         if (claseRes.rows.length === 0)
             return res.status(404).json({ error: 'Clase no encontrada' });
         const clase = claseRes.rows[0];
-        // Trabajos de la clase
-        const trabajosRes = await conexion_pg_1.default.query('SELECT id, titulo, puntos_max FROM trabajos WHERE clase_id = $1', [claseId]);
+        // Trabajos ordenados cronológicamente
+        const trabajosRes = await conexion_pg_1.default.query('SELECT id, titulo, puntos_max, fecha_creacion FROM trabajos WHERE clase_id = $1 ORDER BY fecha_creacion ASC, id ASC', [claseId]);
         const trabajos = trabajosRes.rows;
-        // Alumnos de la clase
+        // Alumnos inscriptos
         const alumnosQ = `
       SELECT DISTINCT u.id_usuario as id, u.nombre_completo, u.correo
       FROM alumnos_clases ac
       JOIN usuarios u ON u.id_usuario = ac.alumno_id
       WHERE ac.codigo = $1
-      ORDER BY u.nombre_completo
+      ORDER BY u.nombre_completo ASC
     `;
         const alumnosRes = await conexion_pg_1.default.query(alumnosQ, [clase.codigo]);
         const alumnos = alumnosRes.rows;
+        // 1. Resumen por Trabajo (para Pestaña GENERAL)
+        const trabajosResumen = [];
+        let totalAprobadosGeneral = 0;
+        let totalCalificadosGeneral = 0;
+        for (let index = 0; index < trabajos.length; index++) {
+            const t = trabajos[index];
+            const entregasT = await conexion_pg_1.default.query(`SELECT calificacion FROM entregas WHERE trabajo_id = $1 AND estado = 'corregido' AND calificacion IS NOT NULL`, [t.id]);
+            const notas = entregasT.rows.map((r) => Number(r.calificacion));
+            const cantidadCalificados = notas.length;
+            const promedioTrabajo = cantidadCalificados > 0
+                ? Math.round((notas.reduce((a, b) => a + b, 0) / cantidadCalificados) * 10) / 10
+                : null;
+            const aprobados = notas.filter(n => n >= 6).length;
+            const desaprobados = notas.filter(n => n < 6).length;
+            const pctAprobados = cantidadCalificados > 0 ? Math.round((aprobados / cantidadCalificados) * 100) : 0;
+            const pctDesaprobados = cantidadCalificados > 0 ? Math.round((desaprobados / cantidadCalificados) * 100) : 0;
+            totalAprobadosGeneral += aprobados;
+            totalCalificadosGeneral += cantidadCalificados;
+            trabajosResumen.push({
+                id: t.id,
+                orden: index + 1,
+                label: `Trabajo ${index + 1}`,
+                titulo: t.titulo,
+                promedio: promedioTrabajo,
+                calificados: cantidadCalificados,
+                aprobados,
+                desaprobados,
+                pct_aprobados: pctAprobados,
+                pct_desaprobados: pctDesaprobados,
+            });
+        }
+        const trabajosConNota = trabajosResumen.filter(t => t.promedio !== null);
+        // Ordenar para encontrar mejor y peor trabajo
+        const trabajosOrdenados = [...trabajosConNota].sort((a, b) => b.promedio - a.promedio);
+        const trabajoMejor = trabajosOrdenados.length > 0 ? trabajosOrdenados[0] : null;
+        const trabajoPeor = trabajosOrdenados.length > 0 ? trabajosOrdenados[trabajosOrdenados.length - 1] : null;
+        const trabajosDificultad = trabajosConNota.filter(t => t.promedio < 7 || t.pct_desaprobados >= 25);
+        // 2. Rendimiento por Alumno
         const alumnosRendimiento = [];
         for (const alumno of alumnos) {
             const entregasQ = `
@@ -237,16 +271,23 @@ router.get('/rendimiento/clase/:claseId', async (req, res) => {
                 estado_label,
             });
         }
-        // Promedio general del curso
         const promediosValidos = alumnosRendimiento.filter(a => a.promedio !== null).map(a => a.promedio);
         const promedio_general = promediosValidos.length > 0
             ? Math.round((promediosValidos.reduce((a, b) => a + b, 0) / promediosValidos.length) * 10) / 10
             : null;
+        const pctAprobacionGeneral = totalCalificadosGeneral > 0
+            ? Math.round((totalAprobadosGeneral / totalCalificadosGeneral) * 100)
+            : 0;
         return res.json({
             clase: { id: clase.id, nombre: clase.nombre, materia: clase.materia },
             total_trabajos: trabajos.length,
             total_alumnos: alumnos.length,
             promedio_general,
+            pct_aprobacion_general: pctAprobacionGeneral,
+            trabajo_mejor: trabajoMejor,
+            trabajo_peor: trabajoPeor,
+            trabajos_dificultad: trabajosDificultad,
+            trabajos_resumen: trabajosResumen,
             alumnos: alumnosRendimiento,
         });
     }
@@ -257,7 +298,7 @@ router.get('/rendimiento/clase/:claseId', async (req, res) => {
 });
 // ─────────────────────────────────────────────────────────────
 // GET /api/rendimiento/alumno/:alumnoId/clase/:claseId
-// Rendimiento individual de un alumno (para el profesor)
+// Rendimiento individual de un alumno en la clase
 // ─────────────────────────────────────────────────────────────
 router.get('/rendimiento/alumno/:alumnoId/clase/:claseId', async (req, res) => {
     const { alumnoId, claseId } = req.params;
@@ -268,36 +309,49 @@ router.get('/rendimiento/alumno/:alumnoId/clase/:claseId', async (req, res) => {
     }
     try {
         const trabajosQ = `
-      SELECT t.id, t.titulo, t.puntos_max, t.fecha_limite,
+      SELECT t.id, t.titulo, t.puntos_max, t.fecha_limite, t.fecha_creacion,
              e.calificacion, e.estado as estado_entrega, e.fecha_entrega, e.feedback
       FROM trabajos t
       LEFT JOIN entregas e ON e.trabajo_id = t.id AND e.alumno_id = $1
       WHERE t.clase_id = $2
-      ORDER BY t.fecha_creacion ASC
+      ORDER BY t.fecha_creacion ASC, t.id ASC
     `;
         const result = await conexion_pg_1.default.query(trabajosQ, [alumnoId, claseId]);
         const alumnoQ = await conexion_pg_1.default.query('SELECT nombre_completo, correo FROM usuarios WHERE id_usuario = $1', [alumnoId]);
         const alumno = alumnoQ.rows[0] || { nombre_completo: 'Alumno', correo: '' };
-        const trabajos = result.rows;
-        const calificadas = trabajos
+        const trabajosRaw = result.rows;
+        const trabajosFormateados = trabajosRaw.map((t, index) => ({
+            id: t.id,
+            orden: index + 1,
+            label: `Trabajo ${index + 1}`,
+            titulo: t.titulo,
+            puntos_max: t.puntos_max,
+            fecha_limite: t.fecha_limite,
+            calificacion: t.calificacion !== null ? Number(t.calificacion) : null,
+            estado_entrega: t.estado_entrega || 'sin_entregar',
+            fecha_entrega: t.fecha_entrega,
+            feedback: t.feedback,
+        }));
+        const calificadas = trabajosFormateados
             .filter((t) => t.calificacion !== null)
             .map((t) => Number(t.calificacion));
         const promedio = calificadas.length > 0
             ? Math.round((calificadas.reduce((a, b) => a + b, 0) / calificadas.length) * 10) / 10
             : null;
+        const aprobados = calificadas.filter(n => n >= 6).length;
+        const desaprobados = calificadas.filter(n => n < 6).length;
+        const trabajosConNota = trabajosFormateados.filter((t) => t.calificacion !== null);
+        trabajosConNota.sort((a, b) => b.calificacion - a.calificacion);
+        const mejorTrabajo = trabajosConNota.length > 0 ? trabajosConNota[0] : null;
+        const peorTrabajo = trabajosConNota.length > 0 ? trabajosConNota[trabajosConNota.length - 1] : null;
         return res.json({
             alumno: { id: alumnoId, ...alumno },
             promedio,
-            trabajos: trabajos.map((t) => ({
-                id: t.id,
-                titulo: t.titulo,
-                puntos_max: t.puntos_max,
-                fecha_limite: t.fecha_limite,
-                calificacion: t.calificacion,
-                estado_entrega: t.estado_entrega || 'sin_entregar',
-                fecha_entrega: t.fecha_entrega,
-                feedback: t.feedback,
-            })),
+            trabajos_aprobados: aprobados,
+            trabajos_desaprobados: desaprobados,
+            mejor_trabajo: mejorTrabajo,
+            peor_trabajo: peorTrabajo,
+            trabajos: trabajosFormateados,
         });
     }
     catch (error) {

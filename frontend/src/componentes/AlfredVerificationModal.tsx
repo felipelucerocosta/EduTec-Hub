@@ -8,7 +8,7 @@ interface Props {
   onVerified: (password: string | null, reply?: string) => void;
 }
 
-export default function AlfredVerificationModal({ email, open, onClose, backendBaseUrl = 'http://localhost:5173', onVerified }: Props) {
+export default function AlfredVerificationModal({ email, open, onClose, backendBaseUrl = 'http://localhost:3001/api', onVerified }: Props) {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

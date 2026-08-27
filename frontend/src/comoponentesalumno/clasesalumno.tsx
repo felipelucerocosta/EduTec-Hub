@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../styles.module.css";
 import { useNavigate } from "react-router-dom";
-import Header from "../components reutilizables/header";
+import AppLayout from "../components/layout/AppLayout";
 import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
 import Modal from "../components reutilizables/Modal";
@@ -83,8 +83,8 @@ const ClasesAlumno: React.FC = () => {
   };
 
   return (
-    <div className={styles.pageWrapper}>
-      <Header navLinks={[]} />
+    <AppLayout>
+      <div className={styles.pageWrapper} style={{ minHeight: 'auto', background: 'transparent', padding: 0 }}>
 
       {toast.msg && (
         <div style={{
@@ -159,6 +159,7 @@ const ClasesAlumno: React.FC = () => {
                 <p style={{ marginTop: "0.4rem" }}><strong>Materia:</strong> {clase.materia}</p>
                 <p><strong>Aula:</strong> {clase.aula} | {clase.seccion}</p>
                 <p><strong>Docente:</strong> {clase.creador}</p>
+                <p><strong>Alumnos inscriptos:</strong> {(clase as any).cantidad_alumnos ?? 0}</p>
                 <div className={styles.claseMeta} style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
                   <span style={{ fontSize: "0.8rem", color: "#38bdf8", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
                     Ir a Clase <i className="bx bx-right-arrow-alt" style={{ fontSize: "1.1rem" }}></i>
@@ -170,6 +171,7 @@ const ClasesAlumno: React.FC = () => {
         </div>
       </main>
     </div>
+    </AppLayout>
   );
 };
 

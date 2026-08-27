@@ -5,7 +5,7 @@ export default function AlfredWidget() {
   const [email, setEmail] = useState('');
   const [messages, setMessages] = useState<{ from: 'user'|'alfred', text: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [backendBaseUrl] = useState('http://localhost:5173'); // ajustar si tu backend corre en otro puerto
+  const [backendBaseUrl] = useState('http://localhost:3001/api');
 
   function pushAlfred(text: string) {
     setMessages(m => [...m, { from: 'alfred', text }]);

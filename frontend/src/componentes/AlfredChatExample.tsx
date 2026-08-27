@@ -4,7 +4,7 @@ import AlfredVerificationModal from './AlfredVerificationModal';
 export default function AlfredChatExample() {
   const [email, setEmail] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [backendBaseUrl] = useState('http://localhost:5173'); // ajustar al puerto del backend
+  const [backendBaseUrl] = useState('http://localhost:3001/api');
   const [lastGeneratedPassword, setLastGeneratedPassword] = useState<string | null>(null);
 
   async function requestGeneratePassword() {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles.module.css";
-import Header from "../components reutilizables/header";
+import AppLayout from "../components/layout/AppLayout";
 import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
 import Modal from "../components reutilizables/Modal";
@@ -15,6 +15,7 @@ interface Clase {
   id?: number;
   codigo?: string;
   titular_id?: number;
+  cantidad_alumnos?: number;
 }
 
 const STORAGE_KEY = "mis_clases";
@@ -79,6 +80,7 @@ const Clases: React.FC = () => {
           creador: r.creador,
           codigo: r.codigo,
           titular_id: r.titular_id,
+          cantidad_alumnos: r.cantidad_alumnos ?? 0,
         }));
         setClases(mapped);
         
@@ -219,8 +221,8 @@ const Clases: React.FC = () => {
   };
 
   return (
-    <div className={styles.pageWrapper}>
-      <Header navLinks={[]} />
+    <AppLayout>
+      <div className={styles.pageWrapper} style={{ minHeight: 'auto', background: 'transparent', padding: 0 }}>
 
       {toast.msg && (
         <div style={{
@@ -312,6 +314,7 @@ const Clases: React.FC = () => {
                 <p style={{ marginTop: "0.4rem" }}><strong>Materia:</strong> {clase.materia}</p>
                 <p><strong>Aula:</strong> {clase.aula} | {clase.seccion}</p>
                 <p><strong>Docente:</strong> {clase.creador}</p>
+                <p><strong>Alumnos inscriptos:</strong> {clase.cantidad_alumnos ?? 0}</p>
 
                 <div className={styles.claseMeta} style={{ marginTop: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   {clase.codigo && <span className={styles.claseBadge}>Código: {clase.codigo}</span>}
@@ -385,6 +388,7 @@ const Clases: React.FC = () => {
         )}
       </Modal>
     </div>
+    </AppLayout>
   );
 };
 

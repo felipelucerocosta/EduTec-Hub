@@ -98,14 +98,11 @@ const GestionClase: React.FC = () => {
         setMateriales(Array.isArray(dataM) ? dataM : []);
       }
 
-      // 4. Fetch students
-      const resSolicitudes = await fetch(`${API_URL}/campus/solicitudes/${claseId}`, { credentials: "include" });
-      if (resSolicitudes.ok) {
-        const dataS = await resSolicitudes.json();
-        const aprobados = (dataS.solicitudes || [])
-          .filter((s: any) => s.estado === "aprobado")
-          .map((s: any) => ({ id: s.profesor_id, nombre: s.nombre || `Alumno #${s.profesor_id}`, correo: s.correo }));
-        setAlumnos(aprobados);
+      // 4. Fetch real enrolled students
+      const resAlumnos = await fetch(`${API_URL}/clases/${claseId}/alumnos`, { credentials: "include" });
+      if (resAlumnos.ok) {
+        const dataA = await resAlumnos.json();
+        setAlumnos(Array.isArray(dataA) ? dataA : []);
       }
 
       // 5. Fetch announcements
@@ -465,7 +462,13 @@ const GestionClase: React.FC = () => {
         {/* Tab 3: Alumnos */}
         {activeTab === "alumnos" && (
           <div>
-            <h3 style={{ fontSize: "1.1rem", color: "#f8fafc", marginBottom: "1rem" }}>Alumnos Inscriptos</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h3 style={{ fontSize: "1.1rem", color: "#f8fafc", margin: 0 }}>Alumnos Inscriptos ({alumnos.length})</h3>
+              {claseInfo?.codigo && (
+                <span className="badge badge-blue">Código de Matriculación: {claseInfo.codigo}</span>
+              )}
+            </div>
+
             {alumnos.length === 0 ? (
               <EmptyState
                 icon="bx-group"
@@ -473,22 +476,43 @@ const GestionClase: React.FC = () => {
                 description={`Comparte el código #${claseInfo?.codigo || ""} para que los alumnos se unan a esta clase.`}
               />
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.25rem" }}>
                 {alumnos.map((a, i) => (
                   <div key={i} style={{
-                    background: "var(--bg-card)", border: "1px solid var(--border-color)",
-                    borderRadius: "12px", padding: "1rem", display: "flex", alignItems: "center", gap: "0.75rem"
+                    background: "rgba(15, 23, 42, 0.7)", border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "16px", padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem"
                   }}>
                     <div style={{
-                      width: "36px", height: "36px", borderRadius: "50%",
+                      width: "44px", height: "44px", borderRadius: "50%",
                       background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff",
-                      fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
+                      fontWeight: 700, fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0
                     }}>
-                      {a.nombre.charAt(0).toUpperCase()}
+                      {a.nombre ? a.nombre.charAt(0).toUpperCase() : "A"}
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: "#f1f5f9", fontSize: "0.88rem" }}>{a.nombre}</div>
-                      {a.correo && <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{a.correo}</div>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, color: "#f8fafc", fontSize: "0.95rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {a.nombre}
+                      </div>
+                      <div style={{ fontSize: "0.8rem", color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
+                        <i className="bx bx-envelope" style={{ marginRight: "4px" }}></i>
+                        {a.correo || "Sin correo"}
+                      </div>
+                      {a.DNI && (
+                        <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>
+                          DNI: {a.DNI}
+                        </div>
+                      )}
+                      <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span className="badge badge-green" style={{ fontSize: "0.68rem", padding: "2px 8px" }}>
+                          {a.estado || "Inscripto"}
+                        </span>
+                        {a.fecha_union && (
+                          <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                            {new Date(a.fecha_union).toLocaleDateString("es-ES")}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

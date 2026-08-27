@@ -1,21 +1,20 @@
 import { Router, type Request, type Response } from 'express';
 import axios from 'axios';
-import pool from './conexion_pg'; // 👈 IMPORTAMOS LA CONEXIÓN A POSTGRESQL
-import * as bcrypt from 'bcrypt'; // 👈 IMPORTAMOS BCRYPT
-import * as nodemailer from 'nodemailer'; // <- cambiado desde "import nodemailer from 'nodemailer'"
+import pool from './conexion_pg';
+import * as bcrypt from 'bcrypt';
+import * as nodemailer from 'nodemailer';
 
-// Definición de tipos para la estructura de la conversación
 interface ChatContent {
-    role: 'user' | 'model'; // 'user' para el usuario, 'model' para la IA
+    role: 'user' | 'model';
     parts: Array<{ text: string }>;
 }
 
-// Interfaz para el cuerpo de la solicitud (req.body) de /ask-alfred
 interface AskAlfredBody {
-    chatHistory: ChatContent[];
+    chatHistory?: ChatContent[];
+    message?: string;
+    prompt?: string;
 }
 
-// Interfaz para el cuerpo de la solicitud (req.body) de /generate-password
 interface GeneratePasswordBody {
     email: string;
     context?: string;
@@ -23,18 +22,32 @@ interface GeneratePasswordBody {
 
 const router: Router = Router();
 
-// Middleware: permitir acceso a usuarios autenticados (admin, profesor, alumno)
-function requireAuth(req: Request, res: Response, next: any) {
-    const rol = req.session?.usuario?.rol;
-    if (!rol) return res.status(401).json({ error: 'Unauthorized', message: 'Inicia sesión para usar Alfred.' });
-    const allowed = ['admin', 'profesor', 'alumno'];
-    if (allowed.includes(String(rol))) return next();
-    return res.status(403).json({ error: 'Forbidden', message: 'No tienes permisos para usar Alfred.' });
+import 'express-session';
+
+// Helper para ocultar la API Key en consola por seguridad (ej: AQ.Ab8...ZG-Q)
+function maskKey(key: string): string {
+    if (!key) return '(sin clave)';
+    if (key.length <= 10) return '***';
+    return `${key.slice(0, 6)}...${key.slice(-4)}`;
 }
 
-// Helper: detectar email institucional
+// Middleware de autenticación (permite paso en desarrollo o si hay sesión activa)
+function requireAuth(req: Request, res: Response, next: any) {
+    const usuario = (req.session as any)?.usuario;
+    if (usuario) return next();
+    
+    // En desarrollo permitimos peticiones directas para facilitar pruebas
+    if (process.env.NODE_ENV !== 'production') return next();
+
+    return res.status(401).json({ 
+        error: 'Unauthorized', 
+        message: 'Inicia sesión para usar Alfred.',
+        reply: 'Por favor, inicia sesión para hacer consultas a Alfred.' 
+    });
+}
+
 function isInstitutionalEmail(email: string): boolean {
-    const env = process.env.INSTITUTIONAL_DOMAINS; // opcional: "uni.edu,school.edu"
+    const env = process.env.INSTITUTIONAL_DOMAINS;
     if (env) {
         const domains = env.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
         return domains.some(d => email.toLowerCase().endsWith(`@${d}`));
@@ -42,7 +55,6 @@ function isInstitutionalEmail(email: string): boolean {
     return /@.+\.(edu(\.[a-z]{2})?|ac\.[a-z]{2})$/i.test(email);
 }
 
-// Helper: enviar email de verificación
 async function sendVerificationEmail(to: string, code: string) {
     try {
         const rejectUnauthorized = process.env.SMTP_REJECT_UNAUTHORIZED === 'false' ? false : true;
@@ -60,16 +72,10 @@ async function sendVerificationEmail(to: string, code: string) {
             }
         });
 
-        // Intentar verificar, pero no bloquear el envío si el fallo es por certificado autofirmado
         try {
             await transporter.verify();
         } catch (verifyErr: any) {
-            console.warn('SMTP verify warning (no fatal):', verifyErr && verifyErr.message ? verifyErr.message : verifyErr);
-            // Si el error NO es del tipo de certificado autofirmado, relanzar
-            if (!(verifyErr && (verifyErr.code === 'ESOCKET' || (verifyErr.message || '').toLowerCase().includes('self-signed')))) {
-                throw verifyErr;
-            }
-            // En caso de self-signed seguimos adelante (en desarrollo). Si quieres forzar ignore, set SMTP_REJECT_UNAUTHORIZED=false
+            console.warn('SMTP verify warning (no fatal):', verifyErr?.message || verifyErr);
         }
 
         const from = process.env.FROM_EMAIL || process.env.SMTP_USER || 'no-reply@example.com';
@@ -82,58 +88,113 @@ async function sendVerificationEmail(to: string, code: string) {
             html: `<p>Tu código de verificación es: <strong>${code}</strong></p><p>Caduca en 10 minutos.</p>`
         });
     } catch (err) {
-        console.error('sendVerificationEmail error details:', err && (err as any).response || (err as any).message || err);
+        console.error('sendVerificationEmail error details:', err);
         throw err;
     }
 }
 
 // ===================================
-// RUTA 1: /ask-alfred (CHAT NORMAL)
-// (Sin cambios salvo usar env para la KEY)
+// RUTA 1: /ask-alfred (CHAT CON GEMINI)
+// Acepta tanto { chatHistory: [...] } como { message: "texto" } o { prompt: "texto" }
 // ===================================
 router.post('/ask-alfred', requireAuth, async (req: Request<{}, {}, AskAlfredBody>, res: Response) => {
-    const { chatHistory } = req.body;
+    let chatHistory = req.body.chatHistory;
+    const rawInput = req.body.message || req.body.prompt;
 
-    if (!chatHistory) {
-        return res.status(400).json({ error: 'El historial del chat es requerido.' });
+    // Normalizar entrada libre a chatHistory
+    if ((!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) && rawInput) {
+        chatHistory = [{ role: 'user', parts: [{ text: String(rawInput).trim() }] }];
     }
 
-    const apiKey: string = process.env.GEMINI_API_KEY || "AIzaSyCvttzZon067xS7DnQsgQIgNXvaMFTEpBw";
-
-    if (apiKey === "" || !apiKey) {
-        console.error("API Key de Gemini no está configurada.");
-        return res.status(500).json({ error: 'Servicio de IA no configurado.' });
+    if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
+        return res.status(400).json({ 
+            error: 'Entrada inválida', 
+            reply: 'Debes enviar un mensaje o historial de chat válido.' 
+        });
     }
-    
-    const payload: { contents: ChatContent[] } = { contents: chatHistory };
 
-        try {
-            const apiResponse = await callGeminiWithRetry(apiKey, payload);
-            if (apiResponse.data.candidates && apiResponse.data.candidates.length > 0) {
-                res.status(200).json({ candidates: apiResponse.data.candidates });
-            } else {
-                res.status(500).json({ error: 'Respuesta no válida de la IA.' });
-            }
-        } catch (error: any) {
-            console.error('Error llamando a la API de Gemini (ask-alfred):', error && (error.response?.data || error.message || error));
-            res.status(500).json({ error: 'Error interno al contactar la IA.' });
+    const apiKey: string = (process.env.GEMINI_API_KEY || "").trim();
+
+    if (!apiKey) {
+        console.error("❌ [Alfred Backend] Error: GEMINI_API_KEY no está definida en backend/.env");
+        return res.status(500).json({ 
+            error: 'Servicio de IA no configurado.',
+            reply: 'Disculpe, la clave de API de Gemini no está configurada en el servidor (GEMINI_API_KEY ausente).'
+        });
+    }
+
+    console.log(`🤖 [Alfred Backend] Procesando consulta con Gemini API (Key: ${maskKey(apiKey)})`);
+
+    const payload = { contents: chatHistory };
+
+    try {
+        const apiResponse = await callGeminiWithRetry(apiKey, payload);
+        const candidates = apiResponse.data?.candidates || [];
+
+        if (candidates.length > 0) {
+            const replyText = candidates[0]?.content?.parts?.[0]?.text || "Respuesta recibida.";
+            console.log(`✅ [Alfred Backend] Gemini respondió exitosamente (${replyText.length} caracteres).`);
+            return res.status(200).json({ 
+                candidates,
+                response: replyText,
+                reply: replyText,
+                message: replyText
+            });
+        } else {
+            console.error('❌ [Alfred Backend] Gemini respondió pero sin candidatos válidos:', apiResponse.data);
+            return res.status(500).json({ 
+                error: 'Respuesta no válida de la IA.',
+                reply: 'No se obtuvo un texto válido en la respuesta de Gemini.' 
+            });
         }
+    } catch (error: any) {
+        const status = error.response?.status;
+        const errDetail = error.response?.data?.error?.message || error.message;
+
+        if (status === 401) {
+            console.error(`❌ [Alfred Backend] Error 401 de Gemini API: Autenticación no autorizada (Key: ${maskKey(apiKey)}). Detalle: ${errDetail}`);
+            return res.status(401).json({
+                error: 'API Key de Gemini no autorizada',
+                reply: 'Error 401 de Gemini. Verifica la configuración de la clave GEMINI_API_KEY en backend/.env.'
+            });
+        }
+
+        if (status === 404) {
+            console.error(`❌ [Alfred Backend] Error 404 de Gemini API: Modelo no disponible. Detalle: ${errDetail}`);
+            return res.status(404).json({
+                error: 'Modelo de Gemini no disponible',
+                reply: 'El modelo configurado para Gemini no está disponible actualmente.'
+            });
+        }
+
+        if (status === 429) {
+            console.error(`⚠️ [Alfred Backend] Error 429 de Gemini API: Límite de cuota alcanzado.`);
+            return res.status(429).json({
+                error: 'Límite de solicitudes alcanzado',
+                reply: 'Se ha alcanzado el límite de solicitudes de la API de Gemini. Intente nuevamente en unos minutos.'
+            });
+        }
+
+        console.error(`❌ [Alfred Backend] Error al llamar a la API de Gemini (Status ${status || 'red'}):`, errDetail);
+        return res.status(500).json({ 
+            error: 'Error de comunicación con la IA',
+            reply: 'Lo siento, ocurrió un error al comunicar con el servicio de IA. Intente nuevamente en unos instantes.'
+        });
+    }
 });
 
-
 // ==========================================================
-// RUTA 2: /generate-password (actualizada: devuelve reply para el chat)
+// RUTA 2: /generate-password
 // ==========================================================
 router.post('/generate-password', async (req: Request<{}, {}, GeneratePasswordBody>, res: Response) => {
     const { email, context } = req.body;
-    const apiKey: string = process.env.GEMINI_API_KEY || "";
+    const apiKey: string = (process.env.GEMINI_API_KEY || "").trim();
 
     if (!email) {
         return res.status(400).json({ error: 'El correo es requerido.', reply: 'Debes indicar un correo.' });
     }
 
     try {
-        // Verificar usuario existe
         const userQuery = await pool.query('SELECT id_usuario FROM usuarios WHERE correo = $1', [email]);
         if (userQuery.rows.length === 0) {
             return res.status(404).json({ error: 'Correo no encontrado.', reply: 'No encontramos ese correo en el sistema.' });
@@ -141,12 +202,12 @@ router.post('/generate-password', async (req: Request<{}, {}, GeneratePasswordBo
         const userId = userQuery.rows[0].id_usuario;
 
         if (isInstitutionalEmail(email)) {
-            // generar código, guardar y enviar (no generar contraseña todavía)
             const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
             await pool.query(
                 `INSERT INTO email_verifications (user_id, code, expires_at, used)
-                 VALUES ($1, $2, NOW() + INTERVAL '10 minutes', false)`,
-                [userId, code]
+                 VALUES ($1, $2, $3, false)`,
+                [userId, code, expiresAt]
             );
             try {
                 await sendVerificationEmail(email, code);
@@ -156,24 +217,21 @@ router.post('/generate-password', async (req: Request<{}, {}, GeneratePasswordBo
                 });
             } catch (mailErr) {
                 console.error('Error enviando email de verificación:', mailErr);
-                // devolver respuesta amigable para el chat
                 return res.status(500).json({
                     error: 'No se pudo enviar el email de verificación.',
                     reply: 'No pude enviar el código al correo. Revisa la configuración de correo o intenta nuevamente.'
                 });
             }
         } else {
-            // no institucional: generar contraseña inmediatamente
             const prompt = context || `Generar una contraseña segura de 12 caracteres para ${email}`;
             const chatHistory: ChatContent[] = [
                 { role: "user", parts: [{ text: "Eres un generador de contraseñas seguras. Responde solo con la contraseña generada, sin texto adicional." }] },
                 { role: "model", parts: [{ text: "Entendido." }] },
                 { role: "user", parts: [{ text: prompt }] }
             ];
-            const payload = { contents: chatHistory };
-            const apiResponse = await callGeminiWithRetry(apiKey, payload);
+            
+            const apiResponse = await callGeminiWithRetry(apiKey, { contents: chatHistory });
             if (!apiResponse.data?.candidates || apiResponse.data.candidates.length === 0) {
-                console.error('La API de IA no generó una contraseña:', apiResponse.data);
                 return res.status(500).json({ error: 'No se pudo generar la contraseña.', reply: 'No pude generar la contraseña. Intenta nuevamente más tarde.' });
             }
             const newPassword = apiResponse.data.candidates[0].content.parts[0].text.trim();
@@ -188,12 +246,12 @@ router.post('/generate-password', async (req: Request<{}, {}, GeneratePasswordBo
         }
     } catch (error: any) {
         console.error('Error en /generate-password:', error.message || error);
-        return res.status(500).json({ error: 'Error interno.', reply: 'Ocurrió un error interno. Intenta nuevamente.' });
+        return res.status(500).json({ error: 'Error interno.', reply: 'Ocurrió un error interno al procesar la contraseña.' });
     }
 });
 
 // ==========================================================
-// RUTA 3: /verify-email-code (actualizada: reply claro y marca usado sólo después de guardar)
+// RUTA 3: /verify-email-code
 // ==========================================================
 router.post('/verify-email-code', async (req: Request<{}, {}, { email: string; code: string; context?: string }>, res: Response) => {
     const { email, code, context } = req.body;
@@ -228,10 +286,8 @@ router.post('/verify-email-code', async (req: Request<{}, {}, { email: string; c
             return res.status(400).json({ error: 'Código expirado.', reply: 'El código expiró. Solicita uno nuevo.' });
         }
 
-        // generar contraseña con Gemini
-        const apiKey: string = process.env.GEMINI_API_KEY || "";
+        const apiKey: string = (process.env.GEMINI_API_KEY || "").trim();
         if (!apiKey) {
-            console.error('GEMINI_API_KEY no configurada.');
             return res.status(500).json({ error: 'Falta configuración de la API.', reply: 'No puedo generar la contraseña ahora; falta configurar el servicio de generación.' });
         }
 
@@ -241,24 +297,18 @@ router.post('/verify-email-code', async (req: Request<{}, {}, { email: string; c
             { role: "model", parts: [{ text: "Entendido." }] },
             { role: "user", parts: [{ text: prompt }] }
         ];
-        const payload = { contents: chatHistory };
 
         try {
-            const apiResponse = await callGeminiWithRetry(apiKey, payload);
-            console.log('Gemini response data:', apiResponse.data);
+            const apiResponse = await callGeminiWithRetry(apiKey, { contents: chatHistory });
 
             if (!apiResponse.data?.candidates || apiResponse.data.candidates.length === 0) {
-                console.error('Respuesta inválida de Gemini:', apiResponse.data);
                 return res.status(500).json({ error: 'No se pudo generar la contraseña.', reply: 'No pude generar la contraseña. Intenta nuevamente.' });
             }
 
             const newPassword = apiResponse.data.candidates[0].content.parts[0].text.trim();
             const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-            // actualizar contraseña en usuarios
             await pool.query('UPDATE usuarios SET contrasena = $1 WHERE id_usuario = $2', [hashedPassword, userId]);
-
-            // marcar el código como usado
             await pool.query('UPDATE email_verifications SET used = true WHERE id = $1', [row.id]);
 
             return res.status(200).json({
@@ -267,8 +317,8 @@ router.post('/verify-email-code', async (req: Request<{}, {}, { email: string; c
                 reply: 'Código verificado. Contraseña generada y actualizada correctamente.'
             });
         } catch (apiErr: any) {
-            console.error('Error llamando a Gemini:', apiErr && (apiErr.response?.data || apiErr.message || apiErr));
-            return res.status(500).json({ error: 'No se pudo generar la contraseña.', reply: 'Ocurrió un error generando la contraseña. Intenta nuevamente.' });
+            console.error('Error llamando a Gemini en verify-email-code:', apiErr?.message || apiErr);
+            return res.status(500).json({ error: 'No se pudo generar la contraseña.', reply: 'Ocurrió un error generando la contraseña.' });
         }
     } catch (err: any) {
         console.error('Error en /verify-email-code:', err);
@@ -278,52 +328,64 @@ router.post('/verify-email-code', async (req: Request<{}, {}, { email: string; c
 
 export default router;
 
-// =======================
-// Helper: llamar a Gemini con reintentos exponenciales y manejo de 429
-// =======================
+// Helper: llamar a Gemini con modelo gemini-3.6-flash y reintentos / fallbacks
 async function callGeminiWithRetry(apiKey: string, payload: any, maxAttempts = 3) {
-    const urlBase = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
-    const apiUrl = `${urlBase}?key=${apiKey}`;
-    const headers = { 'Content-Type': 'application/json' };
-
-    let attempt = 0;
+    const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    const candidateModels = Array.from(new Set([primaryModel, 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-latest']));
+    
     let lastErr: any = null;
 
-    while (attempt < maxAttempts) {
-        attempt++;
-        try {
-            const resp = await axios.post(apiUrl, payload, { headers });
-            return resp;
-        } catch (err: any) {
-            lastErr = err;
-            const status = err?.response?.status;
-            // If 429, attempt to respect Retry-After header
-            if (status === 429) {
-                const retryAfter = err.response?.headers?.['retry-after'];
-                let waitMs = 1000 * Math.pow(2, attempt - 1); // exponential: 1s,2s,4s
-                if (retryAfter) {
-                    const ra = Number(retryAfter);
-                    if (!Number.isNaN(ra)) waitMs = ra * 1000;
+    for (const model of candidateModels) {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const headers = { 
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey 
+        };
+
+        let attempt = 0;
+        while (attempt < maxAttempts) {
+            attempt++;
+            try {
+                const resp = await axios.post(apiUrl, payload, { headers, timeout: 15000 });
+                return resp;
+            } catch (err: any) {
+                lastErr = err;
+                const status = err?.response?.status;
+                
+                if (status === 401) {
+                    throw err;
                 }
-                console.warn(`Gemini 429 received, attempt ${attempt} of ${maxAttempts}. Waiting ${waitMs}ms before retry.`);
-                await delay(waitMs);
-                continue;
-            }
 
-            // For 5xx, retry too
-            if (status >= 500 && status < 600) {
-                const waitMs = 1000 * Math.pow(2, attempt - 1);
-                console.warn(`Gemini ${status} received, retrying attempt ${attempt} after ${waitMs}ms`);
-                await delay(waitMs);
-                continue;
-            }
+                if (status === 404) {
+                    console.warn(`[Alfred Backend] Modelo '${model}' devolvió 404, probando modelo de respaldo...`);
+                    break;
+                }
 
-            // Other errors, don't retry
-            throw err;
+                if (status === 429) {
+                    const retryAfter = err.response?.headers?.['retry-after'];
+                    let waitMs = 1000 * Math.pow(2, attempt - 1);
+                    if (retryAfter) {
+                        const ra = Number(retryAfter);
+                        if (!Number.isNaN(ra)) waitMs = ra * 1000;
+                    }
+                    console.warn(`[Alfred Backend] Gemini 429 alcanzado, intento ${attempt} de ${maxAttempts}. Esperando ${waitMs}ms.`);
+                    await delay(waitMs);
+                    continue;
+                }
+
+                if (status >= 500 && status < 600) {
+                    const waitMs = 1000 * Math.pow(2, attempt - 1);
+                    console.warn(`[Alfred Backend] Gemini ${status}, reintentando ${attempt} en ${waitMs}ms`);
+                    await delay(waitMs);
+                    continue;
+                }
+
+                throw err;
+            }
         }
     }
-    // if we exit loop, throw last error
-    throw lastErr || new Error('Error calling Gemini');
+
+    throw lastErr || new Error('Error al conectar con la API de Gemini');
 }
 
 function delay(ms: number) {

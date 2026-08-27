@@ -221,6 +221,50 @@ router.post('/clases/:claseId/trabajos', async (req: Request, res: Response) => 
   }
 });
 
+// PUT /api/trabajos/:id - Edit assignment (Teacher / Admin)
+router.put('/trabajos/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const userId = getUserId(req);
+  const userRol = req.session?.usuario?.rol;
+
+  if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+    return res.status(403).json({ error: 'Solo los profesores pueden editar trabajos.' });
+  }
+
+  const { titulo, descripcion, instrucciones, fecha_limite, puntos_max, tipo_entrega } = req.body;
+
+  if (!titulo) {
+    return res.status(400).json({ error: 'El título del trabajo es obligatorio.' });
+  }
+
+  try {
+    const updateQ = `
+      UPDATE trabajos
+      SET titulo = $1,
+          descripcion = $2,
+          instrucciones = $3,
+          fecha_limite = $4,
+          puntos_max = $5,
+          tipo_entrega = $6
+      WHERE id = $7
+    `;
+    await pool.query(updateQ, [
+      titulo.trim(),
+      descripcion ? descripcion.trim() : null,
+      instrucciones ? instrucciones.trim() : null,
+      fecha_limite || null,
+      puntos_max || 100,
+      tipo_entrega === 'grupal' ? 'grupal' : 'individual',
+      id
+    ]);
+
+    return res.json({ success: true, message: 'Trabajo actualizado exitosamente' });
+  } catch (error) {
+    console.error('Error al actualizar trabajo:', error);
+    return res.status(500).json({ error: 'Error al actualizar trabajo' });
+  }
+});
+
 // DELETE /api/trabajos/:id - Delete assignment
 router.delete('/trabajos/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -257,9 +301,16 @@ router.get('/clases/:claseId/alumnos', async (req: Request, res: Response) => {
     }
     const codigo = claseQ.rows[0].codigo;
 
-    // Get all approved students in this class
+    // Obtener todos los alumnos inscriptos en esta clase
     const alumnosQ = `
-      SELECT u.id_usuario as id, u.nombre_completo, u.correo
+      SELECT 
+        u.id_usuario as id, 
+        u.nombre_completo as nombre, 
+        u.nombre_completo, 
+        u.correo, 
+        u.DNI, 
+        ac.fecha_union, 
+        'Inscripto' as estado
       FROM alumnos_clases ac
       JOIN usuarios u ON ac.alumno_id = u.id_usuario
       WHERE ac.codigo = $1

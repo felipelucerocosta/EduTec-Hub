@@ -95,7 +95,7 @@ router.delete('/trabajos/:trabajoId/retirar', async (req, res) => {
         return res.status(500).json({ error: 'Error al retirar la entrega' });
     }
 });
-// GET /api/trabajos/:trabajoId/entregas - List all submissions for a task (Teacher / Admin)
+// GET /api/trabajos/:trabajoId/entregas - List all students & submission status for a task (Teacher / Admin)
 router.get('/trabajos/:trabajoId/entregas', async (req, res) => {
     const { trabajoId } = req.params;
     const userId = getUserId(req);
@@ -105,11 +105,26 @@ router.get('/trabajos/:trabajoId/entregas', async (req, res) => {
     }
     try {
         const query = `
-      SELECT e.*, u.nombre_completo as alumno_nombre, u.correo as alumno_correo
-      FROM entregas e
-      JOIN usuarios u ON e.alumno_id = u.id_usuario
-      WHERE e.trabajo_id = $1
-      ORDER BY e.fecha_entrega DESC
+      SELECT 
+        u.id_usuario as alumno_id,
+        u.nombre_completo as alumno_nombre,
+        u.correo as alumno_correo,
+        e.id as id,
+        e.id as entrega_id,
+        e.archivo_nombre,
+        e.archivo_path,
+        e.comentario,
+        COALESCE(e.estado, 'sin_entregar') as estado,
+        e.calificacion,
+        e.feedback,
+        e.fecha_entrega
+      FROM trabajos t
+      JOIN clases c ON t.clase_id = c.id
+      JOIN alumnos_clases ac ON ac.codigo = c.codigo
+      JOIN usuarios u ON ac.alumno_id = u.id_usuario
+      LEFT JOIN entregas e ON (e.trabajo_id = t.id AND e.alumno_id = u.id_usuario)
+      WHERE t.id = $1
+      ORDER BY u.nombre_completo ASC
     `;
         const result = await conexion_pg_1.default.query(query, [trabajoId]);
         return res.json(result.rows);
@@ -119,7 +134,7 @@ router.get('/trabajos/:trabajoId/entregas', async (req, res) => {
         return res.status(500).json({ error: 'Error al obtener entregas' });
     }
 });
-// POST /api/entregas/:id/calificar - Grade submission and provide feedback (Teacher / Admin)
+// POST /api/entregas/:id/calificar - Grade submission by submission ID (Teacher / Admin)
 router.post('/entregas/:id/calificar', async (req, res) => {
     const { id } = req.params;
     const { calificacion, feedback } = req.body;
@@ -150,6 +165,47 @@ router.post('/entregas/:id/calificar', async (req, res) => {
     catch (error) {
         console.error('Error al calificar entrega:', error);
         return res.status(500).json({ error: 'Error al calificar la entrega' });
+    }
+});
+// POST /api/trabajos/:trabajoId/alumnos/:alumnoId/calificar - Grade student directly (even if no file submitted)
+router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req, res) => {
+    const { trabajoId, alumnoId } = req.params;
+    const { calificacion, feedback } = req.body;
+    const userId = getUserId(req);
+    const userRol = req.session?.usuario?.rol;
+    if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+        return res.status(403).json({ error: 'Solo los profesores pueden calificar.' });
+    }
+    if (calificacion === undefined || calificacion === null) {
+        return res.status(400).json({ error: 'La calificación es obligatoria.' });
+    }
+    try {
+        const existingQ = await conexion_pg_1.default.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, alumnoId]);
+        if (existingQ.rows.length > 0) {
+            const updateQ = `
+        UPDATE entregas 
+        SET calificacion = $1, feedback = $2, estado = 'corregido', fecha_calificacion = CURRENT_TIMESTAMP
+        WHERE trabajo_id = $3 AND alumno_id = $4
+      `;
+            await conexion_pg_1.default.query(updateQ, [calificacion, feedback || '', trabajoId, alumnoId]);
+        }
+        else {
+            const insertQ = `
+        INSERT INTO entregas (trabajo_id, alumno_id, calificacion, feedback, estado, fecha_calificacion)
+        VALUES ($1, $2, $3, $4, 'corregido', CURRENT_TIMESTAMP)
+      `;
+            await conexion_pg_1.default.query(insertQ, [trabajoId, alumnoId, calificacion, feedback || '']);
+        }
+        // Send notification to student
+        const tQ = await conexion_pg_1.default.query('SELECT titulo FROM trabajos WHERE id = $1', [trabajoId]);
+        const titulo = tQ.rows[0]?.titulo || 'Trabajo';
+        await conexion_pg_1.default.query(`INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
+       VALUES ($1, 'calificacion', $2, $3, 'trabajo', $4)`, [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion} en "${titulo}".`, trabajoId]);
+        return res.json({ success: true, message: 'Calificación guardada exitosamente' });
+    }
+    catch (error) {
+        console.error('Error al calificar al alumno:', error);
+        return res.status(500).json({ error: 'Error al calificar al alumno' });
     }
 });
 // GET /api/entregas/descargar/:filename - Download submission file

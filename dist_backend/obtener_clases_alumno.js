@@ -12,8 +12,6 @@ router.get('/alumno/mis-clases', async (req, res) => {
         return res.status(401).json({ error: 'No has iniciado sesión.' });
     }
     try {
-        // Esta consulta une la tabla 'alumnos_clases' con 'clases'
-        // para obtener el nombre real de la clase y del profesor (creador)
         const query = `
       SELECT DISTINCT
         c.id,
@@ -22,7 +20,8 @@ router.get('/alumno/mis-clases', async (req, res) => {
         c.seccion, 
         c.aula, 
         c.creador, 
-        c.codigo
+        c.codigo,
+        (SELECT COUNT(*) FROM alumnos_clases ac2 WHERE ac2.codigo = c.codigo) AS cantidad_alumnos
       FROM clases c
       LEFT JOIN alumnos_clases ac ON c.codigo = ac.codigo
       WHERE ac.alumno_id = $1 OR c.seccion = 'Secundario'

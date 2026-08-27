@@ -69,7 +69,11 @@ const TrabajoProfesorPage: React.FC = () => {
 
     setSavingGrade(true);
     try {
-      const res = await fetch(`${API_URL}/entregas/${editingEntrega.id}/calificar`, {
+      const endpoint = editingEntrega.id || editingEntrega.entrega_id
+        ? `${API_URL}/entregas/${editingEntrega.id || editingEntrega.entrega_id}/calificar`
+        : `${API_URL}/trabajos/${trabajoId}/alumnos/${editingEntrega.alumno_id}/calificar`;
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -78,14 +82,12 @@ const TrabajoProfesorPage: React.FC = () => {
 
       if (res.ok) {
         showToast('¡Calificación guardada con éxito!', 'success');
-        // Update local state
-        setEntregas((prev) =>
-          prev.map((item) =>
-            item.id === editingEntrega.id
-              ? { ...item, calificacion: nota, feedback: feedbackInput, estado: 'corregido' }
-              : item
-          )
-        );
+        // Re-fetch latest roster and submissions from database
+        const resEntregas = await fetch(`${API_URL}/trabajos/${trabajoId}/entregas`, { credentials: 'include' });
+        if (resEntregas.ok) {
+          const eData = await resEntregas.json();
+          setEntregas(Array.isArray(eData) ? eData : []);
+        }
         setEditingEntrega(null);
       } else {
         const err = await res.json();
@@ -99,8 +101,9 @@ const TrabajoProfesorPage: React.FC = () => {
     }
   };
 
-  const entregadosCount = entregas.length;
-  const calificadosCount = entregas.filter((e) => e.estado === 'corregido' && e.calificacion !== null).length;
+  const totalAlumnos = entregas.length;
+  const entregadosCount = entregas.filter((e) => e.estado && e.estado !== 'sin_entregar').length;
+  const calificadosCount = entregas.filter((e) => e.estado === 'corregido' && e.calificacion !== null && e.calificacion !== undefined).length;
   const promedios = entregas
     .filter((e) => e.calificacion !== null && e.calificacion !== undefined)
     .map((e) => Number(e.calificacion));
@@ -142,7 +145,7 @@ const TrabajoProfesorPage: React.FC = () => {
               <div style={{ background: 'rgba(124, 58, 237, 0.12)', border: '1px solid rgba(124, 58, 237, 0.3)', padding: '1.25rem', borderRadius: '16px' }}>
                 <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Total de Entregas</div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.25rem' }}>
-                  {entregadosCount}
+                  {entregadosCount} <span style={{ fontSize: '1rem', color: '#94a3b8', fontWeight: 400 }}>/ {totalAlumnos} alumnos</span>
                 </div>
               </div>
 
@@ -208,8 +211,14 @@ const TrabajoProfesorPage: React.FC = () => {
                           )}
                         </td>
                         <td style={{ padding: '0.85rem 1.25rem' }}>
-                          <span className={`badge ${ent.estado === 'corregido' ? 'badge-green' : ent.estado === 'entrega_tardia' ? 'badge-red' : 'badge-purple'}`}>
-                            {ent.estado}
+                          <span className={`badge ${
+                            ent.estado === 'corregido' ? 'badge-green' :
+                            ent.estado === 'entregado' ? 'badge-purple' :
+                            ent.estado === 'entrega_tardia' ? 'badge-rose' : 'badge-amber'
+                          }`}>
+                            {ent.estado === 'corregido' ? 'Corregido' :
+                             ent.estado === 'entregado' ? 'Entregado' :
+                             ent.estado === 'entrega_tardia' ? 'Tardío' : 'Sin entregar'}
                           </span>
                         </td>
                         <td style={{ padding: '0.85rem 1.25rem', fontWeight: 700, color: ent.calificacion !== null ? '#34d399' : '#94a3b8' }}>
