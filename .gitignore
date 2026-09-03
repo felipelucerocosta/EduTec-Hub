@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build & Release outputs
+release/
+dist/
+dist-ssr/
+out/
+
+# Database temporary files
+database/*.sql-wal
+database/*.sql-shm
+*.sql-wal
+*.sql-shm
+
+# Uploads
+uploads/
+

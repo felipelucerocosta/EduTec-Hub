@@ -359,10 +359,40 @@ const crearTablas = async () => {
         const isProduction = process.env.NODE_ENV === 'production';
 
         if (!isProduction) {
-            // Alumnos de prueba (soporta tanto el nuevo como el anterior)
+            // Administradores de prueba (ACTIVO)
+            const adminsTesting = [
+                { correo: 'admin@edutechhub.edu.ar', nombre: 'Administrador Principal', pass: 'Donpatricio111', dni: 'ADM-001' },
+                { correo: 'felipelucero534@gmail.com', nombre: 'Felipe Lucero', pass: 'Donpatricio111', dni: 'ADM-OWNER-001' },
+                { correo: 'felipe.lucero.617@alu.tecnica29de6.edu.ar', nombre: 'Felipe Lucero', pass: 'Donpatricio111', dni: 'ADM-FELIPE-001' },
+                { correo: 'thiago.said.489@alu.tecnica29de6.edu.ar', nombre: 'Administrador Testing', pass: 'Donpatricio111', dni: 'ADM-TEST-002' }
+            ];
+
+            for (const adm of adminsTesting) {
+                const hashPass = await bcrypt.hash(adm.pass, saltRounds);
+                const existAdm = await pool.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [adm.correo.toLowerCase()]);
+                if (existAdm.rows.length === 0) {
+                    await pool.query(
+                        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso)
+                         VALUES ($1, $2, $3, $4, null, 'admin', 'ACTIVO')`,
+                        [hashPass, adm.nombre, adm.correo, adm.dni]
+                    );
+                    console.log(`🌱 [DEV] Admin sembrado (ACTIVO): ${adm.correo}`);
+                } else {
+                    const idUsuario = existAdm.rows[0].id_usuario;
+                    await pool.query(
+                        `UPDATE usuarios SET contrasena = $1, rol = 'admin', estado_acceso = 'ACTIVO' WHERE id_usuario = $2`,
+                        [hashPass, idUsuario]
+                    );
+                    // Si estaba en la tabla alumno, quitarlo de alumno
+                    await pool.query('DELETE FROM alumno WHERE id_usuario = $1', [idUsuario]);
+                    console.log(`🌱 [DEV] Admin actualizado (ACTIVO): ${adm.correo}`);
+                }
+            }
+
+            // Alumnos de prueba
             const alumnosTesting = [
-                { correo: 'alumno.prueba@tecnica29de6.edu.ar', nombre: 'Alumno de Prueba', pass: '123456789' },
-                { correo: 'felipe.lucero.617@alu.tecnica29de6.edu.ar', nombre: 'Felipe Lucero', pass: '123456789' }
+                { correo: 'alumno.prueba@tecnica29de6.edu.ar', nombre: 'Alumno de Prueba', pass: '123456789', dni: 'ALU-PRUEBA-001' },
+                { correo: 'alumno.test@edutechhub.test', nombre: 'Alumno de Prueba', pass: '123456789', dni: 'ALU-TEST-001' }
             ];
 
             for (const a of alumnosTesting) {
@@ -374,7 +404,7 @@ const crearTablas = async () => {
                     const userRes = await pool.query(
                         `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso) 
                          VALUES ($1, $2, $3, $4, $5, 'alumno', 'ACTIVO') RETURNING id_usuario`,
-                        [hashPass, a.nombre, a.correo, '12345678', '3ro A']
+                        [hashPass, a.nombre, a.correo, a.dni, '3ro A']
                     );
                     idUsuario = userRes.rows[0].id_usuario;
                     const cursoRes = await pool.query('SELECT id_curso FROM curso WHERE nombre_curso = $1', ['3ro 1ra']);
@@ -382,7 +412,7 @@ const crearTablas = async () => {
                     await pool.query(
                         `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
                          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        ['12345678', a.nombre.split(' ')[0], a.nombre.split(' ')[1] || 'Prueba', idCurso, idUsuario, a.correo, hashPass]
+                        [a.dni, a.nombre.split(' ')[0], a.nombre.split(' ')[1] || 'Prueba', idCurso, idUsuario, a.correo, hashPass]
                     );
                     console.log(`🌱 [DEV] Alumno de prueba sembrado (ACTIVO): ${a.correo}`);
                 } else {
@@ -394,8 +424,8 @@ const crearTablas = async () => {
 
             // Profesores de prueba (soporta tanto el nuevo como el anterior)
             const profesoresTesting = [
-                { correo: 'profesor.prueba@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678' },
-                { correo: 'profesor.tecnica@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678' }
+                { correo: 'profesor.prueba@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678', dni: 'PROF-PRUEBA-001' },
+                { correo: 'profesor.tecnica@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678', dni: '87654321' }
             ];
 
             let idProfesorPrincipal: number | null = null;
@@ -408,13 +438,13 @@ const crearTablas = async () => {
                     const userRes = await pool.query(
                         `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso) 
                          VALUES ($1, $2, $3, $4, $5, 'profesor', 'ACTIVO') RETURNING id_usuario`,
-                        [hashPass, p.nombre, p.correo, '87654321', null]
+                        [hashPass, p.nombre, p.correo, p.dni, null]
                     );
                     idUsuario = userRes.rows[0].id_usuario;
                     await pool.query(
                         `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
                          VALUES ($1, $2, $3, $4, $5, $6)`,
-                        [idUsuario, p.correo, '87654321', p.nombre, 'Tecnología', hashPass]
+                        [idUsuario, p.correo, p.dni, p.nombre, 'Tecnología', hashPass]
                     );
                     console.log(`🌱 [DEV] Profesor de prueba sembrado (ACTIVO): ${p.correo}`);
                 } else {
