@@ -20,39 +20,42 @@
   "build": {
     "appId": "com.edutechhub.app",
     "productName": "EduTechHub",
-    "copyright": "EduTechHub Team",
+    "copyright": "The Twisted Techlands",
     "directories": {
       "output": "release",
       "buildResources": "electron/assets"
     },
     "files": [
       "electron/main.js",
-      "dist/**/*",
       "!node_modules/**/*"
     ],
     "extraResources": [
       {
+        "from": "dist",
+        "to": "dist"
+      },
+      {
         "from": "dist_backend",
-        "to": "app/backend",
+        "to": "backend",
         "filter": [
           "**/*.js"
         ]
       },
       {
         "from": "backend/node_modules",
-        "to": "app/backend/node_modules"
+        "to": "backend/node_modules"
       },
       {
         "from": "database",
-        "to": "app/database"
+        "to": "database"
       },
       {
         "from": "uploads",
-        "to": "app/uploads"
+        "to": "uploads"
       },
       {
         "from": "backend/.env",
-        "to": "app/backend/.env"
+        "to": "backend/.env"
       }
     ],
     "win": {

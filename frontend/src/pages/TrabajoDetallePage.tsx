@@ -237,7 +237,7 @@ const TrabajoDetallePage: React.FC = () => {
                 </span>
                 <span>
                   <i className="bx bx-trophy" style={{ color: '#fbbf24', marginRight: '0.35rem' }}></i>
-                  <strong>Puntos Máximos:</strong> {trabajo.puntos_max || 100} pts
+                  <strong>Puntos Máximos:</strong> {trabajo.puntos_max || 10} pts
                 </span>
               </div>
             </div>
@@ -292,7 +292,7 @@ const TrabajoDetallePage: React.FC = () => {
                     background: 'rgba(16, 185, 129, 0.2)', color: '#34d399',
                     padding: '6px 14px', borderRadius: '12px', fontWeight: 800, fontSize: '1.2rem'
                   }}>
-                    {entrega.calificacion} / {trabajo.puntos_max || 100}
+                    {entrega.calificacion} / {trabajo.puntos_max || 10}
                   </div>
                 </div>
                 {entrega.feedback ? (

@@ -15,9 +15,14 @@ router.post('/crear-clase', async (req, res) => {
     if (!nombre || !materia) {
         return res.status(400).json({ error: 'Datos incompletos: nombre y materia son obligatorios.' });
     }
-    // Usar id de sesión si existe (profesor creador)
+    // Solo los administradores pueden crear clases
+    const rol = req.session?.usuario?.rol;
+    if (!req.session?.usuario || rol !== 'admin') {
+        return res.status(403).json({ error: 'Solo los administradores pueden crear clases.' });
+    }
+    // Usar id de sesión si existe (admin creador)
     const creador_id = req.session?.usuario?.id ?? null;
-    const creador_nombre = req.session?.usuario?.nombre || req.session?.nombre_completo || 'Anónimo';
+    const creador_nombre = req.session?.usuario?.nombre || req.session?.nombre_completo || 'Administrador';
     // Generar código único simple
     const codigo = (materia.substring(0, 3) || 'XXX').toUpperCase() + Math.floor(1000 + Math.random() * 9000);
     try {

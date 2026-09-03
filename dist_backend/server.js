@@ -44,7 +44,7 @@ const path_1 = __importDefault(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-dotenv.config();
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || path_1.default.join(__dirname, '.env') });
 function interop(m) { return m && (m.default ?? m); }
 // --- 1. IMPORTAR LOS ARCHIVOS DE RUTAS ---
 const apiRutasRouter = interop(require('./api_rutas'));
@@ -56,6 +56,7 @@ const crearClaseRouter = interop(require('./crear_clase'));
 const unirseClaseRouter = interop(require('./unirse_clase'));
 const obtenerClasesRouter = interop(require('./obtener_clases'));
 const obtenerClasesAlumnoRouter = interop(require('./obtener_clases_alumno'));
+const obtenerClasesProfRouter = interop(require('./obtener_clases_prof'));
 const trabajosRouter = interop(require('./trabajos'));
 const entregasRouter = interop(require('./entregas'));
 const materialesApiRouter = interop(require('./materiales_api'));
@@ -63,6 +64,7 @@ const notificacionesRouter = interop(require('./notificaciones'));
 const rendimientoRouter = interop(require('./rendimiento'));
 const boletinRouter = interop(require('./boletin'));
 const simuladoresApiRouter = interop(require('./simuladores_api'));
+const adminApiRouter = interop(require('./admin_api'));
 const setupDb = interop(require('./setup_db'));
 // --- 2. INICIALIZAR LA APP Y SOCKET.IO ---
 const app = (0, express_1.default)();
@@ -92,9 +94,7 @@ if (!IS_PRODUCTION) {
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // Archivos subidos por usuarios
-const uploadsPath = IS_PRODUCTION
-    ? path_1.default.join(process.cwd(), 'uploads')
-    : path_1.default.join(__dirname, '../uploads');
+const uploadsPath = process.env.UPLOADS_PATH || path_1.default.join(__dirname, '../uploads');
 app.use('/uploads', express_1.default.static(uploadsPath));
 // Archivos del frontend (solo en producción)
 if (IS_PRODUCTION) {
@@ -122,6 +122,7 @@ app.use('/api', crearClaseRouter);
 app.use('/api', unirseClaseRouter);
 app.use('/api', obtenerClasesRouter);
 app.use('/api', obtenerClasesAlumnoRouter);
+app.use('/api', obtenerClasesProfRouter);
 app.use('/api', trabajosRouter);
 app.use('/api', entregasRouter);
 app.use('/api', materialesApiRouter);
@@ -129,6 +130,7 @@ app.use('/api', notificacionesRouter);
 app.use('/api', rendimientoRouter);
 app.use('/api', boletinRouter);
 app.use('/api', simuladoresApiRouter);
+app.use('/api', adminApiRouter);
 // Ruta base — en producción sirve el index.html del frontend (SPA fallback)
 if (IS_PRODUCTION) {
     app.get('*', (_req, res) => {

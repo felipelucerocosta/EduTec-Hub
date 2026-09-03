@@ -7,7 +7,7 @@
  * PASOS:
  *   1. Verifica que la BD esté limpia
  *   2. Build del frontend (Vite → dist/)
- *   3. Compilación del backend (tsc → dist/backend)
+ *   3. Compilación del backend (tsc → dist_backend/)
  *   4. Empaquetado con electron-builder → release/
  *
  * USO:
@@ -48,17 +48,24 @@ async function main() {
   checkFile(path.join(ROOT, 'backend', '.env'), 'Variables de entorno backend');
   checkFile(path.join(ROOT, 'electron', 'main.js'), 'Electron main.js');
 
-  // 2. Build frontend (Vite)
+  // 2. Build frontend (Vite) → genera dist/ en la raíz
   console.log('\n─── [2/4] Build Frontend (Vite) ─────────────────────\n');
   run('npm run build');
   checkFile(path.join(ROOT, 'dist', 'index.html'), 'dist/index.html');
 
-  // 3. Compilar backend TypeScript
-  console.log('\n─── [3/4] Compilar Backend (TypeScript) ─────────────\n');
-  run('npx tsc -p tsconfig.app.json --outDir dist_backend');
-  checkFile(path.join(ROOT, 'dist_backend', 'backend', 'server.js'), 'dist_backend/backend/server.js');
+  // Verificar que los assets del frontend existen
+  const assetsDir = path.join(ROOT, 'dist', 'assets');
+  if (fs.existsSync(assetsDir)) {
+    const assets = fs.readdirSync(assetsDir);
+    console.log(`  ✅ dist/assets/ (${assets.length} archivos)`);
+  }
 
-  // 4. Instalar electron-builder si no está
+  // 3. Compilar backend TypeScript → genera dist_backend/
+  console.log('\n─── [3/4] Compilar Backend (TypeScript) ─────────────\n');
+  run('npm run build:backend');
+  checkFile(path.join(ROOT, 'dist_backend', 'server.js'), 'dist_backend/server.js');
+
+  // 4. Empaquetar con electron-builder
   console.log('\n─── [4/4] Empaquetar con electron-builder ───────────\n');
   try {
     execSync('npx electron-builder --version', { stdio: 'pipe' });
@@ -67,23 +74,8 @@ async function main() {
     run('npm install -D electron electron-builder');
   }
 
-  // Copiar la configuración del build al package.json principal
-  const pkgPath = path.join(ROOT, 'package.json');
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-  const electronPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'electron', 'package.json'), 'utf-8'));
-  
-  // Merge temporal para electron-builder
-  const merged = { ...pkg, ...electronPkg, scripts: pkg.scripts, dependencies: pkg.dependencies, devDependencies: pkg.devDependencies };
-  fs.writeFileSync(pkgPath + '.bak', JSON.stringify(pkg, null, 2));
-  fs.writeFileSync(pkgPath, JSON.stringify(merged, null, 2));
-
-  try {
-    run('npx electron-builder --win --x64');
-  } finally {
-    // Restaurar package.json original
-    fs.writeFileSync(pkgPath, fs.readFileSync(pkgPath + '.bak', 'utf-8'));
-    fs.unlinkSync(pkgPath + '.bak');
-  }
+  // Usar directamente la configuración del package.json raíz (sin merge)
+  run('npx electron-builder --win --x64');
 
   // Resultados
   const releaseDir = path.join(ROOT, 'release');

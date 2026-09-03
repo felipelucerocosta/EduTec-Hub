@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const sqlite3_1 = __importDefault(require("sqlite3"));
 const sqlite_1 = require("sqlite");
 const path_1 = __importDefault(require("path"));
-// Ruta a la base de datos dentro de la carpeta 'database' en la raíz del proyecto
-const dbPath = path_1.default.resolve(__dirname, '../database/edutechhub.sql');
+// Ruta a la base de datos (respeta DB_PATH si se pasa por variable de entorno, ej. en producción/Electron)
+const dbPath = process.env.DB_PATH || path_1.default.resolve(__dirname, '../database/edutechhub.sql');
 let db = null;
 // Función para iniciar la conexión
 async function getDb() {

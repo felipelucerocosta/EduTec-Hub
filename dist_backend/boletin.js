@@ -33,12 +33,12 @@ router.get('/boletin', async (req, res) => {
                     fecha_fin: `${currentYear}-12-31`
                 }];
         }
-        // 2. Obtener clases del alumno (usando la misma consulta que 'Mis clases')
+        // 2. Obtener clases del alumno (solo las que está inscripto en alumnos_clases)
         const clasesQ = `
       SELECT DISTINCT c.id, c.nombre, c.materia, c.codigo
       FROM clases c
-      LEFT JOIN alumnos_clases ac ON c.codigo = ac.codigo
-      WHERE ac.alumno_id = $1 OR c.seccion = 'Secundario'
+      INNER JOIN alumnos_clases ac ON LOWER(TRIM(c.codigo)) = LOWER(TRIM(ac.codigo))
+      WHERE ac.alumno_id = $1
       ORDER BY c.id DESC
     `;
         const clasesRes = await conexion_pg_1.default.query(clasesQ, [userId]);

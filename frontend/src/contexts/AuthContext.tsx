@@ -5,6 +5,7 @@ export interface User {
   nombre: string;
   correo: string;
   rol: 'alumno' | 'profesor' | 'admin';
+  estado_acceso?: 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO';
   isAdmin?: boolean;
 }
 

@@ -2,8 +2,8 @@ import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
 
-// Ruta a la base de datos dentro de la carpeta 'database' en la raíz del proyecto
-const dbPath = path.resolve(__dirname, '../database/edutechhub.sql');
+// Ruta a la base de datos (respeta DB_PATH si se pasa por variable de entorno, ej. en producción/Electron)
+const dbPath = process.env.DB_PATH || path.resolve(__dirname, '../database/edutechhub.sql');
 
 let db: Database | null = null;
 
@@ -28,8 +28,8 @@ const pool = {
 
     // Convertir parámetros de estilo Postgres ($1, $2) a estilo SQLite (?)
     const sqlNormalizado = text.replace(/\$\d+/g, '?');
-    // Eliminar cláusula RETURNING (no compatible con SQLite < 3.35)
-    const sqlSinReturning = sqlNormalizado.replace(/\s+RETURNING\s+\S+/gi, '');
+    // Eliminar cláusula RETURNING completa (no compatible con SQLite < 3.35 o para evitar errores de sintaxis)
+    const sqlSinReturning = sqlNormalizado.replace(/\s+RETURNING\s+[\s\S]*$/i, '').trim();
 
     try {
       const upperText = text.trim().toUpperCase();
@@ -46,7 +46,7 @@ const pool = {
         const lastId = result.lastID;
 
         // Determinar qué tabla y qué columna primary key usar para recuperar la fila
-        const tableMatch = text.match(/INTO\s+(\w+)/i);
+        const tableMatch = text.match(/(?:INTO|UPDATE)\s+([a-zA-Z0-9_]+)/i);
         const tableName = tableMatch ? tableMatch[1].toLowerCase() : null;
 
         let returnedRow: any = {};
@@ -59,6 +59,12 @@ const pool = {
             clases: 'id',
             password_resets: 'id',
             email_verifications: 'id',
+            simuladores: 'id',
+            anuncios: 'id',
+            tablon_mensajes: 'id',
+            trabajos: 'id',
+            entregas: 'id',
+            actas: 'id'
           };
           const pk = pkMap[tableName] || 'id';
           try {

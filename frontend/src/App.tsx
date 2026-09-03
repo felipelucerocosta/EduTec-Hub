@@ -16,6 +16,9 @@ import ClasesAlumno from "./comoponentesalumno/clasesalumno";
 import TrabajosAlumno from "./comoponentesalumno/trabajosalumno";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./componentes/AdminDashboard";
+import AdminUsuarios from "./pages/admin/AdminUsuarios";
+import AdminClases from "./pages/admin/AdminClases";
+import AdminAsignaciones from "./pages/admin/AdminAsignaciones";
 import Alfred from "./componentes/Alfred";                 
 import NotFound from "./pages/NotFound";
 // === NUEVAS PÁGINAS ===
@@ -116,9 +119,27 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/admin/usuarios" element={
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AdminUsuarios />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/clases" element={
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AdminClases />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/asignaciones" element={
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AdminAsignaciones />
+        </ProtectedRoute>
+      } />
+
       {/* === NUEVAS RUTAS === */}
       <Route path="/rendimiento" element={
-        <ProtectedRoute allowedRoles={["profesor", "admin"]}>
+        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin"]}>
           <Rendimiento />
         </ProtectedRoute>
       } />
@@ -159,7 +180,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Router basename={import.meta.env.BASE_URL}>
+        <Router>
           <AppRoutes />
           {/* Alfred floating chatbot */}
           <Alfred />

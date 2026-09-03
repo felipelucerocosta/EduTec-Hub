@@ -158,7 +158,7 @@ const TareaDetalle: React.FC<Props> = ({ tarea, onClose, onSubmitted }) => {
           </p>
           <div style={{ display: "flex", gap: "1rem", fontSize: "0.82rem", color: "#94a3b8", flexWrap: "wrap", marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <span><i className="bx bx-calendar" style={{ marginRight: "0.25rem" }}></i> <strong>Fecha límite:</strong> {fechaLimiteFormatted}</span>
-            <span><i className="bx bx-trophy" style={{ marginRight: "0.25rem" }}></i> <strong>Puntos:</strong> {tarea.puntos_max || 100} pts</span>
+            <span><i className="bx bx-trophy" style={{ marginRight: "0.25rem" }}></i> <strong>Puntos:</strong> {tarea.puntos_max || 10} pts</span>
           </div>
         </div>
 
@@ -170,7 +170,7 @@ const TareaDetalle: React.FC<Props> = ({ tarea, onClose, onSubmitted }) => {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
               <span style={{ fontWeight: 700, color: "#34d399", fontSize: "0.9rem" }}>Calificación del Profesor</span>
-              <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "#34d399" }}>{entrega.calificacion} / 100</span>
+              <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "#34d399" }}>{entrega.calificacion} / {tarea.puntos_max || 10}</span>
             </div>
             {entrega.feedback && (
               <p style={{ margin: 0, color: "#e2e8f0", fontSize: "0.88rem", fontStyle: "italic" }}>

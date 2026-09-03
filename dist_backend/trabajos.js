@@ -181,7 +181,7 @@ router.post('/clases/:claseId/trabajos', async (req, res) => {
             descripcion ? descripcion.trim() : null,
             instrucciones ? instrucciones.trim() : null,
             fecha_limite || null,
-            puntos_max || 100,
+            puntos_max || 10,
             tipoEntregaValido,
             userId
         ]);
@@ -231,7 +231,7 @@ router.put('/trabajos/:id', async (req, res) => {
             descripcion ? descripcion.trim() : null,
             instrucciones ? instrucciones.trim() : null,
             fecha_limite || null,
-            puntos_max || 100,
+            puntos_max || 10,
             tipo_entrega === 'grupal' ? 'grupal' : 'individual',
             id
         ]);

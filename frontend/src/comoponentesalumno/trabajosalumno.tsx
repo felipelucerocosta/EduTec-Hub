@@ -235,7 +235,7 @@ const TrabajosAlumno: React.FC = () => {
                             {tarea.fecha_limite
                               ? `Entrega: ${new Date(tarea.fecha_limite).toLocaleDateString("es-ES", { day: 'numeric', month: 'short' })}`
                               : "Sin fecha de vencimiento"}
-                            {tarea.puntos_max ? ` · ${tarea.puntos_max} pts` : ""}
+                            {tarea.puntos_max ? ` · ${tarea.puntos_max} pts` : " · 20 pts"}
                           </p>
                         </div>
                       </div>
@@ -243,7 +243,7 @@ const TrabajosAlumno: React.FC = () => {
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                         {(tarea as any).calificacion !== undefined && (tarea as any).calificacion !== null && (
                           <span className="badge badge-green" style={{ fontWeight: 800 }}>
-                            Nota: {(tarea as any).calificacion} / {tarea.puntos_max || 100}
+                            Nota: {(tarea as any).calificacion} / {tarea.puntos_max || 20}
                           </span>
                         )}
                         <span className={`badge ${

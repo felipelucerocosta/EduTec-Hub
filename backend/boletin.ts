@@ -35,16 +35,17 @@ router.get('/boletin', async (req: Request, res: Response) => {
       }];
     }
 
-    // 2. Obtener clases del alumno (usando la misma consulta que 'Mis clases')
+    // 2. Obtener clases del alumno (solo las que está inscripto en alumnos_clases)
     const clasesQ = `
       SELECT DISTINCT c.id, c.nombre, c.materia, c.codigo
       FROM clases c
-      LEFT JOIN alumnos_clases ac ON c.codigo = ac.codigo
-      WHERE ac.alumno_id = $1 OR c.seccion = 'Secundario'
+      INNER JOIN alumnos_clases ac ON LOWER(TRIM(c.codigo)) = LOWER(TRIM(ac.codigo))
+      WHERE ac.alumno_id = $1
       ORDER BY c.id DESC
     `;
     const clasesRes = await pool.query(clasesQ, [userId]);
     const clases = clasesRes.rows;
+
 
     if (clases.length === 0) {
       return res.json([]);

@@ -58,7 +58,30 @@ const crearTablas = async () => {
                 DNI TEXT UNIQUE NOT NULL,
                 curso TEXT,
                 rol TEXT DEFAULT 'alumno',
+                estado_acceso TEXT DEFAULT 'PENDIENTE_DE_ASIGNACION',
                 fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        // Migración: agregar estado_acceso si la tabla ya existía
+        try {
+            await conexion_pg_1.default.query(`ALTER TABLE usuarios ADD COLUMN estado_acceso TEXT DEFAULT 'PENDIENTE_DE_ASIGNACION';`);
+        }
+        catch (_e) { /* columna ya existe */ }
+        // Activar admins y profesores existentes
+        try {
+            await conexion_pg_1.default.query(`UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE rol IN ('admin', 'profesor') AND (estado_acceso IS NULL OR estado_acceso != 'SUSPENDIDO');`);
+        }
+        catch (_e) { }
+        // 2b. Tabla AUDITORIA_ACCESO
+        await conexion_pg_1.default.query(`
+            CREATE TABLE IF NOT EXISTS auditoria_acceso (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER,
+                correo TEXT,
+                evento TEXT NOT NULL,
+                detalle TEXT,
+                ip TEXT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
         // 3. Tabla ALUMNO
@@ -187,7 +210,7 @@ const crearTablas = async () => {
                 descripcion TEXT,
                 instrucciones TEXT,
                 fecha_limite TIMESTAMP,
-                puntos_max INTEGER DEFAULT 100,
+                puntos_max INTEGER DEFAULT 10,
                 estado TEXT DEFAULT 'publicado',
                 tipo_entrega TEXT DEFAULT 'individual',
                 creado_por INTEGER,
@@ -201,6 +224,10 @@ const crearTablas = async () => {
             await conexion_pg_1.default.query(`ALTER TABLE trabajos ADD COLUMN tipo_entrega TEXT DEFAULT 'individual';`);
         }
         catch (_e) { /* columna ya existe, ok */ }
+        try {
+            await conexion_pg_1.default.query(`UPDATE trabajos SET puntos_max = 10 WHERE puntos_max != 10;`);
+        }
+        catch (_e) { }
         // 12. Tabla ENTREGAS (Submissions)
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS entregas (
@@ -345,57 +372,58 @@ const crearTablas = async () => {
         const saltRounds = 10;
         const isProduction = process.env.NODE_ENV === 'production';
         if (!isProduction) {
-            // Alumno de prueba
-            const correoAlumno = 'felipe.lucero.617@alu.tecnica29de6.edu.ar';
-            const existAlumno = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE correo = $1', [correoAlumno]);
-            if (existAlumno.rows.length === 0) {
-                const hashPass = await bcrypt.hash('123456789', saltRounds);
-                const userRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol) 
-                     VALUES ($1, $2, $3, $4, $5, 'alumno') RETURNING id_usuario`, [hashPass, 'Felipe Lucero', correoAlumno, '12345678', '3ro A']);
-                const idUsuario = userRes.rows[0].id_usuario;
-                const cursoRes = await conexion_pg_1.default.query('SELECT id_curso FROM curso WHERE nombre_curso = $1', ['3ro 1ra']);
-                const idCurso = cursoRes.rows.length > 0 ? cursoRes.rows[0].id_curso : null;
-                await conexion_pg_1.default.query(`INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7)`, ['12345678', 'Felipe', 'Lucero', idCurso, idUsuario, correoAlumno, hashPass]);
-                console.log(`🌱 [DEV] Alumno de prueba sembrado: ${correoAlumno}`);
+            // Alumnos de prueba (soporta tanto el nuevo como el anterior)
+            const alumnosTesting = [
+                { correo: 'alumno.prueba@tecnica29de6.edu.ar', nombre: 'Alumno de Prueba', pass: '123456789' },
+                { correo: 'felipe.lucero.617@alu.tecnica29de6.edu.ar', nombre: 'Felipe Lucero', pass: '123456789' }
+            ];
+            for (const a of alumnosTesting) {
+                const hashPass = await bcrypt.hash(a.pass, saltRounds);
+                const existAlumno = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [a.correo.toLowerCase()]);
+                let idUsuario;
+                if (existAlumno.rows.length === 0) {
+                    const userRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso) 
+                         VALUES ($1, $2, $3, $4, $5, 'alumno', 'ACTIVO') RETURNING id_usuario`, [hashPass, a.nombre, a.correo, '12345678', '3ro A']);
+                    idUsuario = userRes.rows[0].id_usuario;
+                    const cursoRes = await conexion_pg_1.default.query('SELECT id_curso FROM curso WHERE nombre_curso = $1', ['3ro 1ra']);
+                    const idCurso = cursoRes.rows.length > 0 ? cursoRes.rows[0].id_curso : null;
+                    await conexion_pg_1.default.query(`INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`, ['12345678', a.nombre.split(' ')[0], a.nombre.split(' ')[1] || 'Prueba', idCurso, idUsuario, a.correo, hashPass]);
+                    console.log(`🌱 [DEV] Alumno de prueba sembrado (ACTIVO): ${a.correo}`);
+                }
+                else {
+                    idUsuario = existAlumno.rows[0].id_usuario;
+                    await conexion_pg_1.default.query('UPDATE usuarios SET contrasena = $1, rol = \'alumno\', estado_acceso = \'ACTIVO\' WHERE id_usuario = $2', [hashPass, idUsuario]);
+                    console.log(`🌱 [DEV] Alumno de prueba actualizado (ACTIVO): ${a.correo}`);
+                }
             }
-            // Profesor de prueba
-            const correoProfesor = 'profesor.tecnica@tecnica29de6.edu.ar';
-            const existProf = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE correo = $1', [correoProfesor]);
-            if (existProf.rows.length === 0) {
-                const hashPass = await bcrypt.hash('12345678', saltRounds);
-                const userRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol) 
-                     VALUES ($1, $2, $3, $4, $5, 'profesor') RETURNING id_usuario`, [hashPass, 'Profesor Técnico', correoProfesor, '87654321', null]);
-                const idUsuario = userRes.rows[0].id_usuario;
-                await conexion_pg_1.default.query(`INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
-                     VALUES ($1, $2, $3, $4, $5, $6)`, [idUsuario, correoProfesor, '87654321', 'Profesor Técnico', 'Tecnología', hashPass]);
-                console.log(`🌱 [DEV] Profesor de prueba sembrado: ${correoProfesor}`);
+            // Profesores de prueba (soporta tanto el nuevo como el anterior)
+            const profesoresTesting = [
+                { correo: 'profesor.prueba@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678' },
+                { correo: 'profesor.tecnica@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678' }
+            ];
+            let idProfesorPrincipal = null;
+            for (const p of profesoresTesting) {
+                const hashPass = await bcrypt.hash(p.pass, saltRounds);
+                const existProf = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [p.correo.toLowerCase()]);
+                let idUsuario;
+                if (existProf.rows.length === 0) {
+                    const userRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso) 
+                         VALUES ($1, $2, $3, $4, $5, 'profesor', 'ACTIVO') RETURNING id_usuario`, [hashPass, p.nombre, p.correo, '87654321', null]);
+                    idUsuario = userRes.rows[0].id_usuario;
+                    await conexion_pg_1.default.query(`INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
+                         VALUES ($1, $2, $3, $4, $5, $6)`, [idUsuario, p.correo, '87654321', p.nombre, 'Tecnología', hashPass]);
+                    console.log(`🌱 [DEV] Profesor de prueba sembrado (ACTIVO): ${p.correo}`);
+                }
+                else {
+                    idUsuario = existProf.rows[0].id_usuario;
+                    await conexion_pg_1.default.query('UPDATE usuarios SET contrasena = $1, rol = \'profesor\', estado_acceso = \'ACTIVO\' WHERE id_usuario = $2', [hashPass, idUsuario]);
+                    console.log(`🌱 [DEV] Profesor de prueba actualizado (ACTIVO): ${p.correo}`);
+                }
+                if (!idProfesorPrincipal)
+                    idProfesorPrincipal = idUsuario;
             }
-        }
-        else {
-            console.log('🏭 Modo producción: datos de prueba omitidos.');
-        }
-        // 13. Sembrado de Administrador (tanto del .env como felipelucero534@gmail.com)
-        const adminEmails = ['felipelucero534@gmail.com'];
-        if (process.env.ADMIN_EMAIL) {
-            adminEmails.push(process.env.ADMIN_EMAIL.trim().toLowerCase());
-        }
-        const adminPass = process.env.ADMIN_PASSWORD || 'Donpatricio111';
-        for (const email of adminEmails) {
-            const existing = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE correo = $1', [email]);
-            if (existing.rows.length === 0) {
-                const hashed = await bcrypt.hash(adminPass, saltRounds);
-                await conexion_pg_1.default.query(`INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI) 
-                     VALUES ($1, $2, $3, 'admin', $4)`, ['Administrador', email, hashed, `DNI-${Math.floor(Math.random() * 10000000)}`]);
-                console.log(`🔐 Usuario admin creado: ${email}`);
-            }
-            else {
-                await conexion_pg_1.default.query(`UPDATE usuarios SET rol = 'admin' WHERE correo = $1`, [email]);
-                console.log(`🔐 Rol admin asegurado para: ${email}`);
-            }
-        }
-        // 14. Sembrado de Clases por Defecto (solo en desarrollo)
-        if (!isProduction) {
+            // 14. Sembrado de Clases por Defecto
             const clasesDefecto = [
                 { nombre: "Redes", materia: "Redes", aula: "Laboratorio de Redes", codigo: "RED-SEC-01" },
                 { nombre: "Matemática", materia: "Matemática", aula: "Aula 5", codigo: "MAT-SEC-02" },
@@ -409,9 +437,61 @@ const crearTablas = async () => {
                 const existClase = await conexion_pg_1.default.query('SELECT id FROM clases WHERE codigo = $1', [c.codigo]);
                 if (existClase.rows.length === 0) {
                     await conexion_pg_1.default.query(`INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
-                         VALUES ($1, 'Secundario', $2, $3, 'Sistema', NULL, NULL, $4)`, [c.nombre, c.materia, c.aula, c.codigo]);
+                         VALUES ($1, 'Secundario', $2, $3, 'Profesor Técnico', $4, $4, $5)`, [c.nombre, c.materia, c.aula, idProfesorPrincipal, c.codigo]);
                     console.log(`🌱 [DEV] Clase secundaria sembrada: ${c.nombre}`);
                 }
+                else {
+                    await conexion_pg_1.default.query(`UPDATE clases SET titular_id = COALESCE(titular_id, $1), creador_id = COALESCE(creador_id, $1) WHERE codigo = $2`, [idProfesorPrincipal, c.codigo]);
+                }
+            }
+            // Inscribir automáticamente a los alumnos de prueba en las clases por defecto
+            for (const a of alumnosTesting) {
+                const userAlumnoRes = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [a.correo.toLowerCase()]);
+                if (userAlumnoRes.rows.length > 0) {
+                    const idAlumno = userAlumnoRes.rows[0].id_usuario;
+                    for (const c of clasesDefecto) {
+                        const existEnroll = await conexion_pg_1.default.query('SELECT id FROM alumnos_clases WHERE alumno_id = $1 AND codigo = $2', [idAlumno, c.codigo]);
+                        if (existEnroll.rows.length === 0) {
+                            await conexion_pg_1.default.query('INSERT INTO alumnos_clases (alumno_id, materia, codigo) VALUES ($1, $2, $3)', [idAlumno, c.materia, c.codigo]);
+                        }
+                    }
+                }
+            }
+            console.log('🌱 [DEV] Alumnos de prueba inscriptos en clases por defecto.');
+            // Sembrar algunos trabajos de prueba si no existen
+            const matClase = await conexion_pg_1.default.query('SELECT id FROM clases WHERE codigo = $1', ['MAT-SEC-02']);
+            if (matClase.rows.length > 0) {
+                const idMat = matClase.rows[0].id;
+                const existTrabajo = await conexion_pg_1.default.query('SELECT id FROM trabajos WHERE clase_id = $1', [idMat]);
+                if (existTrabajo.rows.length === 0) {
+                    await conexion_pg_1.default.query(`INSERT INTO trabajos (clase_id, titulo, descripcion, instrucciones, fecha_limite, puntos_max, creado_por)
+                         VALUES ($1, 'TP 1 - Sistemas de Ecuaciones', 'Resolver los ejercicios planteados en la guía práctica 1.', 'Entregar archivo PDF o imagen legible con las respuestas.', '2026-09-15 23:59:00', 10, $2)`, [idMat, idProfesorPrincipal]);
+                    await conexion_pg_1.default.query(`INSERT INTO trabajos (clase_id, titulo, descripcion, instrucciones, fecha_limite, puntos_max, creado_por)
+                         VALUES ($1, 'TP 2 - Funciones Cuadráticas', 'Graficar y calcular vértices y raíces.', 'Completar el laboratorio interactivo y subir informe.', '2026-09-30 23:59:00', 10, $2)`, [idMat, idProfesorPrincipal]);
+                    console.log('🌱 [DEV] Trabajos de prueba sembrados para Matemática.');
+                }
+            }
+        }
+        else {
+            console.log('🏭 Modo producción: datos de prueba omitidos.');
+        }
+        // 13. Sembrado de Administradores
+        const adminEmails = ['admin@edutechhub.edu.ar', 'felipelucero534@gmail.com'];
+        if (process.env.ADMIN_EMAIL) {
+            adminEmails.push(process.env.ADMIN_EMAIL.trim().toLowerCase());
+        }
+        const adminPass = process.env.ADMIN_PASSWORD || 'Donpatricio111';
+        for (const email of adminEmails) {
+            const hashed = await bcrypt.hash(adminPass, saltRounds);
+            const existing = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [email.toLowerCase()]);
+            if (existing.rows.length === 0) {
+                await conexion_pg_1.default.query(`INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI) 
+                     VALUES ($1, $2, $3, 'admin', $4)`, ['Administrador General', email, hashed, `DNI-${Math.floor(Math.random() * 10000000)}`]);
+                console.log(`🔐 Usuario admin creado: ${email}`);
+            }
+            else {
+                await conexion_pg_1.default.query(`UPDATE usuarios SET contrasena = $1, rol = 'admin' WHERE LOWER(correo) = $2`, [hashed, email.toLowerCase()]);
+                console.log(`🔐 Rol y contraseña admin actualizados para: ${email}`);
             }
         }
     }

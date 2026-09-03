@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
-dotenv.config();
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || path.join(__dirname, '.env') });
 
 function interop(m: any) { return m && (m.default ?? m); }
 
@@ -21,6 +21,7 @@ const crearClaseRouter         = interop(require('./crear_clase'));
 const unirseClaseRouter        = interop(require('./unirse_clase'));
 const obtenerClasesRouter      = interop(require('./obtener_clases'));
 const obtenerClasesAlumnoRouter = interop(require('./obtener_clases_alumno'));
+const obtenerClasesProfRouter   = interop(require('./obtener_clases_prof'));
 
 const trabajosRouter      = interop(require('./trabajos'));
 const entregasRouter      = interop(require('./entregas'));
@@ -29,6 +30,7 @@ const notificacionesRouter = interop(require('./notificaciones'));
 const rendimientoRouter    = interop(require('./rendimiento'));
 const boletinRouter        = interop(require('./boletin'));
 const simuladoresApiRouter = interop(require('./simuladores_api'));
+const adminApiRouter       = interop(require('./admin_api'));
 
 const setupDb = interop(require('./setup_db'));
 
@@ -66,9 +68,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Archivos subidos por usuarios
-const uploadsPath = IS_PRODUCTION
-  ? path.join(process.cwd(), 'uploads')
-  : path.join(__dirname, '../uploads');
+const uploadsPath = process.env.UPLOADS_PATH || path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsPath));
 
 // Archivos del frontend (solo en producción)
@@ -99,6 +99,7 @@ app.use('/api', crearClaseRouter);
 app.use('/api', unirseClaseRouter);
 app.use('/api', obtenerClasesRouter);
 app.use('/api', obtenerClasesAlumnoRouter);
+app.use('/api', obtenerClasesProfRouter);
 app.use('/api', trabajosRouter);
 app.use('/api', entregasRouter);
 app.use('/api', materialesApiRouter);
@@ -106,6 +107,7 @@ app.use('/api', notificacionesRouter);
 app.use('/api', rendimientoRouter);
 app.use('/api', boletinRouter);
 app.use('/api', simuladoresApiRouter);
+app.use('/api', adminApiRouter);
 
 // Ruta base — en producción sirve el index.html del frontend (SPA fallback)
 if (IS_PRODUCTION) {

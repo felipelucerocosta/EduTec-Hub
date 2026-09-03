@@ -16,10 +16,11 @@ const TrabajoProfesorPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [trabajo, setTrabajo] = useState<any>(null);
   const [entregas, setEntregas] = useState<any[]>([]);
-  const [editingEntrega, setEditingEntrega] = useState<any>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [calificacionInput, setCalificacionInput] = useState<string>('');
   const [feedbackInput, setFeedbackInput] = useState<string>('');
   const [savingGrade, setSavingGrade] = useState(false);
+  const [showConsigna, setShowConsigna] = useState(true);
 
   useEffect(() => {
     if (!trabajoId) return;
@@ -49,29 +50,42 @@ const TrabajoProfesorPage: React.FC = () => {
     };
 
     fetchData();
-  }, [trabajoId]);
+  }, [trabajoId, showToast]);
 
-  const handleOpenGradeModal = (entrega: any) => {
-    setEditingEntrega(entrega);
+  const handleOpenGradeModal = (index: number) => {
+    const entrega = entregas[index];
+    if (!entrega) return;
+    setEditingIndex(index);
     setCalificacionInput(entrega.calificacion !== null && entrega.calificacion !== undefined ? String(entrega.calificacion) : '');
     setFeedbackInput(entrega.feedback || '');
   };
 
+  const currentEditingEntrega = editingIndex !== null ? entregas[editingIndex] : null;
+
+  const handleNavigateStudent = (direction: 'prev' | 'next') => {
+    if (editingIndex === null) return;
+    const newIdx = direction === 'prev' ? editingIndex - 1 : editingIndex + 1;
+    if (newIdx >= 0 && newIdx < entregas.length) {
+      handleOpenGradeModal(newIdx);
+    }
+  };
+
   const handleSaveGrade = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingEntrega) return;
+    if (!currentEditingEntrega) return;
 
     const nota = parseFloat(calificacionInput);
-    if (isNaN(nota) || nota < 0 || (trabajo?.puntos_max && nota > trabajo.puntos_max)) {
-      showToast(`Ingresa una calificación válida (0 a ${trabajo?.puntos_max || 10})`, 'error');
+    const maxPts = trabajo?.puntos_max || 20;
+    if (isNaN(nota) || nota < 0 || nota > maxPts) {
+      showToast(`Ingresa una calificación válida (0 a ${maxPts})`, 'error');
       return;
     }
 
     setSavingGrade(true);
     try {
-      const endpoint = editingEntrega.id || editingEntrega.entrega_id
-        ? `${API_URL}/entregas/${editingEntrega.id || editingEntrega.entrega_id}/calificar`
-        : `${API_URL}/trabajos/${trabajoId}/alumnos/${editingEntrega.alumno_id}/calificar`;
+      const endpoint = currentEditingEntrega.id || currentEditingEntrega.entrega_id
+        ? `${API_URL}/entregas/${currentEditingEntrega.id || currentEditingEntrega.entrega_id}/calificar`
+        : `${API_URL}/trabajos/${trabajoId}/alumnos/${currentEditingEntrega.alumno_id}/calificar`;
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -88,7 +102,7 @@ const TrabajoProfesorPage: React.FC = () => {
           const eData = await resEntregas.json();
           setEntregas(Array.isArray(eData) ? eData : []);
         }
-        setEditingEntrega(null);
+        setEditingIndex(null);
       } else {
         const err = await res.json();
         showToast(err.error || 'Error al guardar la calificación', 'error');
@@ -124,17 +138,60 @@ const TrabajoProfesorPage: React.FC = () => {
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', marginBottom: '0.5rem'
             }}
           >
-            <i className="bx bx-arrow-back"></i> Volver a la gestión de clase
+            <i className="bx bx-arrow-back"></i> Volver a la clase
           </button>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <i className="bx bx-task" style={{ color: '#7c3aed' }}></i> {trabajo?.titulo || 'Detalle del Trabajo (Profesor)'}
-          </h1>
-          {trabajo && (
-            <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.25rem' }}>
-              Fecha límite: <strong style={{ color: '#cbd5e1' }}>{trabajo.fecha_limite ? new Date(trabajo.fecha_limite).toLocaleDateString() : 'Sin fecha'}</strong> — Puntaje Máximo: <strong style={{ color: '#38bdf8' }}>{trabajo.puntos_max || 10} pts</strong>
-            </p>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <i className="bx bx-task" style={{ color: '#7c3aed' }}></i> {trabajo?.titulo || 'Detalle del Trabajo (Profesor)'}
+              </h1>
+              {trabajo && (
+                <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.25rem' }}>
+                  Fecha límite: <strong style={{ color: '#cbd5e1' }}>{trabajo.fecha_limite ? new Date(trabajo.fecha_limite).toLocaleDateString() : 'Sin fecha'}</strong> — Puntaje Máximo: <strong style={{ color: '#38bdf8' }}>{trabajo.puntos_max || 20} pts</strong>
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowConsigna(!showConsigna)}
+              style={{
+                padding: '0.5rem 1rem', borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#f8fafc', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '0.4rem'
+              }}
+            >
+              <i className={`bx ${showConsigna ? 'bx-hide' : 'bx-show'}`}></i> {showConsigna ? 'Ocultar Consigna' : 'Ver Consigna'}
+            </button>
+          </div>
         </div>
+
+        {/* Consigna Card */}
+        {trabajo && showConsigna && (
+          <div style={{
+            background: 'rgba(124, 58, 237, 0.08)',
+            border: '1px solid rgba(124, 58, 237, 0.25)',
+            borderRadius: '16px',
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a78bfa', fontWeight: 700, fontSize: '0.9rem' }}>
+              <i className="bx bx-book-open"></i> Consigna e Instrucciones del Trabajo
+            </div>
+            {trabajo.descripcion && (
+              <p style={{ color: '#e2e8f0', fontSize: '0.92rem', margin: 0, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                {trabajo.descripcion}
+              </p>
+            )}
+            {trabajo.instrucciones && (
+              <div style={{ fontSize: '0.85rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
+                <strong style={{ color: '#c4b5fd' }}>Pautas:</strong> {trabajo.instrucciones}
+              </div>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <LoadingSkeleton />
@@ -166,131 +223,254 @@ const TrabajoProfesorPage: React.FC = () => {
 
             {/* List of Submissions */}
             <div style={{ background: 'rgba(15, 23, 42, 0.6)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
-              <div style={{ padding: '1.25rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', fontWeight: 700, color: '#f8fafc' }}>
-                Entregas recibidas ({entregas.length})
+              <div style={{ padding: '1.25rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', fontWeight: 700, color: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Entregas de los alumnos ({entregas.length})</span>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Haz clic en "Calificar" para abrir la corrección</span>
               </div>
 
               {entregas.length === 0 ? (
                 <div style={{ padding: '2rem' }}>
-                  <EmptyState title="Sin entregas aún" description="Los alumnos todavía no han subido entregas para este trabajo." icon="bx-folder-open" />
+                  <EmptyState title="Sin alumnos en la clase" description="No hay alumnos inscriptos en esta clase todavía." icon="bx-folder-open" />
                 </div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Alumno</th>
-                      <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Fecha de Entrega</th>
-                      <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Archivo</th>
-                      <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Estado</th>
-                      <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Calificación</th>
-                      <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entregas.map((ent: any) => (
-                      <tr key={ent.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                        <td style={{ padding: '0.85rem 1.25rem' }}>
-                          <div style={{ fontWeight: 600, color: '#f8fafc' }}>{ent.alumno_nombre}</div>
-                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{ent.alumno_correo}</div>
-                        </td>
-                        <td style={{ padding: '0.85rem 1.25rem', color: '#cbd5e1', fontSize: '0.85rem' }}>
-                          {ent.fecha_entrega ? new Date(ent.fecha_entrega).toLocaleString() : '—'}
-                        </td>
-                        <td style={{ padding: '0.85rem 1.25rem' }}>
-                          {ent.archivo_path ? (
-                            <a
-                              href={`http://localhost:3001/uploads/${ent.archivo_path}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ color: '#38bdf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}
-                            >
-                              <i className="bx bx-file"></i> {ent.archivo_nombre || 'Descargar archivo'}
-                            </a>
-                          ) : (
-                            <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Sin archivo</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.85rem 1.25rem' }}>
-                          <span className={`badge ${
-                            ent.estado === 'corregido' ? 'badge-green' :
-                            ent.estado === 'entregado' ? 'badge-purple' :
-                            ent.estado === 'entrega_tardia' ? 'badge-rose' : 'badge-amber'
-                          }`}>
-                            {ent.estado === 'corregido' ? 'Corregido' :
-                             ent.estado === 'entregado' ? 'Entregado' :
-                             ent.estado === 'entrega_tardia' ? 'Tardío' : 'Sin entregar'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.85rem 1.25rem', fontWeight: 700, color: ent.calificacion !== null ? '#34d399' : '#94a3b8' }}>
-                          {ent.calificacion !== null && ent.calificacion !== undefined ? `${ent.calificacion} / ${trabajo?.puntos_max || 10}` : '—'}
-                        </td>
-                        <td style={{ padding: '0.85rem 1.25rem' }}>
-                          <button
-                            onClick={() => handleOpenGradeModal(ent)}
-                            style={{
-                              padding: '0.4rem 0.8rem',
-                              borderRadius: '8px',
-                              background: ent.estado === 'corregido' ? 'rgba(255, 255, 255, 0.05)' : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                              color: '#fff',
-                              border: 'none',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {ent.estado === 'corregido' ? 'Editar Nota' : 'Calificar'}
-                          </button>
-                        </td>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Alumno</th>
+                        <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Fecha de Entrega</th>
+                        <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Archivo</th>
+                        <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Estado</th>
+                        <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>Calificación</th>
+                        <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.85rem', textAlign: 'right' }}>Acción</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {entregas.map((ent: any, idx: number) => (
+                        <tr key={ent.alumno_id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                          <td style={{ padding: '0.85rem 1.25rem' }}>
+                            <div style={{ fontWeight: 600, color: '#f8fafc' }}>{ent.alumno_nombre}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{ent.alumno_correo}</div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1.25rem', color: '#cbd5e1', fontSize: '0.85rem' }}>
+                            {ent.fecha_entrega ? new Date(ent.fecha_entrega).toLocaleString('es-ES') : '—'}
+                          </td>
+                          <td style={{ padding: '0.85rem 1.25rem' }}>
+                            {ent.archivo_path ? (
+                              <a
+                                href={`http://localhost:3001/uploads/${ent.archivo_path}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ color: '#38bdf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}
+                              >
+                                <i className="bx bx-file"></i> {ent.archivo_nombre || 'Descargar'}
+                              </a>
+                            ) : (
+                              <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Sin archivo</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.85rem 1.25rem' }}>
+                            <span className={`badge ${
+                              ent.estado === 'corregido' ? 'badge-green' :
+                              ent.estado === 'entregado' ? 'badge-purple' :
+                              ent.estado === 'entrega_tardia' ? 'badge-rose' : 'badge-amber'
+                            }`}>
+                              {ent.estado === 'corregido' ? 'Corregido' :
+                               ent.estado === 'entregado' ? 'Entregado' :
+                               ent.estado === 'entrega_tardia' ? 'Tardío' : 'Sin entregar'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1.25rem', fontWeight: 700, color: ent.calificacion !== null && ent.calificacion !== undefined ? '#34d399' : '#94a3b8' }}>
+                            {ent.calificacion !== null && ent.calificacion !== undefined ? `${ent.calificacion} / ${trabajo?.puntos_max || 20}` : '—'}
+                          </td>
+                          <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleOpenGradeModal(idx)}
+                              style={{
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '8px',
+                                background: ent.estado === 'corregido' ? 'rgba(255, 255, 255, 0.05)' : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                                color: '#fff',
+                                border: ent.estado === 'corregido' ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {ent.estado === 'corregido' ? 'Editar Nota' : 'Calificar'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
-            {/* Grading Modal */}
-            {editingEntrega && (
+            {/* Grading Modal with student carousel/navigation */}
+            {currentEditingEntrega && editingIndex !== null && (
               <div style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem'
               }}>
                 <div style={{
                   background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px',
-                  width: '100%', maxWidth: '480px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem'
+                  width: '100%', maxWidth: '520px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem'
                 }}>
+                  {/* Top Bar with Carousel Controls */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ color: '#f8fafc', margin: 0, fontSize: '1.2rem' }}>Calificar Entrega</h3>
-                    <button onClick={() => setEditingEntrega(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.2rem' }}>×</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
+                        Alumno {editingIndex + 1} de {entregas.length}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        disabled={editingIndex === 0}
+                        onClick={() => handleNavigateStudent('prev')}
+                        style={{
+                          padding: '0.35rem 0.6rem', borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                          color: editingIndex === 0 ? '#475569' : '#cbd5e1', cursor: editingIndex === 0 ? 'not-allowed' : 'pointer'
+                        }}
+                        title="Alumno anterior"
+                      >
+                        <i className="bx bx-chevron-left"></i>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={editingIndex === entregas.length - 1}
+                        onClick={() => handleNavigateStudent('next')}
+                        style={{
+                          padding: '0.35rem 0.6rem', borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                          color: editingIndex === entregas.length - 1 ? '#475569' : '#cbd5e1', cursor: editingIndex === entregas.length - 1 ? 'not-allowed' : 'pointer'
+                        }}
+                        title="Alumno siguiente"
+                      >
+                        <i className="bx bx-chevron-right"></i>
+                      </button>
+                      <button onClick={() => setEditingIndex(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '0.5rem' }}>×</button>
+                    </div>
                   </div>
 
-                  <div style={{ background: 'rgba(30, 41, 59, 0.5)', padding: '1rem', borderRadius: '12px' }}>
-                    <div style={{ fontWeight: 700, color: '#f8fafc' }}>{editingEntrega.alumno_nombre}</div>
-                    <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{editingEntrega.alumno_correo}</div>
-                    {editingEntrega.comentario && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#cbd5e1', fontStyle: 'italic' }}>
-                        "{editingEntrega.comentario}"
+                  {/* Student Info & Submission Details */}
+                  <div style={{ background: 'rgba(30, 41, 59, 0.6)', padding: '1rem 1.25rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '1rem' }}>{currentEditingEntrega.alumno_nombre}</div>
+                        <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{currentEditingEntrega.alumno_correo}</div>
+                      </div>
+                      <span className={`badge ${
+                        currentEditingEntrega.estado === 'corregido' ? 'badge-green' :
+                        currentEditingEntrega.estado === 'entregado' ? 'badge-purple' :
+                        currentEditingEntrega.estado === 'entrega_tardia' ? 'badge-rose' : 'badge-amber'
+                      }`}>
+                        {currentEditingEntrega.estado === 'corregido' ? 'Corregido' :
+                         currentEditingEntrega.estado === 'entregado' ? 'Entregado' :
+                         currentEditingEntrega.estado === 'entrega_tardia' ? 'Tardío' : 'Sin entregar'}
+                      </span>
+                    </div>
+
+                    {currentEditingEntrega.archivo_path && (
+                      <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <a
+                          href={`http://localhost:3001/uploads/${currentEditingEntrega.archivo_path}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: '#38bdf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: 600 }}
+                        >
+                          <i className="bx bx-download"></i> Descargar archivo: {currentEditingEntrega.archivo_nombre || 'archivo_entrega'}
+                        </a>
+                      </div>
+                    )}
+
+                    {currentEditingEntrega.comentario && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#cbd5e1', fontStyle: 'italic', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '8px' }}>
+                        "{currentEditingEntrega.comentario}"
                       </div>
                     )}
                   </div>
 
+                  {/* Grading Form */}
                   <form onSubmit={handleSaveGrade} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.4rem', fontWeight: 600 }}>
                         Nota (Máximo {trabajo?.puntos_max || 10}):
                       </label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max={trabajo?.puntos_max || 10}
-                        required
-                        value={calificacionInput}
-                        onChange={(e) => setCalificacionInput(e.target.value)}
-                        style={{
-                          width: '100%', padding: '0.75rem', borderRadius: '10px', background: 'rgba(30, 41, 59, 0.8)',
-                          color: '#fff', border: '1px solid rgba(255, 255, 255, 0.15)', fontSize: '1rem'
-                        }}
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max={trabajo?.puntos_max || 10}
+                          required
+                          value={calificacionInput}
+                          onChange={(e) => setCalificacionInput(e.target.value)}
+                          placeholder={`0 - ${trabajo?.puntos_max || 10}`}
+                          style={{
+                            flex: 1, padding: '0.75rem', borderRadius: '10px', background: 'rgba(30, 41, 59, 0.8)',
+                            color: '#fff', border: '1px solid rgba(255, 255, 255, 0.15)', fontSize: '1.1rem', fontWeight: 700
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = parseFloat(calificacionInput) || 0;
+                              setCalificacionInput(String(Math.max(0, current - 1)));
+                            }}
+                            style={{
+                              padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'rgba(255,255,255,0.08)',
+                              border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1', cursor: 'pointer', fontSize: '1.1rem'
+                            }}
+                            title="Bajar 1 punto"
+                          >
+                            <i className="bx bx-minus"></i>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = parseFloat(calificacionInput) || 0;
+                              const max = trabajo?.puntos_max || 20;
+                              setCalificacionInput(String(Math.min(max, current + 1)));
+                            }}
+                            style={{
+                              padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'rgba(255,255,255,0.08)',
+                              border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1', cursor: 'pointer', fontSize: '1.1rem'
+                            }}
+                            title="Subir 1 punto"
+                          >
+                            <i className="bx bx-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Quick preset chips */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
+                        {[0, 5, 10, 12, 14, 16, 18, 20].filter(n => n <= (trabajo?.puntos_max || 20)).map(n => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setCalificacionInput(String(n))}
+                            style={{
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '6px',
+                              background: calificacionInput === String(n) ? 'rgba(124, 58, 237, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                              border: calificacionInput === String(n) ? '1px solid #7c3aed' : '1px solid rgba(255, 255, 255, 0.08)',
+                              color: calificacionInput === String(n) ? '#c4b5fd' : '#94a3b8',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div>
@@ -298,7 +478,7 @@ const TrabajoProfesorPage: React.FC = () => {
                         Feedback / Devolución:
                       </label>
                       <textarea
-                        rows={4}
+                        rows={3}
                         placeholder="Escribe tus observaciones para el alumno..."
                         value={feedbackInput}
                         onChange={(e) => setFeedbackInput(e.target.value)}
@@ -312,7 +492,7 @@ const TrabajoProfesorPage: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
                       <button
                         type="button"
-                        onClick={() => setEditingEntrega(null)}
+                        onClick={() => setEditingIndex(null)}
                         style={{
                           padding: '0.65rem 1.2rem', borderRadius: '10px', background: 'rgba(255,255,255,0.05)',
                           color: '#cbd5e1', border: 'none', cursor: 'pointer', fontWeight: 600

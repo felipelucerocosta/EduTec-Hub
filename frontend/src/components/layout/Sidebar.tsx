@@ -18,7 +18,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { label: 'Dashboard', to: '/dashboard', icon: 'bx-grid-alt' },
     { label: 'Mis Clases', to: user.rol === 'alumno' ? '/alumno' : '/clases', icon: 'bx-book-open' },
-    ...(user.rol === 'profesor' || user.rol === 'admin' ? [{ label: 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' }] : []),
+    { label: user.rol === 'alumno' ? 'Mi Rendimiento' : 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
     ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín', to: '/boletin', icon: 'bx-receipt' }] : []),
     { label: 'Calendario', to: '/calendario', icon: 'bx-calendar' },
     ...(user.rol !== 'profesor' ? [{ label: 'Foro de Consultas', to: '/foro', icon: 'bx-conversation' }] : []),

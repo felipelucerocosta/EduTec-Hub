@@ -63,11 +63,11 @@ const GestionClase: React.FC = () => {
     open: false, entregas: []
   });
   const [gradingEntrega, setGradingEntrega] = useState<Entrega | null>(null);
-  const [gradeInput, setGradeInput] = useState<number>(100);
+  const [gradeInput, setGradeInput] = useState<string>("");
   const [feedbackInput, setFeedbackInput] = useState<string>("");
 
   // Forms state
-  const [nuevoTrabajo, setNuevoTrabajo] = useState({ titulo: "", descripcion: "", instrucciones: "", fecha_limite: "", puntos_max: 100 });
+  const [nuevoTrabajo, setNuevoTrabajo] = useState({ titulo: "", descripcion: "", instrucciones: "", fecha_limite: "", puntos_max: 10 });
   const [nuevoMaterial, setNuevoMaterial] = useState({ titulo: "", descripcion: "", tipo: "documento", enlace: "" });
   const [archivoMaterial, setArchivoMaterial] = useState<File | null>(null);
   const [textoAnuncio, setTextoAnuncio] = useState("");
@@ -141,7 +141,7 @@ const GestionClase: React.FC = () => {
       if (res.ok) {
         showToast("Trabajo creado exitosamente", "success");
         setModalNuevoTrabajo(false);
-        setNuevoTrabajo({ titulo: "", descripcion: "", instrucciones: "", fecha_limite: "", puntos_max: 100 });
+        setNuevoTrabajo({ titulo: "", descripcion: "", instrucciones: "", fecha_limite: "", puntos_max: 10 });
         await fetchClassAllData();
       } else {
         showToast(data.error || "Error al crear trabajo", "error");
@@ -228,12 +228,23 @@ const GestionClase: React.FC = () => {
     e.preventDefault();
     if (!gradingEntrega) return;
 
+    const nota = parseFloat(gradeInput);
+    const maxPts = modalVerEntregas.trabajo?.puntos_max || 20;
+    if (isNaN(nota) || nota < 0 || nota > maxPts) {
+      showToast(`Ingresa una calificación válida entre 0 y ${maxPts}`, "error");
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_URL}/entregas/${gradingEntrega.id}/calificar`, {
+      const endpoint = gradingEntrega.id || (gradingEntrega as any).entrega_id
+        ? `${API_URL}/entregas/${gradingEntrega.id || (gradingEntrega as any).entrega_id}/calificar`
+        : `${API_URL}/trabajos/${modalVerEntregas.trabajo?.id}/alumnos/${gradingEntrega.alumno_id}/calificar`;
+
+      const res = await fetch(endpoint, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ calificacion: gradeInput, feedback: feedbackInput }),
+        body: JSON.stringify({ calificacion: nota, feedback: feedbackInput }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -396,11 +407,8 @@ const GestionClase: React.FC = () => {
                     </div>
 
                     <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <Button variant="secondary" onClick={() => navigate(`/gestionClase/${claseId}/trabajo/${tr.id}`)} icon="bx-window-open">
-                        Página del Trabajo
-                      </Button>
-                      <Button variant="outline" onClick={() => handleVerEntregas(tr)} icon="bx-check-square">
-                        Ver Entregas
+                      <Button variant="primary" onClick={() => navigate(`/gestionClase/${claseId}/trabajo/${tr.id}`)} icon="bx-task">
+                        Ver Entregas y Calificar
                       </Button>
                     </div>
                   </div>
@@ -670,45 +678,65 @@ const GestionClase: React.FC = () => {
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {modalVerEntregas.entregas.map((ent) => (
-                <div key={ent.id} style={{
+              {modalVerEntregas.entregas.map((ent, idx) => (
+                <div key={ent.id || `ent-${ent.alumno_id}-${idx}`} style={{
                   background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "12px", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem"
+                  borderRadius: "14px", padding: "1.1rem", display: "flex", flexDirection: "column", gap: "0.6rem"
                 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 700, color: "#f1f5f9", fontSize: "0.9rem" }}>{ent.alumno_nombre}</span>
-                    <span className={`badge ${ent.estado === 'corregido' ? 'badge-green' : 'badge-purple'}`}>
-                      {ent.estado === 'corregido' ? `Calificado: ${ent.calificacion}/100` : 'Pendiente de Corrección'}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#f1f5f9", fontSize: "0.95rem" }}>{ent.alumno_nombre}</div>
+                      <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>{ent.alumno_correo}</div>
+                    </div>
+                    <span className={`badge ${
+                      ent.estado === 'corregido' ? 'badge-green' :
+                      ent.estado === 'entregado' ? 'badge-purple' :
+                      ent.estado === 'entrega_tardia' ? 'badge-rose' : 'badge-amber'
+                    }`}>
+                      {ent.estado === 'corregido' ? `Calificado: ${ent.calificacion}/${modalVerEntregas.trabajo?.puntos_max || 20}` :
+                       ent.estado === 'entregado' ? 'Entregado' :
+                       ent.estado === 'entrega_tardia' ? 'Tardío' : 'Sin entregar'}
                     </span>
                   </div>
 
+                  {ent.fecha_entrega && (
+                    <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                      <i className="bx bx-time" style={{ marginRight: "0.3rem" }}></i>
+                      Entregado: {new Date(ent.fecha_entrega).toLocaleString("es-ES")}
+                    </div>
+                  )}
+
                   {ent.archivo_nombre && (
-                    <a
-                      href={`http://localhost:3001/api/entregas/descargar/${ent.archivo_path}`}
-                      target="_blank" rel="noreferrer"
-                      style={{ fontSize: "0.82rem", color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
-                    >
-                      <i className="bx bx-file"></i> {ent.archivo_nombre}
-                    </a>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <a
+                        href={`http://localhost:3001/uploads/${ent.archivo_path}`}
+                        target="_blank" rel="noreferrer"
+                        style={{ fontSize: "0.84rem", color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600, textDecoration: "none" }}
+                      >
+                        <i className="bx bx-file" style={{ fontSize: "1.1rem" }}></i> {ent.archivo_nombre}
+                      </a>
+                    </div>
                   )}
 
                   {ent.comentario && (
-                    <p style={{ fontSize: "0.82rem", color: "#94a3b8", margin: 0, fontStyle: "italic" }}>
+                    <p style={{ fontSize: "0.82rem", color: "#cbd5e1", margin: 0, fontStyle: "italic", background: "rgba(255,255,255,0.02)", padding: "0.4rem 0.6rem", borderRadius: "6px" }}>
                       "{ent.comentario}"
                     </p>
                   )}
 
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setGradingEntrega(ent);
-                      setGradeInput(ent.calificacion || 100);
-                      setFeedbackInput(ent.feedback || "");
-                    }}
-                    style={{ alignSelf: "flex-end", marginTop: "0.25rem", padding: "0.35rem 0.85rem", fontSize: "0.8rem" }}
-                  >
-                    {ent.estado === 'corregido' ? 'Editar Nota' : 'Calificar'}
-                  </Button>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.25rem" }}>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setGradingEntrega(ent);
+                        setGradeInput(ent.calificacion !== null && ent.calificacion !== undefined ? String(ent.calificacion) : "");
+                        setFeedbackInput(ent.feedback || "");
+                      }}
+                      style={{ padding: "0.4rem 0.9rem", fontSize: "0.82rem" }}
+                    >
+                      {ent.estado === 'corregido' ? 'Editar Nota' : 'Calificar'}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -718,25 +746,149 @@ const GestionClase: React.FC = () => {
         {/* Modal: Formulario para Calificar */}
         {gradingEntrega && (
           <Modal isOpen={true} onClose={() => setGradingEntrega(null)} title={`Calificar: ${gradingEntrega.alumno_nombre}`}>
-            <form onSubmit={handleGuardarCalificacion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <InputField
-                label="Nota / Calificación (0-100)"
-                type="number"
-                min="0" max="100"
-                value={String(gradeInput)}
-                onChange={(e) => setGradeInput(Number(e.target.value))}
-                required
-              />
-              <textarea
-                placeholder="Devolución / Feedback pedagógico para el alumno..."
-                value={feedbackInput}
-                onChange={(e) => setFeedbackInput(e.target.value)}
-                rows={4}
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "0.65rem 1rem", color: "#f1f5f9", fontSize: "0.88rem" }}
-              />
-              <Button type="submit" style={{ width: "100%" }}>
-                Guardar Calificación
-              </Button>
+            <form onSubmit={handleGuardarCalificacion} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '0.9rem 1.1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.95rem' }}>{gradingEntrega.alumno_nombre}</div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{gradingEntrega.alumno_correo}</div>
+                {gradingEntrega.comentario && (
+                  <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: '#cbd5e1', fontStyle: 'italic' }}>
+                    "{gradingEntrega.comentario}"
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.4rem', fontWeight: 600 }}>
+                  Nota / Calificación (0 a {modalVerEntregas.trabajo?.puntos_max || 20}):
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max={modalVerEntregas.trabajo?.puntos_max || 20}
+                    value={gradeInput}
+                    onChange={(e) => setGradeInput(e.target.value)}
+                    placeholder={`0 - ${modalVerEntregas.trabajo?.puntos_max || 20}`}
+                    required
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem 1rem',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                      color: '#f8fafc',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = parseFloat(gradeInput) || 0;
+                        const next = Math.max(0, current - 1);
+                        setGradeInput(String(next));
+                      }}
+                      style={{
+                        padding: '0.7rem 0.9rem',
+                        borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        color: '#cbd5e1',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Bajar 1 punto"
+                    >
+                      <i className="bx bx-minus"></i>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = parseFloat(gradeInput) || 0;
+                        const max = modalVerEntregas.trabajo?.puntos_max || 20;
+                        const next = Math.min(max, current + 1);
+                        setGradeInput(String(next));
+                      }}
+                      style={{
+                        padding: '0.7rem 0.9rem',
+                        borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        color: '#cbd5e1',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Subir 1 punto"
+                    >
+                      <i className="bx bx-plus"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick grade selector chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}>
+                  {[0, 5, 10, 12, 14, 16, 18, 20].filter(n => n <= (modalVerEntregas.trabajo?.puntos_max || 20)).map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setGradeInput(String(n))}
+                      style={{
+                        padding: '0.25rem 0.6rem',
+                        borderRadius: '6px',
+                        background: gradeInput === String(n) ? 'rgba(124, 58, 237, 0.35)' : 'rgba(255, 255, 255, 0.05)',
+                        border: gradeInput === String(n) ? '1px solid #7c3aed' : '1px solid rgba(255, 255, 255, 0.08)',
+                        color: gradeInput === String(n) ? '#c4b5fd' : '#94a3b8',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '0.4rem', fontWeight: 600 }}>
+                  Feedback / Devolución:
+                </label>
+                <textarea
+                  placeholder="Devolución / Feedback pedagógico para el alumno..."
+                  value={feedbackInput}
+                  onChange={(e) => setFeedbackInput(e.target.value)}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "10px",
+                    padding: "0.75rem 1rem",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem",
+                    resize: "vertical",
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <Button type="button" variant="secondary" onClick={() => setGradingEntrega(null)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary">
+                  Guardar Calificación
+                </Button>
+              </div>
             </form>
           </Modal>
         )}

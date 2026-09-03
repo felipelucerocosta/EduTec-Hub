@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 /**
- * EduTechHub — Script de Limpieza de Base de Datos
- * ================================================
- * Elimina TODOS los datos de prueba/desarrollo manteniendo
- * la estructura de tablas íntegra, y recrea los dos
- * administradores definidos en el archivo .env del backend.
+ * EduTechHub — Script de Limpieza de Base de Datos para Testing
+ * =============================================================
+ * Elimina TODOS los datos manteniendo la estructura de tablas,
+ * y recrea exactamente 4 cuentas de testing documentadas.
  *
  * USO:
  *   node clean_database.js           (interactivo — pide confirmación)
  *   node clean_database.js --yes     (sin confirmación, útil en CI/CD)
- *
- * NUNCA se ejecuta automáticamente al arrancar el servidor.
  */
 
 const path = require('path');
@@ -19,7 +16,7 @@ const readline = require('readline');
 // ─── Cargar variables de entorno ────────────────────────────────────────────
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-// ─── Importar dependencias vía CommonJS (el backend usa ts-node en runtime) ─
+// ─── Importar dependencias ───────────────────────────────────────────────────
 let sqlite3, sqliteOpen, bcrypt;
 try {
   sqlite3 = require('sqlite3').verbose();
@@ -31,16 +28,47 @@ try {
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────
-const DB_PATH = path.resolve(__dirname, '../database/edutechhub.sql');
+const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, '../database/edutechhub.sql');
 
-// Administradores que deben quedar después del reset
-const ADMIN_1_EMAIL = 'felipelucero534@gmail.com';
-const ADMIN_1_NAME  = 'Felipe Lucero';
-
-const ADMIN_2_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const ADMIN_2_NAME  = 'Administrador';
-
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Donpatricio111';
+// ══════════════════════════════════════════════════════════════════
+// CUENTAS DE TESTING — Modificar aquí si es necesario
+// ══════════════════════════════════════════════════════════════════
+const TESTING_ACCOUNTS = [
+  // Admin General
+  {
+    type: 'admin',
+    nombre: 'Administrador General',
+    email: 'admin@edutechhub.edu.ar',
+    password: 'Donpatricio111',
+    dni: 'ADM-OWNER-001'
+  },
+  // Admin 2: Testing adicional
+  {
+    type: 'admin',
+    nombre: 'Administrador Testing',
+    email: (process.env.ADMIN_EMAIL || 'admin.test@tecnica29de6.edu.ar').trim().toLowerCase(),
+    password: process.env.ADMIN_PASSWORD || 'Donpatricio11123',
+    dni: 'ADM-TEST-002'
+  },
+  // Profesor de prueba
+  {
+    type: 'profesor',
+    nombre: 'Profesor Técnico',
+    email: 'profesor.prueba@tecnica29de6.edu.ar',
+    password: '12345678',
+    dni: 'PROF-TEST-001',
+    materia: 'Tecnología'
+  },
+  // Alumno de prueba
+  {
+    type: 'alumno',
+    nombre: 'Alumno de Prueba',
+    email: 'alumno.prueba@tecnica29de6.edu.ar',
+    password: '123456789',
+    dni: 'ALU-TEST-001',
+    curso: '3ro A'
+  }
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function ask(question) {
@@ -57,21 +85,13 @@ async function main() {
   const skipConfirm = process.argv.includes('--yes');
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  🧹  EduTechHub — Limpieza de Base de Datos');
+  console.log('  🧹  EduTechHub — Limpieza + Setup Testing');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
-  console.log('  Este script eliminará TODOS los datos de la BD:');
-  console.log('  • Usuarios (excepto los 2 admins)');
-  console.log('  • Clases, trabajos, entregas, materiales');
-  console.log('  • Mensajes, anuncios, notificaciones');
-  console.log('  • Calificaciones, eventos, sesiones');
-  console.log('  • Archivos en /uploads');
-  console.log('');
-  console.log('  Admins que quedarán:');
-  console.log(`  ✅  ${ADMIN_1_EMAIL}`);
-  if (ADMIN_2_EMAIL && ADMIN_2_EMAIL !== ADMIN_1_EMAIL) {
-    console.log(`  ✅  ${ADMIN_2_EMAIL}`);
-  }
+  console.log('  Se borrarán TODOS los datos y se crearán:');
+  TESTING_ACCOUNTS.forEach(acc => {
+    console.log(`  ✅  [${acc.type.toUpperCase()}] ${acc.email} — contraseña: ${acc.password}`);
+  });
   console.log('');
 
   if (!skipConfirm) {
@@ -93,6 +113,7 @@ async function main() {
     const tables = [
       'password_resets',
       'email_verifications',
+      'entrega_integrantes',
       'entregas',
       'trabajos',
       'materiales',
@@ -102,6 +123,7 @@ async function main() {
       'alumnos_clases',
       'clases',
       'calendario_notas',
+      'sesiones_simulador',
       'actas',
       'alumno',
       'profesor',
@@ -120,43 +142,89 @@ async function main() {
     await db.run('DELETE FROM usuarios');
     console.log('  🗑️  usuarios: todos eliminados');
 
-    // 3. Reiniciar secuencias SQLite (sqlite_sequence)
+    // 3. Reiniciar secuencias de autoincremento
     try {
-      await db.run("DELETE FROM sqlite_sequence");
+      await db.run('DELETE FROM sqlite_sequence');
       console.log('  🔄 Secuencias de autoincremento reiniciadas');
     } catch (e) {
       console.warn(`  ⚠️  No se pudo reiniciar sqlite_sequence: ${e.message}`);
     }
 
-    // 4. Recrear los dos administradores
+    // 4. Crear las 4 cuentas de testing
+    console.log('\n  👤 Creando cuentas de testing...\n');
     const SALT = 10;
 
-    async function ensureAdmin(email, nombre) {
-      if (!email) return;
-      const hash = await bcrypt.hash(ADMIN_PASSWORD, SALT);
-      // DNI único basado en email para cumplir UNIQUE constraint
-      const fakeDni = `ADM-${Buffer.from(email).toString('hex').slice(0, 8).toUpperCase()}`;
-      await db.run(
-        `INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI)
-         VALUES (?, ?, ?, 'admin', ?)`,
-        [nombre, email.toLowerCase(), hash, fakeDni]
+    const createdIds = {};
+
+    for (const acc of TESTING_ACCOUNTS) {
+      // Saltar admin 2 si tiene el mismo email que admin 1
+      if (acc === TESTING_ACCOUNTS[1] && acc.email === TESTING_ACCOUNTS[0].email) {
+        console.log(`  ⏭️  Admin 2 tiene el mismo email que Admin 1, omitido.`);
+        continue;
+      }
+
+      const hash = await bcrypt.hash(acc.password, SALT);
+
+      const result = await db.run(
+        `INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI, curso)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [acc.nombre, acc.email, hash, acc.type, acc.dni, acc.curso || null]
       );
-      console.log(`  🔐 Admin recreado: ${email}`);
+      const userId = result.lastID;
+      createdIds[acc.type + '_' + acc.email] = userId;
+
+      // Para alumnos, también insertar en tabla alumno
+      if (acc.type === 'alumno') {
+        const cursoRes = await db.get(`SELECT id_curso FROM curso WHERE nombre_curso = ?`, ['3ro 1ra']);
+        const idCurso = cursoRes ? cursoRes.id_curso : null;
+        await db.run(
+          `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [acc.dni, 'Alumno', 'de Prueba', idCurso, userId, acc.email, hash]
+        );
+      }
+
+      // Para profesores, también insertar en tabla profesor
+      if (acc.type === 'profesor') {
+        await db.run(
+          `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [userId, acc.email, acc.dni, acc.nombre, acc.materia || '', hash]
+        );
+      }
+
+      console.log(`  ✅  [${acc.type.toUpperCase()}] Creado: ${acc.email} (ID: ${userId})`);
     }
 
-    await ensureAdmin(ADMIN_1_EMAIL, ADMIN_1_NAME);
-    if (ADMIN_2_EMAIL && ADMIN_2_EMAIL !== ADMIN_1_EMAIL.toLowerCase()) {
-      await ensureAdmin(ADMIN_2_EMAIL, ADMIN_2_NAME);
+    // 5. Crear una clase de testing y asignar al profesor
+    const profesorId = createdIds['profesor_profe.test@edutechhub.test'];
+    const alumnoId   = createdIds['alumno_alumno.test@edutechhub.test'];
+
+    if (profesorId && alumnoId) {
+      const claseResult = await db.run(
+        `INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ['Programación 3ro A', '3ro A', 'Programación', 'Laboratorio 1', 'Profesor de Prueba', profesorId, profesorId, 'PROG-TEST-2026']
+      );
+      const claseId = claseResult.lastID;
+
+      // Inscribir al alumno en la clase
+      await db.run(
+        `INSERT INTO alumnos_clases (alumno_id, materia, codigo)
+         VALUES (?, ?, ?)`,
+        [alumnoId, 'Programación', 'PROG-TEST-2026']
+      );
+
+      console.log(`\n  🏫  Clase de testing creada: "Programación 3ro A" (ID: ${claseId}, código: PROG-TEST-2026)`);
+      console.log(`  👩‍🏫  Profesor asignado: Profesor de Prueba`);
+      console.log(`  🎓  Alumno inscripto: Alumno de Prueba`);
     }
 
     await db.run('COMMIT');
     await db.run('PRAGMA foreign_keys = ON');
-    // Compactar el archivo SQLite después del borrado masivo
     await db.run('VACUUM');
 
-    console.log('\n  ✅ Base de datos limpia y lista.');
-
-    // 5. Limpiar archivos de uploads
+    // 6. Limpiar archivos de uploads
     const uploadsDir = path.resolve(__dirname, '../uploads');
     const fs = require('fs');
     if (fs.existsSync(uploadsDir)) {
@@ -176,21 +244,31 @@ async function main() {
       }
       try {
         clearDir(uploadsDir);
-        console.log(`  🗑️  /uploads: ${count} archivo(s) eliminado(s)`);
+        console.log(`\n  🗑️  /uploads: ${count} archivo(s) eliminado(s)`);
       } catch (e) {
         console.warn(`  ⚠️  Error limpiando uploads: ${e.message}`);
       }
     }
 
+    // 7. Resumen final con credenciales
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('  🎉 EduTechHub está listo para distribución.');
+    console.log('  🎉 EduTechHub — Entorno de Testing Listo');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
-    console.log('  Credenciales de acceso:');
-    console.log(`  📧 Email:      ${ADMIN_1_EMAIL}`);
-    console.log(`  🔑 Contraseña: ${ADMIN_PASSWORD}`);
-    if (ADMIN_2_EMAIL && ADMIN_2_EMAIL !== ADMIN_1_EMAIL.toLowerCase()) {
-      console.log(`  📧 Email 2:    ${ADMIN_2_EMAIL}`);
-    }
+    console.log('  CREDENCIALES DE TESTING:');
+    console.log('');
+    TESTING_ACCOUNTS.forEach(acc => {
+      const label = acc === TESTING_ACCOUNTS[1] && acc.email === TESTING_ACCOUNTS[0].email
+        ? '(omitido - mismo email que Admin 1)'
+        : `contraseña: ${acc.password}`;
+      console.log(`  [${acc.type.toUpperCase().padEnd(8)}] ${acc.email.padEnd(40)} ${label}`);
+    });
+    console.log('');
+    console.log('  CLASE DE TESTING:');
+    console.log('  📚 Nombre:  Programación 3ro A');
+    console.log('  🔑 Código:  PROG-TEST-2026');
+    console.log('');
+    console.log('  Ver TESTING_CREDENTIALS.md para flujo completo.');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   } catch (err) {

@@ -43,10 +43,10 @@ router.post(
       // 2. Hashear contraseña
       const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-      // 3. Insertar en usuarios
+      // 3. Insertar en usuarios con estado PENDIENTE_DE_ASIGNACION
       const usuarioResult = await pool.query(
-        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol)
-         VALUES (?, ?, ?, ?, ?, 'alumno')`,
+        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso)
+         VALUES (?, ?, ?, ?, ?, 'alumno', 'PENDIENTE_DE_ASIGNACION')`,
         [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null]
       );
 
@@ -78,7 +78,15 @@ router.post(
         [DNI.trim(), nombre, apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword]
       );
 
-      return res.status(201).json({ success: true, message: '¡Alumno registrado exitosamente!' });
+      // 7. Registrar auditoría de registro
+      try {
+        await pool.query(
+          `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES (?, ?, 'REGISTRO_ALUMNO', ?)`,
+          [ID_Usuario, correo.toLowerCase().trim(), `Estado inicial: PENDIENTE_DE_ASIGNACION, Curso: ${curso || 'sin asignar'}`]
+        );
+      } catch (_e) {}
+
+      return res.status(201).json({ success: true, message: '¡Alumno registrado exitosamente! Tu cuenta está pendiente de asignación por el administrador.' });
     } catch (err: any) {
       console.error('Error en registro de alumno:', err);
       if (err.message?.includes('UNIQUE constraint failed')) {

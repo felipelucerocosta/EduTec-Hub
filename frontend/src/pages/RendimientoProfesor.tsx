@@ -286,50 +286,130 @@ const RendimientoProfesor: React.FC<RendimientoProfesorProps> = ({ claseId }) =>
     estadoEntrega: t.estado_entrega,
   }));
 
+  const exportToExcel = () => {
+    if (!data) return;
+    const alumnosRows = (data.alumnos || []).map((a: any) => ({
+      Alumno: a.nombre,
+      Correo: a.correo,
+      Promedio: a.promedio !== null ? a.promedio : 'Sin nota',
+      Porcentaje_Entregas: `${a.porcentaje_entregas}%`,
+      Entregados: `${a.entregados}/${data.total_trabajos}`,
+      Estado: a.estado_label || 'Regular'
+    }));
+
+    // CSV with UTF-8 BOM
+    const headers = ['Alumno', 'Correo', 'Promedio', '% Entregas', 'Entregas', 'Estado'];
+    const csvContent = '\uFEFF' + [
+      headers.join(';'),
+      ...alumnosRows.map((r: any) => `"${r.Alumno}";"${r.Correo}";"${r.Promedio}";"${r.Porcentaje_Entregas}";"${r.Entregados}";"${r.Estado}"`)
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Rendimiento_Clase_${claseId}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Planilla Excel exportada correctamente', 'success');
+  };
+
+  const exportToPDF = () => {
+    window.print();
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* Selector de Pestañas (GENERAL / POR ALUMNO) */}
-      <div style={{ display: 'flex', gap: '0.75rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem' }}>
-        <button
-          onClick={() => setActiveTab('general')}
-          style={{
-            padding: '0.65rem 1.25rem',
-            borderRadius: '12px',
-            background: activeTab === 'general' ? 'linear-gradient(135deg, #7c3aed, #38bdf8)' : 'rgba(30, 41, 59, 0.6)',
-            color: '#fff',
-            border: activeTab === 'general' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-            fontWeight: 700,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <i className="bx bx-line-chart"></i> 1. GENERAL (Curso Completo)
-        </button>
+      {/* Selector de Pestañas (GENERAL / POR ALUMNO) + Botones de Exportación */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('general')}
+            style={{
+              padding: '0.65rem 1.25rem',
+              borderRadius: '12px',
+              background: activeTab === 'general' ? 'linear-gradient(135deg, #7c3aed, #38bdf8)' : 'rgba(30, 41, 59, 0.6)',
+              color: '#fff',
+              border: activeTab === 'general' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <i className="bx bx-line-chart"></i> 1. GENERAL (Curso Completo)
+          </button>
 
-        <button
-          onClick={() => setActiveTab('alumno')}
-          style={{
-            padding: '0.65rem 1.25rem',
-            borderRadius: '12px',
-            background: activeTab === 'alumno' ? 'linear-gradient(135deg, #7c3aed, #38bdf8)' : 'rgba(30, 41, 59, 0.6)',
-            color: '#fff',
-            border: activeTab === 'alumno' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-            fontWeight: 700,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <i className="bx bx-user"></i> 2. POR ALUMNO (Individual)
-        </button>
+          <button
+            onClick={() => setActiveTab('alumno')}
+            style={{
+              padding: '0.65rem 1.25rem',
+              borderRadius: '12px',
+              background: activeTab === 'alumno' ? 'linear-gradient(135deg, #7c3aed, #38bdf8)' : 'rgba(30, 41, 59, 0.6)',
+              color: '#fff',
+              border: activeTab === 'alumno' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <i className="bx bx-user"></i> 2. POR ALUMNO (Individual)
+          </button>
+        </div>
+
+        {/* Botones Exportar */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={exportToExcel}
+            style={{
+              padding: '0.55rem 1rem',
+              borderRadius: '10px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#34d399',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              transition: 'all 0.15s ease'
+            }}
+            title="Descargar datos del rendimiento en formato Excel/CSV"
+          >
+            <i className="bx bx-spreadsheet"></i> Exportar Excel
+          </button>
+
+          <button
+            onClick={exportToPDF}
+            style={{
+              padding: '0.55rem 1rem',
+              borderRadius: '10px',
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              color: '#38bdf8',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              transition: 'all 0.15s ease'
+            }}
+            title="Imprimir o guardar reporte en PDF"
+          >
+            <i className="bx bx-printer"></i> Exportar PDF
+          </button>
+        </div>
       </div>
 
       {/* ───────────────────────────────────────────────────────────── */}

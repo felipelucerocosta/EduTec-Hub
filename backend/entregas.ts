@@ -7,7 +7,7 @@ import fs from 'fs';
 const router = Router();
 
 // Configure multer storage for submissions
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = process.env.UPLOADS_PATH || path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -115,10 +115,23 @@ router.get('/trabajos/:trabajoId/entregas', async (req: Request, res: Response) 
 
   try {
     const query = `
+      WITH alumnos_curso AS (
+        SELECT DISTINCT u.id_usuario as alumno_id, u.nombre_completo as alumno_nombre, u.correo as alumno_correo
+        FROM trabajos t
+        JOIN clases c ON t.clase_id = c.id
+        JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM(c.codigo))
+        JOIN usuarios u ON ac.alumno_id = u.id_usuario
+        WHERE t.id = $1
+        UNION
+        SELECT DISTINCT u.id_usuario as alumno_id, u.nombre_completo as alumno_nombre, u.correo as alumno_correo
+        FROM entregas e
+        JOIN usuarios u ON e.alumno_id = u.id_usuario
+        WHERE e.trabajo_id = $1
+      )
       SELECT 
-        u.id_usuario as alumno_id,
-        u.nombre_completo as alumno_nombre,
-        u.correo as alumno_correo,
+        ac.alumno_id,
+        ac.alumno_nombre,
+        ac.alumno_correo,
         e.id as id,
         e.id as entrega_id,
         e.archivo_nombre,
@@ -128,16 +141,12 @@ router.get('/trabajos/:trabajoId/entregas', async (req: Request, res: Response) 
         e.calificacion,
         e.feedback,
         e.fecha_entrega
-      FROM trabajos t
-      JOIN clases c ON t.clase_id = c.id
-      JOIN alumnos_clases ac ON ac.codigo = c.codigo
-      JOIN usuarios u ON ac.alumno_id = u.id_usuario
-      LEFT JOIN entregas e ON (e.trabajo_id = t.id AND e.alumno_id = u.id_usuario)
-      WHERE t.id = $1
-      ORDER BY u.nombre_completo ASC
+      FROM alumnos_curso ac
+      LEFT JOIN entregas e ON (e.trabajo_id = $1 AND e.alumno_id = ac.alumno_id)
+      ORDER BY ac.alumno_nombre ASC
     `;
     const result = await pool.query(query, [trabajoId]);
-    return res.json(result.rows);
+    return res.json(result.rows || []);
   } catch (error) {
     console.error('Error al obtener entregas:', error);
     return res.status(500).json({ error: 'Error al obtener entregas' });
@@ -168,13 +177,14 @@ router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
     await pool.query(updateQ, [calificacion, feedback || '', id]);
 
     // Send notification to student
-    const entregaQ = await pool.query('SELECT e.alumno_id, t.titulo FROM entregas e JOIN trabajos t ON e.trabajo_id = t.id WHERE e.id = $1', [id]);
+    const entregaQ = await pool.query('SELECT e.alumno_id, t.titulo, t.puntos_max FROM entregas e JOIN trabajos t ON e.trabajo_id = t.id WHERE e.id = $1', [id]);
     if (entregaQ.rows.length > 0) {
-      const { alumno_id, titulo } = entregaQ.rows[0];
+      const { alumno_id, titulo, puntos_max } = entregaQ.rows[0];
+      const maxPts = puntos_max || 10;
       await pool.query(
         `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
          VALUES ($1, 'calificacion', $2, $3, 'entrega', $4)`,
-        [alumno_id, `Trabajo calificado: ${titulo}`, `Tu entrega de "${titulo}" fue calificada con ${calificacion}/100.`, id]
+        [alumno_id, `Trabajo calificado: ${titulo}`, `Tu entrega de "${titulo}" fue calificada con ${calificacion}/${maxPts}.`, id]
       );
     }
 
@@ -218,12 +228,13 @@ router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req: Requ
     }
 
     // Send notification to student
-    const tQ = await pool.query('SELECT titulo FROM trabajos WHERE id = $1', [trabajoId]);
+    const tQ = await pool.query('SELECT titulo, puntos_max FROM trabajos WHERE id = $1', [trabajoId]);
     const titulo = tQ.rows[0]?.titulo || 'Trabajo';
+    const maxPts = tQ.rows[0]?.puntos_max || 10;
     await pool.query(
       `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
        VALUES ($1, 'calificacion', $2, $3, 'trabajo', $4)`,
-      [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion} en "${titulo}".`, trabajoId]
+      [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion}/${maxPts} en "${titulo}".`, trabajoId]
     );
 
     return res.json({ success: true, message: 'Calificación guardada exitosamente' });

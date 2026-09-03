@@ -54,9 +54,9 @@ router.post('/registro-alumno', async (req, res) => {
         }
         // 2. Hashear contraseña
         const hashedPassword = await bcrypt.hash(contrasena, 10);
-        // 3. Insertar en usuarios
-        const usuarioResult = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol)
-         VALUES (?, ?, ?, ?, ?, 'alumno')`, [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null]);
+        // 3. Insertar en usuarios con estado PENDIENTE_DE_ASIGNACION
+        const usuarioResult = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso)
+         VALUES (?, ?, ?, ?, ?, 'alumno', 'PENDIENTE_DE_ASIGNACION')`, [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null]);
         // Obtener el ID del usuario recién insertado
         const ID_Usuario = usuarioResult.rows[0]?.id_usuario ?? usuarioResult.insertId;
         if (!ID_Usuario) {
@@ -75,7 +75,12 @@ router.post('/registro-alumno', async (req, res) => {
         // 6. Insertar en tabla alumno
         await conexion_pg_1.default.query(`INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
          VALUES (?, ?, ?, ?, ?, ?, ?)`, [DNI.trim(), nombre, apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword]);
-        return res.status(201).json({ success: true, message: '¡Alumno registrado exitosamente!' });
+        // 7. Registrar auditoría de registro
+        try {
+            await conexion_pg_1.default.query(`INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES (?, ?, 'REGISTRO_ALUMNO', ?)`, [ID_Usuario, correo.toLowerCase().trim(), `Estado inicial: PENDIENTE_DE_ASIGNACION, Curso: ${curso || 'sin asignar'}`]);
+        }
+        catch (_e) { }
+        return res.status(201).json({ success: true, message: '¡Alumno registrado exitosamente! Tu cuenta está pendiente de asignación por el administrador.' });
     }
     catch (err) {
         console.error('Error en registro de alumno:', err);

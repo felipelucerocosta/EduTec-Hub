@@ -257,7 +257,7 @@ const Clases: React.FC = () => {
             </p>
           </div>
           <div className={styles.actionBar}>
-            {(currentUser?.rol === "admin" || currentUser?.rol === "profesor") && (
+            {currentUser?.rol === "admin" && (
               <Button onClick={() => { setMostrarCrear(true); setMostrarUnirse(false); }} icon="bx-plus">
                 Crear Clase
               </Button>

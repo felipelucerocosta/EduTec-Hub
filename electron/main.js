@@ -3,7 +3,7 @@
 // ============================================================
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const http = require('http');
 const fs = require('fs');
 
@@ -13,24 +13,111 @@ const BACKEND_PORT = 3001;
 let mainWindow = null;
 let backendProcess = null;
 
+// ─── Logging persistente para diagnóstico ─────────────────────
+function log(...args) {
+  const msg = `[${new Date().toISOString()}] ${args.join(' ')}`;
+  console.log(msg);
+
+  try {
+    if (app.isReady()) {
+      const logDir = path.join(app.getPath('userData'), 'logs');
+      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+      const logFile = path.join(logDir, 'edutechhub.log');
+      fs.appendFileSync(logFile, msg + '\n');
+    }
+  } catch (e) {
+    // Ignorar fallos de escritura de log
+  }
+}
+
 // ─── Rutas según entorno ─────────────────────────────────────
 function getResourcePath(...segments) {
   if (IS_DEV) {
     return path.join(__dirname, '..', ...segments);
   }
-  // En producción, extraResources va a process.resourcesPath/app/
-  return path.join(process.resourcesPath, 'app', ...segments);
+  // En producción, extraResources se ubican en process.resourcesPath/
+  return path.join(process.resourcesPath, ...segments);
 }
 
-// ─── Iniciar el servidor Express ─────────────────────────────
+// ─── Matar proceso en puerto o por PID (evitar zombis) ────────
+function killPortOrProcess(pid) {
+  if (pid) {
+    log(`[electron] Terminando proceso PID ${pid}...`);
+    if (process.platform === 'win32') {
+      try {
+        execSync(`taskkill /PID ${pid} /F /T 2>nul`, { stdio: 'ignore' });
+      } catch (e) {}
+    } else {
+      try { process.kill(pid, 'SIGKILL'); } catch (e) {}
+    }
+  }
+}
+
+// ─── Limpiar puerto antes de iniciar ─────────────────────────
+function freePortIfOccupied(port) {
+  if (process.platform === 'win32') {
+    try {
+      const output = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] });
+      const lines = output.trim().split('\n');
+      for (const line of lines) {
+        if (line.includes('LISTENING')) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== '0') {
+            log(`[electron] Puerto ${port} ocupado por PID ${pid}. Liberando...`);
+            execSync(`taskkill /PID ${pid} /F /T 2>nul`, { stdio: 'ignore' });
+          }
+        }
+      }
+    } catch (e) {
+      // Puerto no ocupado o comando sin coincidencias
+    }
+  }
+}
+
+// ─── Preparar persistencia en userData ───────────────────────
+function setupUserDataStorage() {
+  const userData = app.getPath('userData');
+  const userDbDir = path.join(userData, 'database');
+  const userDbPath = path.join(userDbDir, 'edutechhub.sql');
+  const userUploadsDir = path.join(userData, 'uploads');
+
+  if (!fs.existsSync(userDbDir)) fs.mkdirSync(userDbDir, { recursive: true });
+  if (!fs.existsSync(userUploadsDir)) fs.mkdirSync(userUploadsDir, { recursive: true });
+
+  // Si la BD de usuario no existe aún, copiar la plantilla incluida en el paquete
+  if (!fs.existsSync(userDbPath)) {
+    const templateDbPath = getResourcePath('database', 'edutechhub.sql');
+    if (fs.existsSync(templateDbPath)) {
+      log(`[electron] Copiando BD inicial desde ${templateDbPath} a ${userDbPath}`);
+      fs.copyFileSync(templateDbPath, userDbPath);
+    } else {
+      log(`[electron] ⚠️ No se encontró plantilla de BD en ${templateDbPath}`);
+    }
+  }
+
+  return { userDbPath, userUploadsDir };
+}
+
+// ─── Iniciar el servidor Express / Backend ───────────────────
 function startBackend() {
   return new Promise((resolve) => {
+    // 1. Asegurar que el puerto esté libre
+    if (!IS_DEV) {
+      freePortIfOccupied(BACKEND_PORT);
+    }
+
     const backendDir = getResourcePath('backend');
     const serverScript = path.join(backendDir, 'server.js');
     const envFile = path.join(backendDir, '.env');
 
-    // En dev usamos ts-node, en producción node sobre el JS compilado
-    let cmd, args;
+    log('[backend] backendDir:', backendDir);
+    log('[backend] serverScript:', serverScript);
+    log('[backend] serverScript exists:', fs.existsSync(serverScript));
+
+    let cmd, args, extraEnv = {};
+    let dbFilePath, uploadsDirPath;
+
     if (IS_DEV) {
       cmd = 'node';
       args = [
@@ -38,22 +125,31 @@ function startBackend() {
         '--respawn', '--transpile-only',
         path.join(__dirname, '..', 'backend', 'server.ts'),
       ];
+      dbFilePath = path.join(__dirname, '..', 'database', 'edutechhub.sql');
+      uploadsDirPath = path.join(__dirname, '..', 'uploads');
     } else {
-      cmd = process.execPath; // El Node bundled por Electron
+      // En producción, usamos el binario Electron como motor Node.js puro
+      cmd = process.execPath;
       args = [serverScript];
+      extraEnv.ELECTRON_RUN_AS_NODE = '1';
+
+      const storage = setupUserDataStorage();
+      dbFilePath = storage.userDbPath;
+      uploadsDirPath = storage.userUploadsDir;
     }
 
-    const dbPath = getResourcePath('database');
+    log('[backend] dbFilePath:', dbFilePath);
+    log('[backend] uploadsDirPath:', uploadsDirPath);
 
     backendProcess = spawn(cmd, args, {
       cwd: IS_DEV ? path.join(__dirname, '..') : backendDir,
       env: {
         ...process.env,
+        ...extraEnv,
         NODE_ENV: IS_DEV ? 'development' : 'production',
         PORT: String(BACKEND_PORT),
-        // Apuntar la BD al directorio correcto
-        DB_PATH: path.join(dbPath, 'edutechhub.sql'),
-        // Cargar .env del backend si existe
+        DB_PATH: dbFilePath,
+        UPLOADS_PATH: uploadsDirPath,
         DOTENV_CONFIG_PATH: fs.existsSync(envFile) ? envFile : undefined,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -62,23 +158,27 @@ function startBackend() {
 
     backendProcess.stdout?.on('data', (data) => {
       const msg = data.toString().trim();
-      console.log('[backend]', msg);
+      log('[backend]', msg);
       if (msg.includes('corriendo en') || msg.includes('listening')) {
         resolve();
       }
     });
 
     backendProcess.stderr?.on('data', (data) => {
-      console.error('[backend-err]', data.toString().trim());
+      log('[backend-err]', data.toString().trim());
     });
 
     backendProcess.on('error', (err) => {
-      console.error('[backend] spawn error:', err);
-      resolve(); // Continuar de todas formas
+      log('[backend] spawn error:', err.message);
+      resolve();
     });
 
-    // Máximo 10 segundos de espera
-    setTimeout(resolve, 10000);
+    backendProcess.on('exit', (code, signal) => {
+      log('[backend] process exited with code:', code, 'signal:', signal);
+    });
+
+    // Máximo 15 segundos de espera
+    setTimeout(resolve, 15000);
   });
 }
 
@@ -87,12 +187,15 @@ function waitForPort(port, maxRetries = 30) {
   return new Promise((resolve) => {
     let retries = 0;
     const attempt = () => {
-      const req = http.get(`http://localhost:${port}/`, () => resolve(true));
+      const req = http.get(`http://localhost:${port}/api/whoami`, (res) => {
+        // Si responde cualquier código HTTP (200, 401, etc.), el backend Express está vivo
+        resolve(true);
+      });
       req.on('error', () => {
         if (retries++ < maxRetries) {
           setTimeout(attempt, 400);
         } else {
-          resolve(false); // Timeout, continuar igual
+          resolve(false);
         }
       });
       req.setTimeout(500, () => req.destroy());
@@ -118,15 +221,31 @@ async function createWindow() {
     },
   });
 
-  // Links externos → navegador del sistema
+  // Enlaces externos -> abrir en navegador predeterminado
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
+  // Monitoreo de errores en renderer
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDesc, validatedURL) => {
+    log('[electron] did-fail-load:', errorCode, errorDesc, validatedURL);
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+    log(`[renderer-${levels[level] || level}]`, message);
+  });
+
   const url = `http://localhost:${BACKEND_PORT}`;
-  console.log(`[electron] Cargando: ${url}`);
-  mainWindow.loadURL(url);
+  log(`[electron] Cargando aplicación desde: ${url}`);
+
+  try {
+    await mainWindow.loadURL(url);
+    log('[electron] URL cargada exitosamente');
+  } catch (err) {
+    log('[electron] Error al cargar URL:', err.message);
+  }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -135,36 +254,47 @@ async function createWindow() {
     }
   });
 
-  mainWindow.on('closed', () => { mainWindow = null; });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 // ─── Ciclo de vida Electron ───────────────────────────────────
 app.whenReady().then(async () => {
-  console.log(`[electron] Iniciando EduTechHub (${IS_DEV ? 'dev' : 'producción'})...`);
+  log(`[electron] Iniciando EduTechHub (${IS_DEV ? 'dev' : 'producción'})...`);
+  log('[electron] app.isPackaged:', app.isPackaged);
+  log('[electron] process.resourcesPath:', process.resourcesPath);
+  log('[electron] userData:', app.getPath('userData'));
 
   try {
     await startBackend();
     const ready = await waitForPort(BACKEND_PORT);
-    if (!ready) console.warn('[electron] Backend tardó demasiado, abriendo igualmente...');
+    if (!ready) log('[electron] ⚠️ Backend tardó demasiado, abriendo ventana igualmente...');
+    else log('[electron] ✅ Backend verificado y listo en puerto', BACKEND_PORT);
+
     await createWindow();
   } catch (err) {
-    console.error('[electron] Error crítico al iniciar:', err);
+    log('[electron] Error crítico al iniciar:', err.message || err);
     app.quit();
   }
 });
 
+function cleanup() {
+  if (backendProcess) {
+    killPortOrProcess(backendProcess.pid);
+    backendProcess = null;
+  }
+}
+
 app.on('window-all-closed', () => {
-  if (backendProcess) backendProcess.kill();
+  cleanup();
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+app.on('before-quit', () => {
+  cleanup();
 });
 
-app.on('before-quit', () => {
-  if (backendProcess) {
-    backendProcess.kill();
-    backendProcess = null;
-  }
+app.on('will-quit', () => {
+  cleanup();
 });

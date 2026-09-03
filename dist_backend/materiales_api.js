@@ -9,7 +9,7 @@ const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const router = (0, express_1.Router)();
-const uploadsDir = path_1.default.join(__dirname, '../uploads');
+const uploadsDir = process.env.UPLOADS_PATH || path_1.default.join(__dirname, '../uploads');
 if (!fs_1.default.existsSync(uploadsDir)) {
     fs_1.default.mkdirSync(uploadsDir, { recursive: true });
 }

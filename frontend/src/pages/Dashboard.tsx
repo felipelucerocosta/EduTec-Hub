@@ -20,15 +20,19 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
+    const esPendiente = user.rol === 'alumno' && user.estado_acceso !== 'ACTIVO';
+
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch classes
-        const endpoint = user.rol === 'alumno' ? '/api/alumno/mis-clases' : '/api/clases';
-        const resClases = await fetch(`http://localhost:3001${endpoint}`, { credentials: 'include' });
-        if (resClases.ok) {
-          const dataClases = await resClases.json();
-          setClases(Array.isArray(dataClases) ? dataClases : []);
+        // No fetch classes for pending students
+        if (!esPendiente) {
+          const endpoint = user.rol === 'alumno' ? '/api/alumno/mis-clases' : '/api/clases';
+          const resClases = await fetch(`http://localhost:3001${endpoint}`, { credentials: 'include' });
+          if (resClases.ok) {
+            const dataClases = await resClases.json();
+            setClases(Array.isArray(dataClases) ? dataClases : []);
+          }
         }
 
         // Fetch notifications
@@ -91,12 +95,12 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {user.rol === 'profesor' && (
-              <Button onClick={() => navigate('/clases')} icon="bx-plus">
+            {user.rol === 'admin' && (
+              <Button onClick={() => navigate('/admin/clases')} icon="bx-plus">
                 Crear Clase
               </Button>
             )}
-            {user.rol === 'alumno' && (
+            {user.rol === 'alumno' && user.estado_acceso === 'ACTIVO' && (
               <Button onClick={() => navigate('/alumno')} icon="bx-key">
                 Unirse a Clase
               </Button>
@@ -188,85 +192,128 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Classes Section */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
-              Mis Clases Recientes
-            </h2>
-            <Button
-              variant="outline"
-              onClick={() => navigate(user.rol === 'alumno' ? '/alumno' : '/clases')}
-              icon="bx-right-arrow-alt"
-            >
-              Ver Todas
-            </Button>
-          </div>
-
-          {loading ? (
-            <LoadingSkeleton type="card" count={3} />
-          ) : clases.length === 0 ? (
-            <EmptyState
-              icon="bx-book-bookmark"
-              title="No tienes clases registradas"
-              description={user.rol === 'alumno'
-                ? 'Introdúcete en una materia usando el código provisto por tu docente.'
-                : 'Crea tu primera aula virtual para comenzar a subir trabajos y materiales.'}
-              actionLabel={user.rol === 'alumno' ? 'Unirse a Clase' : 'Crear Clase'}
-              onAction={() => navigate(user.rol === 'alumno' ? '/alumno' : '/clases')}
-            />
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-              {clases.slice(0, 6).map((clase, idx) => (
-                <div
-                  key={clase.id || idx}
-                  onClick={() => navigate(user.rol === 'alumno' ? `/alumno/gestion/${clase.id}` : `/gestionClase/${clase.id}`)}
-                  style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    padding: '1.25rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '1rem'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color-hover)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                      <span className="badge badge-purple">{clase.materia}</span>
-                      {clase.codigo && <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>#{clase.codigo}</span>}
-                    </div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem' }}>
-                      {clase.nombre}
-                    </h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0 }}>
-                      {clase.aula ? `Aula: ${clase.aula}` : ''} {clase.seccion ? `· ${clase.seccion}` : ''}
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      Docente: {clase.creador || 'Docente'}
-                    </span>
-                    <span style={{ fontSize: '0.82rem', color: '#38bdf8', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      Ingresar <i className="bx bx-right-arrow-alt"></i>
-                    </span>
-                  </div>
-                </div>
-              ))}
+        {/* Classes Section — hidden for pending students */}
+        {user.rol !== 'alumno' || user.estado_acceso === 'ACTIVO' ? (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc' }}>
+                Mis Clases Recientes
+              </h2>
+              <Button
+                variant="outline"
+                onClick={() => navigate(user.rol === 'alumno' ? '/alumno' : '/clases')}
+                icon="bx-right-arrow-alt"
+              >
+                Ver Todas
+              </Button>
             </div>
-          )}
-        </div>
+
+            {loading ? (
+              <LoadingSkeleton type="card" count={3} />
+            ) : clases.length === 0 ? (
+              <EmptyState
+                icon="bx-book-bookmark"
+                title="No tienes clases registradas"
+                description={user.rol === 'alumno'
+                  ? 'Introdúcete en una materia usando el código provisto por tu docente.'
+                  : 'Crea tu primera aula virtual para comenzar a subir trabajos y materiales.'}
+                actionLabel={user.rol === 'alumno' ? 'Unirse a Clase' : user.rol === 'admin' ? 'Crear Clase' : 'Ver Clases'}
+                onAction={() => navigate(user.rol === 'alumno' ? '/alumno' : '/clases')}
+              />
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                {clases.slice(0, 6).map((clase, idx) => (
+                  <div
+                    key={clase.id || idx}
+                    onClick={() => navigate(user.rol === 'alumno' ? `/alumno/gestion/${clase.id}` : `/gestionClase/${clase.id}`)}
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '16px',
+                      padding: '1.25rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '1rem'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color-hover)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <span className="badge badge-purple">{clase.materia}</span>
+                        {clase.codigo && <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>#{clase.codigo}</span>}
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.35rem' }}>
+                        {clase.nombre}
+                      </h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0 }}>
+                        {clase.aula ? `Aula: ${clase.aula}` : ''} {clase.seccion ? `· ${clase.seccion}` : ''}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        Docente: {clase.creador || 'Docente'}
+                      </span>
+                      <span style={{ fontSize: '0.82rem', color: '#38bdf8', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        Ingresar <i className="bx bx-right-arrow-alt"></i>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* PENDIENTE banner in dashboard */
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(56,189,248,0.05))',
+            border: '1px solid rgba(124,58,237,0.2)',
+            borderRadius: '20px',
+            padding: '2.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%',
+              background: 'rgba(124,58,237,0.15)',
+              border: '2px solid rgba(124,58,237,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <i className="bx bx-time-five" style={{ fontSize: '2rem', color: '#a78bfa' }}></i>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)',
+                color: '#fbbf24', borderRadius: '999px', padding: '0.25rem 0.85rem',
+                fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em',
+                marginBottom: '0.75rem', textTransform: 'uppercase' as const
+              }}>
+                <i className="bx bx-loader-alt bx-spin"></i>
+                Pendiente de asignación
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: '0 0 0.5rem 0' }}>
+                Aún no tienes clases asignadas
+              </h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0, lineHeight: 1.6 }}>
+                Aún no tienes clases asignadas a tu perfil. Cuando el Administrador te asigne un
+                curso o comisión, aparecerán automáticamente en tu panel.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );
