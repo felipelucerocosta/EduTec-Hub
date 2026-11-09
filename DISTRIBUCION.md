@@ -1,70 +1,87 @@
-# EduTechHub — Guía de Distribución
+# 📦 EduTechHub — Guía de Distribución y Empaquetado
 
-## 🚀 Inicio Rápido (Desarrollo)
+Este documento detalla el procedimiento para compilar, generar bundles de producción y empaquetar ejecutables nativos para Windows de **EduTechHub**.
+
+---
+
+## 🚀 1. Entorno de Desarrollo Local
 
 ```bash
+# 1. Instalar dependencias raíz y backend
 npm install
 cd backend && npm install && cd ..
-copy backend\.env.example backend\.env
-# Editar backend\.env con tus valores
+
+# 2. Configurar variables de entorno
+cp backend/.env.example backend/.env
+
+# 3. Iniciar servidores de desarrollo concurrentes
 npm run dev
 ```
 
-Abre **http://localhost:5173**.
+- **Frontend:** `http://localhost:5173` (Vite)
+- **Backend:** `http://localhost:3001` (Express API)
 
 ---
 
-## 👤 Administradores
+## 🏗️ 2. Verificación y Compilación de Producción
 
-Configurar en `backend/.env`:
-
-```env
-ADMIN_EMAIL=tu@correo.com
-ADMIN_PASSWORD=TuContraseñaSegura
-```
-
-Admin fijo adicional: `felipelucero534@gmail.com`
-
----
-
-## 🧹 Limpiar Base de Datos
+Antes de empaquetar, se debe verificar que ambos entornos compilen sin errores:
 
 ```bash
-npm run clean:db          # interactivo (escribe "LIMPIAR")
-npm run clean:db:force    # sin confirmación
-```
+# 1. Chequeo de tipos del frontend
+npm run typecheck
 
-Elimina todos los datos de prueba. Deja solo los 2 admins.
+# 2. Compilación del backend a dist_backend/
+npm run build:backend
+
+# 3. Compilación del frontend con Vite a dist/
+npm run build
+```
 
 ---
 
-## 📦 Build
+## 💻 3. Generación del Ejecutable para Windows (`.exe`)
+
+EduTechHub utiliza **Electron** y **Electron Builder** para generar instaladores NSIS y binarios portables.
+
+### Ejecutar el empaquetador:
+```bash
+npm run build:exe
+```
+
+El script realiza los siguientes pasos de manera automatizada:
+1. Compila el bundle de producción de React a `dist/`.
+2. Compila el servidor TypeScript de Express a `dist_backend/`.
+3. Empaqueta el runtime de Node, base de datos SQLite y assets en la carpeta `release/`.
+
+### Archivos generados en `release/`:
+- `EduTechHub Setup 1.0.0.exe` — Instalador guiado de Windows con acceso directo en escritorio e inicio.
+- `EduTechHub-Portable.exe` — Versión portable ejecutable sin requerir privilegios de administrador.
+
+---
+
+## 🧹 4. Mantenimiento y Reseteo de Base de Datos
+
+Para restablecer la base de datos a su estado limpio con las 7 cuentas de prueba:
 
 ```bash
-npm run build       # bundle web en dist/
-npm run build:exe   # ejecutable Windows en release/
+# Modo interactivo (solicita confirmación):
+npm run clean:db
+
+# Modo directo (ideal para scripts de CI/CD o testing automatizado):
+npm run clean:db:force
 ```
 
-El ejecutable requiere: `npm install -D electron electron-builder`
-
 ---
 
-## 🔧 Scripts
+## 📜 5. Resumen de Scripts del Proyecto
 
-| Comando | Descripción |
-|---|---|
-| `npm run dev` | Frontend + backend en paralelo |
-| `npm run typecheck` | Verifica TypeScript |
-| `npm run build` | Build de producción |
-| `npm run clean:db` | Limpia BD (confirmación) |
-| `npm run clean:db:force` | Limpia BD sin confirmación |
-| `npm run build:exe` | Genera .exe Windows |
-
----
-
-## 🏗️ Arquitectura
-
-- **Frontend:** React + Vite → puerto 5173
-- **Backend:** Express + TypeScript → puerto 3001
-- **Base de datos:** SQLite embebida en `database/edutechhub.sql`
-- **Auth:** express-session + cookies httpOnly (7 días)
+| Comando | Acción |
+| :--- | :--- |
+| `npm run dev` | Inicia backend y frontend en simultáneo con hot-reload |
+| `npm run typecheck` | Chequea tipado estricto con TypeScript |
+| `npm run build:backend` | Compila TypeScript del backend a JavaScript |
+| `npm run build` | Genera el bundle estático de producción del frontend |
+| `npm run build:exe` | Genera los binarios `.exe` en `release/` |
+| `npm run clean:db` | Resetea la base de datos con confirmación |
+| `npm run clean:db:force` | Resetea la base de datos inmediatamente |

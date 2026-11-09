@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from './AdminLayout';
 import { useToast } from '../../contexts/ToastContext';
-
-const API_URL = 'http://localhost:3001/api';
+import { API_URL } from '../../config/api';
 
 interface Clase {
   id: number;

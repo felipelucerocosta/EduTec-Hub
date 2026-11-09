@@ -5,10 +5,8 @@ import AppLayout from "../components/layout/AppLayout";
 import Button from "../components reutilizables/Button";
 
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
-
-const API_URL = "http://localhost:3001/api";
-const SOCKET_URL = "http://localhost:3001";
+import { Link } from "react-router-dom";
+import { API_URL, SOCKET_URL } from "../config/api";
 
 interface Mensaje {
   id: number;
@@ -39,17 +37,12 @@ const formatearFecha = (fechaStr: string) => {
 
 const Foro: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [mensaje, setMensaje] = useState<string>("");
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user && user.rol === "profesor") {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, navigate]);
+  // Permite tanto a alumnos como a docentes y admins ver el tablón de sus clases asignadas
 
   const cargarMensajes = useCallback(async () => {
     try {
@@ -201,10 +194,13 @@ const Foro: React.FC = () => {
             {/* Message Feed */}
             <div className={styles.messageFeed}>
               {mensajes.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <i className="bx bx-conversation" style={{ fontSize: "2.5rem", color: "#475569" }}></i>
-                  <p style={{ margin: "0.5rem 0 0 0", color: "#64748b", fontSize: "0.95rem" }}>
-                    No hay mensajes en el foro aún. ¡Sé el primero en iniciar una conversación!
+                <div className={styles.emptyState} style={{ padding: "3rem 1.5rem", textAlign: "center" }}>
+                  <i className="bx bx-conversation" style={{ fontSize: "3rem", color: "#64748b" }}></i>
+                  <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#f8fafc", margin: "0.75rem 0 0.25rem 0" }}>
+                    No hay contenido para mostrar
+                  </h3>
+                  <p style={{ margin: "0.25rem 0 0 0", color: "#94a3b8", fontSize: "0.92rem" }}>
+                    No tenés clases asignadas, por lo tanto no hay contenido para mostrar.
                   </p>
                 </div>
               ) : (

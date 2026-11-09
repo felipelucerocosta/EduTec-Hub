@@ -6,6 +6,7 @@ import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
 import Modal from "../components reutilizables/Modal";
 import { useAuth } from "../contexts/AuthContext";
+import { API_URL } from "../config/api";
 
 interface Clase {
   id?: number;
@@ -37,7 +38,7 @@ const ClasesAlumno: React.FC = () => {
 
   const cargarClases = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/alumno/mis-clases", {
+      const response = await fetch(`${API_URL}/alumno/mis-clases`, {
         credentials: "include",
       });
       if (response.ok) {
@@ -68,7 +69,7 @@ const ClasesAlumno: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:3001/api/unirse-clase", {
+      const response = await fetch(`${API_URL}/unirse-clase`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ materia, codigo }),
@@ -227,11 +228,16 @@ const ClasesAlumno: React.FC = () => {
         {/* Classes grid */}
         <div className={styles.coursesList}>
           {clases.length === 0 ? (
-            <div className={styles.emptyState} style={{ gridColumn: "1 / -1" }}>
+            <div className={styles.emptyState} style={{ gridColumn: "1 / -1", padding: "3rem 1.5rem" }}>
               <i className={`bx bx-folder-open ${styles.emptyStateIcon}`}></i>
-              <p className={styles.emptyStateText}>No estás inscrito en ninguna clase todavía.</p>
-              <Button variant="outline" onClick={() => setMostrarUnirse(true)} style={{ marginTop: "1rem" }} icon="bx-plus">
-                Inscribirse ahora
+              <h3 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#f8fafc", margin: "0.75rem 0 0.25rem 0" }}>
+                No tenés clases asignadas actualmente.
+              </h3>
+              <p className={styles.emptyStateText} style={{ maxWidth: "500px", margin: "0.25rem auto 1.5rem auto" }}>
+                Cuando un administrador te asigne a una clase, aparecerá acá.
+              </p>
+              <Button variant="outline" onClick={() => setMostrarUnirse(true)} icon="bx-key">
+                Unirse con Código
               </Button>
             </div>
           ) : (

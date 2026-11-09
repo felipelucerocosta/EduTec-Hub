@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const conexion_pg_1 = __importDefault(require("./conexion_pg"));
+const permisos_1 = require("./permisos");
 const router = (0, express_1.Router)();
 function getIo() {
     try {
@@ -15,28 +16,57 @@ function getIo() {
         return null;
     }
 }
-// POST /api/guardar-mensaje - Post message to forum (supports class-specific or global)
+// POST /api/guardar-mensaje - Post message/announcement to a class
 router.post('/guardar-mensaje', async (req, res) => {
     const { mensaje, clase_id } = req.body;
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
+        return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+    }
     if (!mensaje || mensaje.trim() === '') {
         return res.status(400).json({ error: 'El mensaje no puede estar vacío.' });
     }
-    const userId = req.session?.usuario?.id || null;
-    const userNombre = req.session?.usuario?.nombre || 'Usuario';
-    const userRol = req.session?.usuario?.rol || 'alumno';
+    let targetClaseId = clase_id ? Number(clase_id) : null;
+    // Si no se envió clase_id explícito, buscar la primera clase asignada del usuario
+    if (!targetClaseId && usuario.rol !== 'admin' && !usuario.isAdmin) {
+        try {
+            if (usuario.rol === 'profesor') {
+                const pQ = await conexion_pg_1.default.query(`SELECT id FROM clases WHERE titular_id = $1 UNION SELECT clase_id as id FROM profesores_clases WHERE profesor_id = $1 LIMIT 1`, [usuario.id]);
+                targetClaseId = pQ.rows[0]?.id || null;
+            }
+            else {
+                const aQ = await conexion_pg_1.default.query(`SELECT c.id FROM clases c JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM(c.codigo)) WHERE ac.alumno_id = $1 LIMIT 1`, [usuario.id]);
+                targetClaseId = aQ.rows[0]?.id || null;
+            }
+        }
+        catch (_e) { }
+        if (!targetClaseId) {
+            return res.status(403).json({ error: 'No tienes clases asignadas para publicar mensajes.' });
+        }
+    }
+    // Si hay clase_id, verificar permisos
+    if (targetClaseId) {
+        const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, targetClaseId);
+        if (!permitido) {
+            return res.status(403).json({ error: motivo || 'No perteneces a esta clase.' });
+        }
+    }
+    const cleanMensaje = mensaje.trim();
+    const userId = usuario.id;
+    const userNombre = usuario.nombre || 'Usuario';
+    const userRol = usuario.rol || 'alumno';
     try {
-        if (clase_id) {
-            // Save as class announcement
-            const insertRes = await conexion_pg_1.default.query('INSERT INTO anuncios (clase_id, autor_id, contenido) VALUES ($1, $2, $3) RETURNING id', [clase_id, userId || 1, mensaje.trim()]);
-            const insertedId = insertRes.insertId || (insertRes.rows && insertRes.rows[0]?.id) || Date.now();
+        if (targetClaseId) {
+            const insertRes = await conexion_pg_1.default.query('INSERT INTO anuncios (clase_id, autor_id, contenido) VALUES ($1, $2, $3) RETURNING id', [targetClaseId, userId, cleanMensaje]);
+            const insertedId = insertRes.rows?.[0]?.id || insertRes.insertId || Date.now();
             const nuevoMensaje = {
                 id: insertedId,
-                mensaje: mensaje.trim(),
+                mensaje: cleanMensaje,
                 fecha: new Date().toISOString(),
                 usuario: userNombre,
                 usuario_id: userId,
                 rol: userRol,
-                clase_id: Number(clase_id)
+                clase_id: targetClaseId
             };
             const io = getIo();
             if (io) {
@@ -45,10 +75,9 @@ router.post('/guardar-mensaje', async (req, res) => {
             return res.status(201).json({ success: true, message: 'Mensaje publicado', nuevoMensaje });
         }
         else {
-            // Save to global forum
-            const cleanMensaje = mensaje.trim();
+            // Global forum para admin
             const insertRes = await conexion_pg_1.default.query('INSERT INTO tablon_mensajes (mensaje, usuario_id, usuario_nombre) VALUES ($1, $2, $3) RETURNING id', [cleanMensaje, userId, userNombre]);
-            const insertedId = insertRes.insertId || (insertRes.rows && insertRes.rows[0]?.id) || Date.now();
+            const insertedId = insertRes.rows?.[0]?.id || insertRes.insertId || Date.now();
             const nuevoMensaje = {
                 id: insertedId,
                 mensaje: cleanMensaje,
@@ -69,18 +98,29 @@ router.post('/guardar-mensaje', async (req, res) => {
         return res.status(500).json({ error: 'Error al guardar el mensaje' });
     }
 });
-// GET /api/mensajes - List forum messages as JSON
+// GET /api/mensajes - List announcements for user's assigned classes
 router.get('/mensajes', async (req, res) => {
     const clase_id = req.query.clase_id;
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
+        return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+    }
     try {
         if (clase_id) {
+            const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, Number(clase_id));
+            if (!permitido) {
+                return res.status(403).json({ error: motivo || 'No tienes acceso a esta clase.' });
+            }
             const query = `
         SELECT a.id, a.contenido as mensaje, a.fecha, 
                COALESCE(u.nombre_completo, 'Usuario') as usuario, 
                a.autor_id as usuario_id,
-               COALESCE(u.rol, 'profesor') as rol
+               COALESCE(u.rol, 'profesor') as rol,
+               a.clase_id,
+               c.nombre as clase_nombre
         FROM anuncios a
         LEFT JOIN usuarios u ON a.autor_id = u.id_usuario
+        LEFT JOIN clases c ON a.clase_id = c.id
         WHERE a.clase_id = $1
         ORDER BY a.fecha DESC
         LIMIT 50
@@ -89,40 +129,69 @@ router.get('/mensajes', async (req, res) => {
             return res.json(result.rows || []);
         }
         else {
-            const query = `
-        SELECT tm.id, tm.mensaje, tm.fecha, tm.usuario_id, tm.usuario_nombre,
-               u.nombre_completo as db_nombre, u.rol as db_rol
-        FROM tablon_mensajes tm
-        LEFT JOIN usuarios u ON tm.usuario_id = u.id_usuario
-        ORDER BY tm.id DESC
-        LIMIT 50
-      `;
-            const result = await conexion_pg_1.default.query(query);
-            const rows = result.rows || [];
-            // Process and clean up messages for frontend JSON response
-            const mensajesFormateados = rows.map((row) => {
-                let text = row.mensaje || '';
-                let usuario = row.db_nombre || row.usuario_nombre || 'Usuario';
-                // Check if legacy message was saved as "[Nombre] texto"
-                if (text.startsWith('[')) {
-                    const match = text.match(/^\[(.*?)\]\s*(.*)$/);
-                    if (match) {
-                        if (usuario === 'Usuario' || !row.usuario_nombre) {
-                            usuario = match[1];
-                        }
-                        text = match[2];
-                    }
-                }
-                return {
-                    id: row.id,
-                    mensaje: text,
-                    fecha: row.fecha,
-                    usuario: usuario,
-                    usuario_id: row.usuario_id || null,
-                    rol: row.db_rol || 'alumno'
-                };
-            });
-            return res.json(mensajesFormateados);
+            // Filtrar según clases asignadas al usuario
+            if (usuario.rol === 'admin' || usuario.isAdmin) {
+                const query = `
+          SELECT a.id, a.contenido as mensaje, a.fecha, 
+                 COALESCE(u.nombre_completo, 'Usuario') as usuario, 
+                 a.autor_id as usuario_id,
+                 COALESCE(u.rol, 'profesor') as rol,
+                 a.clase_id,
+                 c.nombre as clase_nombre
+          FROM anuncios a
+          LEFT JOIN usuarios u ON a.autor_id = u.id_usuario
+          LEFT JOIN clases c ON a.clase_id = c.id
+          ORDER BY a.fecha DESC
+          LIMIT 50
+        `;
+                const result = await conexion_pg_1.default.query(query);
+                return res.json(result.rows || []);
+            }
+            else if (usuario.rol === 'profesor') {
+                const query = `
+          SELECT a.id, a.contenido as mensaje, a.fecha, 
+                 COALESCE(u.nombre_completo, 'Usuario') as usuario, 
+                 a.autor_id as usuario_id,
+                 COALESCE(u.rol, 'profesor') as rol,
+                 a.clase_id,
+                 c.nombre as clase_nombre
+          FROM anuncios a
+          LEFT JOIN usuarios u ON a.autor_id = u.id_usuario
+          LEFT JOIN clases c ON a.clase_id = c.id
+          WHERE a.clase_id IN (
+            SELECT id FROM clases WHERE titular_id = $1
+            UNION
+            SELECT clase_id FROM profesores_clases WHERE profesor_id = $1
+          )
+          ORDER BY a.fecha DESC
+          LIMIT 50
+        `;
+                const result = await conexion_pg_1.default.query(query, [usuario.id]);
+                return res.json(result.rows || []);
+            }
+            else {
+                // Alumno: solo anuncios de sus clases
+                const query = `
+          SELECT a.id, a.contenido as mensaje, a.fecha, 
+                 COALESCE(u.nombre_completo, 'Usuario') as usuario, 
+                 a.autor_id as usuario_id,
+                 COALESCE(u.rol, 'profesor') as rol,
+                 a.clase_id,
+                 c.nombre as clase_nombre
+          FROM anuncios a
+          LEFT JOIN usuarios u ON a.autor_id = u.id_usuario
+          LEFT JOIN clases c ON a.clase_id = c.id
+          WHERE a.clase_id IN (
+            SELECT c2.id FROM clases c2
+            JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM(c2.codigo))
+            WHERE ac.alumno_id = $1
+          )
+          ORDER BY a.fecha DESC
+          LIMIT 50
+        `;
+                const result = await conexion_pg_1.default.query(query, [usuario.id]);
+                return res.json(result.rows || []);
+            }
         }
     }
     catch (err) {

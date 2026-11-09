@@ -5,8 +5,7 @@ import Button from "../components reutilizables/Button";
 import LoadingSkeleton from "../components/ui/LoadingSkeleton";
 import EmptyState from "../components/ui/EmptyState";
 import TareaDetalle from "../componentes/TareaDetalle";
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL } from "../config/api";
 
 interface Tarea {
   id: number;
@@ -91,11 +90,12 @@ const TrabajosAlumno: React.FC = () => {
         
         {/* Class Header Banner */}
         <div style={{
-          background: "linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(56, 189, 248, 0.1))",
-          border: "1px solid rgba(124, 58, 237, 0.25)",
+          background: "rgba(255,255,255,0.038)",
+          border: "1px solid rgba(124, 58, 237, 0.2)",
           borderRadius: "20px", padding: "1.75rem",
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          flexWrap: "wrap", gap: "1rem"
+          flexWrap: "wrap", gap: "1rem",
+          boxShadow: "0 0 0 1px rgba(124,58,237,0.06) inset",
         }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
@@ -116,50 +116,50 @@ const TrabajosAlumno: React.FC = () => {
         </div>
 
         {/* Tab switcher */}
-        <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.5rem", overflowX: "auto" }}>
-          <button
-            onClick={() => setActiveTab("trabajos")}
-            style={{
-              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "trabajos" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "trabajos" ? "#f8fafc" : "#94a3b8",
-              fontWeight: activeTab === "trabajos" ? 600 : 500, fontSize: "0.9rem",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
-            }}
-          >
-            <i className="bx bx-task"></i> Trabajos ({tareas.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("materiales")}
-            style={{
-              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "materiales" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "materiales" ? "#f8fafc" : "#94a3b8",
-              fontWeight: activeTab === "materiales" ? 600 : 500, fontSize: "0.9rem",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
-            }}
-          >
-            <i className="bx bx-folder"></i> Materiales ({materiales.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("anuncios")}
-            style={{
-              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "anuncios" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "anuncios" ? "#f8fafc" : "#94a3b8",
-              fontWeight: activeTab === "anuncios" ? 600 : 500, fontSize: "0.9rem",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
-            }}
-          >
-            <i className="bx bx-news"></i> Tablón ({anuncios.length})
-          </button>
+        <div style={{ display: "flex", gap: "0.2rem", borderBottom: "1px solid rgba(255,255,255,0.07)", overflowX: "auto" }}>
+          {([
+            { id: "trabajos", icon: "bx-task", label: "Trabajos", count: tareas.length },
+            { id: "materiales", icon: "bx-folder", label: "Materiales", count: materiales.length },
+            { id: "anuncios", icon: "bx-news", label: "Tablón", count: anuncios.length },
+          ] as const).map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: "0.65rem 1.1rem",
+                  borderRadius: "8px 8px 0 0",
+                  border: "1px solid",
+                  borderColor: isActive ? "rgba(255,255,255,0.07) rgba(255,255,255,0.07) #7c3aed" : "transparent",
+                  borderBottom: isActive ? "2px solid #7c3aed" : "2px solid transparent",
+                  background: isActive ? "rgba(124,58,237,0.1)" : "transparent",
+                  color: isActive ? "#f8fafc" : "#64748b",
+                  fontFamily: "'Sora', sans-serif",
+                  fontWeight: isActive ? 600 : 500,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: "0.4rem",
+                  whiteSpace: "nowrap",
+                  position: "relative",
+                  bottom: "-1px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <i className={`bx ${tab.icon}`}></i> {tab.label} ({tab.count})
+              </button>
+            );
+          })}
           <button
             onClick={() => navigate(`/simuladores/${claseId}`)}
             style={{
-              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: "rgba(56, 189, 248, 0.1)", color: "#38bdf8",
-              fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
-              display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
+              padding: "0.65rem 1.1rem", borderRadius: "8px 8px 0 0",
+              border: "1px solid transparent", borderBottom: "2px solid transparent",
+              background: "transparent", color: "#38bdf8",
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 500, fontSize: "0.875rem", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
             }}
           >
             <i className="bx bx-atom"></i> Simuladores
@@ -167,10 +167,13 @@ const TrabajosAlumno: React.FC = () => {
           <button
             onClick={() => navigate(`/boletin`)}
             style={{
-              padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: "rgba(124, 58, 237, 0.15)", color: "#a78bfa",
-              fontWeight: 600, fontSize: "0.9rem", cursor: "pointer",
-              display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
+              padding: "0.65rem 1.1rem", borderRadius: "8px 8px 0 0",
+              border: "1px solid transparent", borderBottom: "2px solid transparent",
+              background: "transparent", color: "#a78bfa",
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 500, fontSize: "0.875rem", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
             }}
           >
             <i className="bx bx-receipt"></i> Mi Boletín
@@ -197,20 +200,20 @@ const TrabajosAlumno: React.FC = () => {
                       key={tarea.id}
                       onClick={() => navigate(`/trabajo/${tarea.id}`)}
                       style={{
-                        background: "var(--bg-card)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "14px", padding: "1.15rem 1.5rem",
+                        background: "rgba(255,255,255,0.038)",
+                        border: "1px solid rgba(255,255,255,0.075)",
+                        borderRadius: "14px", padding: "1rem 1.4rem",
                         cursor: "pointer", transition: "all 0.2s ease",
                         display: "flex", justifyContent: "space-between",
-                        alignItems: "center", gap: "1rem"
+                        alignItems: "center", gap: "1rem",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "var(--border-color-hover)";
-                        e.currentTarget.style.background = "var(--bg-card-hover)";
+                        e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)";
+                        e.currentTarget.style.background = "rgba(124,58,237,0.06)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--border-color)";
-                        e.currentTarget.style.background = "var(--bg-card)";
+                        e.currentTarget.style.borderColor = "rgba(255,255,255,0.075)";
+                        e.currentTarget.style.background = "rgba(255,255,255,0.038)";
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -280,7 +283,7 @@ const TrabajosAlumno: React.FC = () => {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
                 {materiales.map((mat) => (
                   <div key={mat.id} style={{
-                    background: "var(--bg-card)", border: "1px solid var(--border-color)",
+                    background: "rgba(255,255,255,0.038)", border: "1px solid rgba(255,255,255,0.075)",
                     borderRadius: "14px", padding: "1.25rem", display: "flex", flexDirection: "column",
                     justifyContent: "space-between", gap: "0.75rem"
                   }}>
@@ -298,7 +301,7 @@ const TrabajosAlumno: React.FC = () => {
                     </div>
                     {mat.archivo_path && (
                       <a
-                        href={`http://localhost:3001/api/materiales/descargar/${mat.archivo_path}`}
+                        href={`${API_URL}/materiales/descargar/${mat.archivo_path}`}
                         target="_blank"
                         rel="noreferrer"
                         style={{
@@ -342,7 +345,7 @@ const TrabajosAlumno: React.FC = () => {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                 {anuncios.map((anc) => (
                   <div key={anc.id} style={{
-                    background: "var(--bg-card)", border: "1px solid var(--border-color)",
+                    background: "rgba(255,255,255,0.038)", border: "1px solid rgba(255,255,255,0.075)",
                     borderRadius: "14px", padding: "1.25rem"
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>

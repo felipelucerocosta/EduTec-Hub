@@ -4,6 +4,7 @@ import styles from "../Registro.module.css";
 import Header from "../components reutilizables/header";
 import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
+import { API_URL } from "../config/api";
 
 interface Notification {
   msg: string;
@@ -29,7 +30,7 @@ const ForgotPassword = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3001/api/forgot-password", {
+      const response = await fetch(`${API_URL}/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correo: email }),

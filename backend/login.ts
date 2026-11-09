@@ -182,7 +182,7 @@ router.post('/login', async (req: Request, res: Response) => {
       'felipe.lucero.617@alu.tecnica29de6.edu.ar',
       'thiago.said.489@alu.tecnica29de6.edu.ar'
     ];
-    let rol: string = usuario.rol || 'alumno';
+    let rol: 'alumno' | 'profesor' | 'admin' = (usuario.rol === 'admin' || usuario.rol === 'profesor' || usuario.rol === 'alumno') ? usuario.rol : 'alumno';
     if (defaultAdminEmails.includes(correo) || (process.env.ADMIN_EMAIL && correo === process.env.ADMIN_EMAIL.trim().toLowerCase())) {
       rol = 'admin';
     } else if (rol !== 'admin') {

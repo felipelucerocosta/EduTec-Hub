@@ -7,8 +7,7 @@ import Modal from "../components reutilizables/Modal";
 import LoadingSkeleton from "../components/ui/LoadingSkeleton";
 import EmptyState from "../components/ui/EmptyState";
 import { useToast } from "../contexts/ToastContext";
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL, BACKEND_URL } from "../config/api";
 
 interface Trabajo {
   id: number;
@@ -456,7 +455,7 @@ const GestionClase: React.FC = () => {
                       </p>
                     </div>
                     {m.archivo_path && (
-                      <a href={`http://localhost:3001/api/materiales/descargar/${m.archivo_path}`} target="_blank" rel="noreferrer" style={{ fontSize: "0.82rem", color: "#38bdf8", fontWeight: 600 }}>
+                      <a href={`${API_URL}/materiales/descargar/${m.archivo_path}`} target="_blank" rel="noreferrer" style={{ fontSize: "0.82rem", color: "#38bdf8", fontWeight: 600 }}>
                         <i className="bx bx-download"></i> Descargar
                       </a>
                     )}
@@ -709,7 +708,7 @@ const GestionClase: React.FC = () => {
                   {ent.archivo_nombre && (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <a
-                        href={`http://localhost:3001/uploads/${ent.archivo_path}`}
+                        href={`${BACKEND_URL}/uploads/${ent.archivo_path}`}
                         target="_blank" rel="noreferrer"
                         style={{ fontSize: "0.84rem", color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 600, textDecoration: "none" }}
                       >

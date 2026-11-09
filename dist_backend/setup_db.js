@@ -38,6 +38,74 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const conexion_pg_1 = __importDefault(require("./conexion_pg"));
 const bcrypt = __importStar(require("bcrypt"));
+// Helper para verificar y agregar columnas sin generar excepciones SQL ruidosas
+async function addColumnIfNotExists(table, column, columnDef) {
+    try {
+        const info = await conexion_pg_1.default.query(`PRAGMA table_info(${table});`);
+        const exists = info.rows && info.rows.some((r) => r.name === column);
+        if (!exists) {
+            await conexion_pg_1.default.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${columnDef};`);
+        }
+    }
+    catch (_e) {
+        // En caso de concurrencia o tabla no creada aún
+    }
+}
+/**
+ * Realiza un upsert completamente idempotente en la tabla 'usuarios'
+ * verificando primero por DNI y por correo para no violar UNIQUE constraints.
+ */
+async function upsertUsuario(u, saltRounds = 10) {
+    const hashPass = await bcrypt.hash(u.pass, saltRounds);
+    const emailNorm = u.correo.trim().toLowerCase();
+    const dniNorm = u.dni.trim();
+    const estadoAcceso = u.estado_acceso || 'ACTIVO';
+    const cursoVal = u.curso || null;
+    // 1. Comprobación previa obligatoria por DNI y por Correo
+    const existByDni = await conexion_pg_1.default.query('SELECT id_usuario, correo, DNI, rol FROM usuarios WHERE DNI = $1', [dniNorm]);
+    const existByEmail = await conexion_pg_1.default.query('SELECT id_usuario, correo, DNI, rol FROM usuarios WHERE LOWER(correo) = $1', [emailNorm]);
+    let idUsuario;
+    if (existByDni.rows.length > 0 && existByEmail.rows.length > 0) {
+        const idDni = existByDni.rows[0].id_usuario;
+        const idEmail = existByEmail.rows[0].id_usuario;
+        if (idDni === idEmail) {
+            // El mismo registro coincide en DNI y Correo: actualizar
+            idUsuario = idDni;
+            await conexion_pg_1.default.query(`UPDATE usuarios 
+                 SET contrasena = $1, nombre_completo = $2, rol = $3, estado_acceso = $4, curso = $5, correo = $6, DNI = $7 
+                 WHERE id_usuario = $8`, [hashPass, u.nombre, u.rol, estadoAcceso, cursoVal, emailNorm, dniNorm, idUsuario]);
+        }
+        else {
+            // Dos registros distintos en conflicto temporal: liberar DNI previo
+            idUsuario = idEmail;
+            await conexion_pg_1.default.query(`UPDATE usuarios SET DNI = 'TEMP-' || id_usuario || '-' || hex(randomblob(4)) WHERE id_usuario = $1`, [idDni]);
+            await conexion_pg_1.default.query(`UPDATE usuarios 
+                 SET contrasena = $1, nombre_completo = $2, rol = $3, estado_acceso = $4, curso = $5, correo = $6, DNI = $7 
+                 WHERE id_usuario = $8`, [hashPass, u.nombre, u.rol, estadoAcceso, cursoVal, emailNorm, dniNorm, idUsuario]);
+        }
+    }
+    else if (existByDni.rows.length > 0) {
+        // Encontrado por DNI -> actualizar correo y datos
+        idUsuario = existByDni.rows[0].id_usuario;
+        await conexion_pg_1.default.query(`UPDATE usuarios 
+             SET contrasena = $1, nombre_completo = $2, correo = $3, rol = $4, estado_acceso = $5, curso = $6 
+             WHERE id_usuario = $7`, [hashPass, u.nombre, emailNorm, u.rol, estadoAcceso, cursoVal, idUsuario]);
+    }
+    else if (existByEmail.rows.length > 0) {
+        // Encontrado por Correo -> actualizar DNI y datos
+        idUsuario = existByEmail.rows[0].id_usuario;
+        await conexion_pg_1.default.query(`UPDATE usuarios 
+             SET contrasena = $1, nombre_completo = $2, DNI = $3, rol = $4, estado_acceso = $5, curso = $6 
+             WHERE id_usuario = $7`, [hashPass, u.nombre, dniNorm, u.rol, estadoAcceso, cursoVal, idUsuario]);
+    }
+    else {
+        // No existe: Insertar nuevo usuario
+        const insertRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_usuario`, [hashPass, u.nombre, emailNorm, dniNorm, cursoVal, u.rol, estadoAcceso]);
+        idUsuario = insertRes.rows[0]?.id_usuario || insertRes.insertId;
+    }
+    return idUsuario;
+}
 const crearTablas = async () => {
     console.log("🔄 Inicializando Base de Datos Embebida (SQLite)...");
     try {
@@ -63,10 +131,7 @@ const crearTablas = async () => {
             );
         `);
         // Migración: agregar estado_acceso si la tabla ya existía
-        try {
-            await conexion_pg_1.default.query(`ALTER TABLE usuarios ADD COLUMN estado_acceso TEXT DEFAULT 'PENDIENTE_DE_ASIGNACION';`);
-        }
-        catch (_e) { /* columna ya existe */ }
+        await addColumnIfNotExists('usuarios', 'estado_acceso', "TEXT DEFAULT 'PENDIENTE_DE_ASIGNACION'");
         // Activar admins y profesores existentes
         try {
             await conexion_pg_1.default.query(`UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE rol IN ('admin', 'profesor') AND (estado_acceso IS NULL OR estado_acceso != 'SUSPENDIDO');`);
@@ -138,6 +203,18 @@ const crearTablas = async () => {
                 FOREIGN KEY(alumno_id) REFERENCES usuarios(id_usuario)
             );
         `);
+        // 6b. Tabla PROFESORES_CLASES (Asignaciones explícitas de docentes)
+        await conexion_pg_1.default.query(`
+            CREATE TABLE IF NOT EXISTS profesores_clases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profesor_id INTEGER NOT NULL,
+                clase_id INTEGER NOT NULL,
+                fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(profesor_id) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+                FOREIGN KEY(clase_id) REFERENCES clases(id) ON DELETE CASCADE,
+                UNIQUE(profesor_id, clase_id)
+            );
+        `);
         // 7. Tabla ACTAS
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS actas (
@@ -160,14 +237,8 @@ const crearTablas = async () => {
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        try {
-            await conexion_pg_1.default.query(`ALTER TABLE tablon_mensajes ADD COLUMN usuario_id INTEGER;`);
-        }
-        catch (e) { }
-        try {
-            await conexion_pg_1.default.query(`ALTER TABLE tablon_mensajes ADD COLUMN usuario_nombre TEXT;`);
-        }
-        catch (e) { }
+        await addColumnIfNotExists('tablon_mensajes', 'usuario_id', 'INTEGER');
+        await addColumnIfNotExists('tablon_mensajes', 'usuario_nombre', 'TEXT');
         // 8. Tabla PASSWORD_RESETS
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS password_resets (
@@ -220,10 +291,7 @@ const crearTablas = async () => {
             );
         `);
         // Migración segura: agregar tipo_entrega si la tabla ya existía
-        try {
-            await conexion_pg_1.default.query(`ALTER TABLE trabajos ADD COLUMN tipo_entrega TEXT DEFAULT 'individual';`);
-        }
-        catch (_e) { /* columna ya existe, ok */ }
+        await addColumnIfNotExists('trabajos', 'tipo_entrega', "TEXT DEFAULT 'individual'");
         try {
             await conexion_pg_1.default.query(`UPDATE trabajos SET puntos_max = 10 WHERE puntos_max != 10;`);
         }
@@ -342,7 +410,7 @@ const crearTablas = async () => {
             );
         `);
         console.log("✅ Estructura de tablas en SQLite verificada/creada correctamente.");
-        // 11. Sembrado de Cursos
+        // 11. Sembrado de Cursos (Idempotente)
         await conexion_pg_1.default.query(`
             INSERT INTO curso (nombre_curso) VALUES
             ('1ro 1ra'), ('1ro 2da'), ('1ro 3ra'), ('1ro 4ta'), ('1ro 5ta'), ('1ro 6ta'), ('1ro 7ma'), ('1ro 8va'), ('1ro 9na'), ('1ro 10ma'),
@@ -354,7 +422,7 @@ const crearTablas = async () => {
             ON CONFLICT (nombre_curso) DO NOTHING;
         `);
         console.log("🌱 Sembrado de cursos completado.");
-        // Sembrado de Períodos Académicos 2026
+        // Sembrado de Períodos Académicos 2026 (Idempotente)
         const existPeriodos = await conexion_pg_1.default.query('SELECT id FROM periodos_academicos WHERE anio = 2026');
         if (existPeriodos.rows.length === 0) {
             const periodos2026 = [
@@ -372,131 +440,233 @@ const crearTablas = async () => {
         const saltRounds = 10;
         const isProduction = process.env.NODE_ENV === 'production';
         if (!isProduction) {
-            // Alumnos de prueba (soporta tanto el nuevo como el anterior)
-            const alumnosTesting = [
-                { correo: 'alumno.prueba@tecnica29de6.edu.ar', nombre: 'Alumno de Prueba', pass: '123456789' },
-                { correo: 'felipe.lucero.617@alu.tecnica29de6.edu.ar', nombre: 'Felipe Lucero', pass: '123456789' }
+            // ─── A. Administradores de prueba (Idempotente) ─────────────────
+            const adminsTesting = [
+                { correo: 'admin@edutechhub.edu.ar', nombre: 'Administrador General', pass: 'Donpatricio111', dni: 'ADM-001', rol: 'admin' },
+                { correo: 'felipelucero534@gmail.com', nombre: 'Felipe Lucero', pass: 'Donpatricio111', dni: 'ADM-OWNER-001', rol: 'admin' },
+                { correo: 'felipe.lucero.617@alu.tecnica29de6.edu.ar', nombre: 'Felipe Lucero', pass: 'Donpatricio111', dni: 'ADM-FELIPE-001', rol: 'admin' },
+                { correo: 'thiago.said.489@alu.tecnica29de6.edu.ar', nombre: 'Administrador Testing', pass: 'Donpatricio111', dni: 'ADM-TEST-002', rol: 'admin' }
             ];
-            for (const a of alumnosTesting) {
-                const hashPass = await bcrypt.hash(a.pass, saltRounds);
-                const existAlumno = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [a.correo.toLowerCase()]);
-                let idUsuario;
-                if (existAlumno.rows.length === 0) {
-                    const userRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso) 
-                         VALUES ($1, $2, $3, $4, $5, 'alumno', 'ACTIVO') RETURNING id_usuario`, [hashPass, a.nombre, a.correo, '12345678', '3ro A']);
-                    idUsuario = userRes.rows[0].id_usuario;
-                    const cursoRes = await conexion_pg_1.default.query('SELECT id_curso FROM curso WHERE nombre_curso = $1', ['3ro 1ra']);
-                    const idCurso = cursoRes.rows.length > 0 ? cursoRes.rows[0].id_curso : null;
-                    await conexion_pg_1.default.query(`INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7)`, ['12345678', a.nombre.split(' ')[0], a.nombre.split(' ')[1] || 'Prueba', idCurso, idUsuario, a.correo, hashPass]);
-                    console.log(`🌱 [DEV] Alumno de prueba sembrado (ACTIVO): ${a.correo}`);
-                }
-                else {
-                    idUsuario = existAlumno.rows[0].id_usuario;
-                    await conexion_pg_1.default.query('UPDATE usuarios SET contrasena = $1, rol = \'alumno\', estado_acceso = \'ACTIVO\' WHERE id_usuario = $2', [hashPass, idUsuario]);
-                    console.log(`🌱 [DEV] Alumno de prueba actualizado (ACTIVO): ${a.correo}`);
-                }
+            for (const adm of adminsTesting) {
+                const idUsuario = await upsertUsuario(adm, saltRounds);
+                // Limpiar posibles registros desactualizados en alumno
+                await conexion_pg_1.default.query('DELETE FROM alumno WHERE id_usuario = $1', [idUsuario]);
+                console.log(`🌱 [DEV] Admin asegurado (ACTIVO): ${adm.correo} [${adm.dni}]`);
             }
-            // Profesores de prueba (soporta tanto el nuevo como el anterior)
+            // ─── B. Profesores de prueba (Múltiples materias y profesores) ───
             const profesoresTesting = [
-                { correo: 'profesor.prueba@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678' },
-                { correo: 'profesor.tecnica@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678' }
+                { correo: 'profesor.matematica@tecnica29de6.edu.ar', nombre: 'Profesor de Matemática', pass: '12345678', dni: 'PROF-MAT-001', materia: 'Matemática' },
+                { correo: 'profesor.programacion@tecnica29de6.edu.ar', nombre: 'Profesor de Programación', pass: '12345678', dni: 'PROF-PRG-002', materia: 'Programación' },
+                { correo: 'profesor.redes@tecnica29de6.edu.ar', nombre: 'Prof. Martín Redes', pass: '12345678', dni: 'PROF-RED-03', materia: 'Redes' },
+                { correo: 'profesor.sistemas@tecnica29de6.edu.ar', nombre: 'Prof. Roberto Sistemas', pass: '12345678', dni: 'PROF-SIS-04', materia: 'Desarrollo de Sistemas' },
+                { correo: 'profesor.prueba@tecnica29de6.edu.ar', nombre: 'Profesor Técnico', pass: '12345678', dni: 'PROF-PRUEBA-001', materia: 'Tecnología' },
+                { correo: 'profesor.sinclase@tecnica29de6.edu.ar', nombre: 'Profesor Sin Asignar', pass: '12345678', dni: 'PROF-VAC-003', materia: 'Física' }
             ];
-            let idProfesorPrincipal = null;
+            const profesorIdMap = {};
             for (const p of profesoresTesting) {
+                const idUsuario = await upsertUsuario({
+                    correo: p.correo,
+                    nombre: p.nombre,
+                    pass: p.pass,
+                    dni: p.dni,
+                    rol: 'profesor',
+                    estado_acceso: 'ACTIVO'
+                }, saltRounds);
                 const hashPass = await bcrypt.hash(p.pass, saltRounds);
-                const existProf = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [p.correo.toLowerCase()]);
-                let idUsuario;
-                if (existProf.rows.length === 0) {
-                    const userRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso) 
-                         VALUES ($1, $2, $3, $4, $5, 'profesor', 'ACTIVO') RETURNING id_usuario`, [hashPass, p.nombre, p.correo, '87654321', null]);
-                    idUsuario = userRes.rows[0].id_usuario;
+                const existProfTable = await conexion_pg_1.default.query('SELECT id_profesor FROM profesor WHERE id_usuario = $1 OR DNI = $2 OR LOWER(correo) = $3', [idUsuario, p.dni, p.correo.toLowerCase()]);
+                if (existProfTable.rows.length === 0) {
                     await conexion_pg_1.default.query(`INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
-                         VALUES ($1, $2, $3, $4, $5, $6)`, [idUsuario, p.correo, '87654321', p.nombre, 'Tecnología', hashPass]);
-                    console.log(`🌱 [DEV] Profesor de prueba sembrado (ACTIVO): ${p.correo}`);
+                         VALUES ($1, $2, $3, $4, $5, $6)`, [idUsuario, p.correo.toLowerCase(), p.dni, p.nombre, p.materia, hashPass]);
                 }
                 else {
-                    idUsuario = existProf.rows[0].id_usuario;
-                    await conexion_pg_1.default.query('UPDATE usuarios SET contrasena = $1, rol = \'profesor\', estado_acceso = \'ACTIVO\' WHERE id_usuario = $2', [hashPass, idUsuario]);
-                    console.log(`🌱 [DEV] Profesor de prueba actualizado (ACTIVO): ${p.correo}`);
+                    await conexion_pg_1.default.query(`UPDATE profesor 
+                         SET id_usuario = $1, correo = $2, DNI = $3, nombre_completo = $4, materia = $5, contrasena = $6 
+                         WHERE id_profesor = $7`, [idUsuario, p.correo.toLowerCase(), p.dni, p.nombre, p.materia, hashPass, existProfTable.rows[0].id_profesor]);
                 }
-                if (!idProfesorPrincipal)
-                    idProfesorPrincipal = idUsuario;
+                console.log(`🌱 [DEV] Profesor asegurado: ${p.correo} [${p.dni}]`);
+                profesorIdMap[p.correo] = idUsuario;
             }
-            // 14. Sembrado de Clases por Defecto
-            const clasesDefecto = [
-                { nombre: "Redes", materia: "Redes", aula: "Laboratorio de Redes", codigo: "RED-SEC-01" },
-                { nombre: "Matemática", materia: "Matemática", aula: "Aula 5", codigo: "MAT-SEC-02" },
-                { nombre: "Ciencia y Tecnología", materia: "Ciencia y Tecnología", aula: "Aula 3", codigo: "CYT-SEC-03" },
-                { nombre: "Ciudadanía", materia: "Ciudadanía", aula: "Aula 2", codigo: "CIU-SEC-04" },
-                { nombre: "Programación sobre Redes", materia: "Programación sobre Redes", aula: "Laboratorio 2", codigo: "PSR-SEC-05" },
-                { nombre: "Desarrollo de Sistemas", materia: "Desarrollo de Sistemas", aula: "Laboratorio 1", codigo: "DDS-SEC-06" },
-                { nombre: "Prácticas", materia: "Prácticas", aula: "Taller", codigo: "PRA-SEC-07" },
+            // ─── C. Alumnos de prueba por División ──────────────────────────
+            const alumnosTesting = [
+                { correo: 'alumno.3ro1ra@tecnica29de6.edu.ar', nombre: 'Alumno Tres Uno', pass: '123456789', dni: 'ALU-31-001', curso: '3ro 1ra' },
+                { correo: 'alumno.4to2da@tecnica29de6.edu.ar', nombre: 'Alumno Cuatro Dos', pass: '123456789', dni: 'ALU-42-002', curso: '4to 2da' },
+                { correo: 'alumno.5to1ra@tecnica29de6.edu.ar', nombre: 'Lucas Rodríguez', pass: '123456789', dni: 'ALU-51-003', curso: '5to 1ra' },
+                { correo: 'alumno.6to1ra@tecnica29de6.edu.ar', nombre: 'Valentina López', pass: '123456789', dni: 'ALU-61-004', curso: '6to 1ra' },
+                { correo: 'alumno.prueba@tecnica29de6.edu.ar', nombre: 'Alumno de Prueba', pass: '123456789', dni: 'ALU-PRUEBA-001', curso: '3ro 1ra' },
+                { correo: 'alumno.sinclase@tecnica29de6.edu.ar', nombre: 'Alumno Sin Clases', pass: '123456789', dni: 'ALU-VAC-003', curso: '1ro 1ra' }
             ];
-            for (const c of clasesDefecto) {
+            const alumnoIdMap = {};
+            for (const a of alumnosTesting) {
+                const idUsuario = await upsertUsuario({
+                    correo: a.correo,
+                    nombre: a.nombre,
+                    pass: a.pass,
+                    dni: a.dni,
+                    rol: 'alumno',
+                    curso: a.curso,
+                    estado_acceso: 'ACTIVO'
+                }, saltRounds);
+                const cursoRes = await conexion_pg_1.default.query('SELECT id_curso FROM curso WHERE nombre_curso = $1', [a.curso]);
+                const idCurso = cursoRes.rows.length > 0 ? cursoRes.rows[0].id_curso : null;
+                const hashPass = await bcrypt.hash(a.pass, saltRounds);
+                const existAlumnoTable = await conexion_pg_1.default.query('SELECT id_alumno FROM alumno WHERE id_usuario = $1 OR DNI = $2 OR LOWER(correo) = $3', [idUsuario, a.dni, a.correo.toLowerCase()]);
+                const partesNombre = a.nombre.split(' ');
+                const nombreSolo = partesNombre[0];
+                const apellidoSolo = partesNombre.slice(1).join(' ') || '';
+                if (existAlumnoTable.rows.length === 0) {
+                    await conexion_pg_1.default.query(`INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`, [a.dni, nombreSolo, apellidoSolo, idCurso, idUsuario, a.correo.toLowerCase(), hashPass]);
+                }
+                else {
+                    await conexion_pg_1.default.query(`UPDATE alumno 
+                         SET DNI = $1, nombre_completo = $2, apellido = $3, id_curso = $4, id_usuario = $5, correo = $6, contrasena = $7 
+                         WHERE id_alumno = $8`, [a.dni, nombreSolo, apellidoSolo, idCurso, idUsuario, a.correo.toLowerCase(), hashPass, existAlumnoTable.rows[0].id_alumno]);
+                }
+                console.log(`🌱 [DEV] Alumno asegurado (${a.curso}): ${a.correo} [${a.dni}]`);
+                alumnoIdMap[a.correo] = idUsuario;
+            }
+            // ─── D. Clases independientes por División ─────────────────────
+            const adminId = (await conexion_pg_1.default.query("SELECT id_usuario FROM usuarios WHERE rol = 'admin' LIMIT 1")).rows[0]?.id_usuario || null;
+            const clasesConfig = [
+                {
+                    nombre: "Matemática 3ro 1ra",
+                    materia: "Matemática",
+                    seccion: "3ro 1ra",
+                    aula: "Aula 12",
+                    codigo: "MAT-31-01",
+                    profeCorreo: "profesor.matematica@tecnica29de6.edu.ar",
+                    alumnosCorreos: ["alumno.3ro1ra@tecnica29de6.edu.ar", "alumno.prueba@tecnica29de6.edu.ar"]
+                },
+                {
+                    nombre: "Programación 4to 2da",
+                    materia: "Programación",
+                    seccion: "4to 2da",
+                    aula: "Laboratorio 2",
+                    codigo: "PRG-42-02",
+                    profeCorreo: "profesor.programacion@tecnica29de6.edu.ar",
+                    alumnosCorreos: ["alumno.4to2da@tecnica29de6.edu.ar"]
+                },
+                {
+                    nombre: "Redes 5to 1ra",
+                    materia: "Redes",
+                    seccion: "5to 1ra",
+                    aula: "Laboratorio de Redes",
+                    codigo: "RED-51-03",
+                    profeCorreo: "profesor.redes@tecnica29de6.edu.ar",
+                    alumnosCorreos: ["alumno.5to1ra@tecnica29de6.edu.ar"]
+                },
+                {
+                    nombre: "Desarrollo de Sistemas 6to 1ra",
+                    materia: "Desarrollo de Sistemas",
+                    seccion: "6to 1ra",
+                    aula: "Laboratorio 1",
+                    codigo: "DDS-61-04",
+                    profeCorreo: "profesor.sistemas@tecnica29de6.edu.ar",
+                    alumnosCorreos: ["alumno.6to1ra@tecnica29de6.edu.ar"]
+                },
+                {
+                    nombre: "Física 4to 1ra",
+                    materia: "Física",
+                    seccion: "4to 1ra",
+                    aula: "Aula 8",
+                    codigo: "FIS-41-05",
+                    profeCorreo: null, // 0 profesores asignados
+                    alumnosCorreos: [] // 0 alumnos asignados
+                },
+                {
+                    nombre: "Taller de Hardware 2do 1ra",
+                    materia: "Hardware",
+                    seccion: "2do 1ra",
+                    aula: "Taller 3",
+                    codigo: "HDW-21-06",
+                    profeCorreo: null, // 0 profesores asignados
+                    alumnosCorreos: [] // 0 alumnos asignados
+                }
+            ];
+            for (const c of clasesConfig) {
+                const titularId = c.profeCorreo ? (profesorIdMap[c.profeCorreo] || null) : null;
+                const profeNombre = c.profeCorreo
+                    ? profesoresTesting.find(p => p.correo === c.profeCorreo)?.nombre || 'Profesor'
+                    : 'Sin Asignar';
+                let claseId;
                 const existClase = await conexion_pg_1.default.query('SELECT id FROM clases WHERE codigo = $1', [c.codigo]);
                 if (existClase.rows.length === 0) {
-                    await conexion_pg_1.default.query(`INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
-                         VALUES ($1, 'Secundario', $2, $3, 'Profesor Técnico', $4, $4, $5)`, [c.nombre, c.materia, c.aula, idProfesorPrincipal, c.codigo]);
-                    console.log(`🌱 [DEV] Clase secundaria sembrada: ${c.nombre}`);
+                    const insertClase = await conexion_pg_1.default.query(`INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`, [c.nombre, c.seccion, c.materia, c.aula, profeNombre, adminId, titularId, c.codigo]);
+                    claseId = insertClase.rows[0]?.id || insertClase.insertId;
+                    console.log(`🌱 [DEV] Clase sembrada: ${c.nombre} (Titular: ${profeNombre})`);
                 }
                 else {
-                    await conexion_pg_1.default.query(`UPDATE clases SET titular_id = COALESCE(titular_id, $1), creador_id = COALESCE(creador_id, $1) WHERE codigo = $2`, [idProfesorPrincipal, c.codigo]);
+                    claseId = existClase.rows[0].id;
+                    await conexion_pg_1.default.query(`UPDATE clases SET nombre = $1, seccion = $2, materia = $3, aula = $4, titular_id = $5, creador = $6 WHERE id = $7`, [c.nombre, c.seccion, c.materia, c.aula, titularId, profeNombre, claseId]);
                 }
-            }
-            // Inscribir automáticamente a los alumnos de prueba en las clases por defecto
-            for (const a of alumnosTesting) {
-                const userAlumnoRes = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [a.correo.toLowerCase()]);
-                if (userAlumnoRes.rows.length > 0) {
-                    const idAlumno = userAlumnoRes.rows[0].id_usuario;
-                    for (const c of clasesDefecto) {
-                        const existEnroll = await conexion_pg_1.default.query('SELECT id FROM alumnos_clases WHERE alumno_id = $1 AND codigo = $2', [idAlumno, c.codigo]);
+                // Asignar en tabla profesores_clases si tiene docente asignado
+                if (titularId && claseId) {
+                    const existPC = await conexion_pg_1.default.query('SELECT id FROM profesores_clases WHERE profesor_id = $1 AND clase_id = $2', [titularId, claseId]);
+                    if (existPC.rows.length === 0) {
+                        await conexion_pg_1.default.query('INSERT INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2)', [titularId, claseId]);
+                    }
+                }
+                // Inscribir explícitamente solo a sus alumnos asignados
+                for (const aluCorreo of c.alumnosCorreos) {
+                    const aluId = alumnoIdMap[aluCorreo];
+                    if (aluId) {
+                        const existEnroll = await conexion_pg_1.default.query('SELECT id FROM alumnos_clases WHERE alumno_id = $1 AND LOWER(TRIM(codigo)) = LOWER(TRIM($2))', [aluId, c.codigo]);
                         if (existEnroll.rows.length === 0) {
-                            await conexion_pg_1.default.query('INSERT INTO alumnos_clases (alumno_id, materia, codigo) VALUES ($1, $2, $3)', [idAlumno, c.materia, c.codigo]);
+                            await conexion_pg_1.default.query('INSERT INTO alumnos_clases (alumno_id, materia, codigo) VALUES ($1, $2, $3)', [aluId, c.materia, c.codigo]);
                         }
                     }
                 }
             }
-            console.log('🌱 [DEV] Alumnos de prueba inscriptos en clases por defecto.');
-            // Sembrar algunos trabajos de prueba si no existen
-            const matClase = await conexion_pg_1.default.query('SELECT id FROM clases WHERE codigo = $1', ['MAT-SEC-02']);
+            // Sembrar trabajos específicos de prueba para Matemática 3ro 1ra si no existen
+            const matClase = await conexion_pg_1.default.query('SELECT id, titular_id FROM clases WHERE codigo = $1', ['MAT-31-01']);
             if (matClase.rows.length > 0) {
                 const idMat = matClase.rows[0].id;
+                const titularMat = matClase.rows[0].titular_id;
                 const existTrabajo = await conexion_pg_1.default.query('SELECT id FROM trabajos WHERE clase_id = $1', [idMat]);
                 if (existTrabajo.rows.length === 0) {
                     await conexion_pg_1.default.query(`INSERT INTO trabajos (clase_id, titulo, descripcion, instrucciones, fecha_limite, puntos_max, creado_por)
-                         VALUES ($1, 'TP 1 - Sistemas de Ecuaciones', 'Resolver los ejercicios planteados en la guía práctica 1.', 'Entregar archivo PDF o imagen legible con las respuestas.', '2026-09-15 23:59:00', 10, $2)`, [idMat, idProfesorPrincipal]);
+                         VALUES ($1, 'TP 1 - Sistemas de Ecuaciones Lineales', 'Resolver los ejercicios 1 a 5 de la guía práctica.', 'Entregar archivo PDF con procedimiento detallado.', '2026-09-20 23:59:00', 10, $2)`, [idMat, titularMat]);
                     await conexion_pg_1.default.query(`INSERT INTO trabajos (clase_id, titulo, descripcion, instrucciones, fecha_limite, puntos_max, creado_por)
-                         VALUES ($1, 'TP 2 - Funciones Cuadráticas', 'Graficar y calcular vértices y raíces.', 'Completar el laboratorio interactivo y subir informe.', '2026-09-30 23:59:00', 10, $2)`, [idMat, idProfesorPrincipal]);
-                    console.log('🌱 [DEV] Trabajos de prueba sembrados para Matemática.');
+                         VALUES ($1, 'TP 2 - Funciones Polinómicas y Cuadráticas', 'Graficar raíces y vértices.', 'Subir informe.', '2026-10-05 23:59:00', 10, $2)`, [idMat, titularMat]);
+                    console.log('🌱 [DEV] Trabajos de prueba sembrados para Matemática 3ro 1ra.');
                 }
             }
         }
         else {
             console.log('🏭 Modo producción: datos de prueba omitidos.');
         }
-        // 13. Sembrado de Administradores
-        const adminEmails = ['admin@edutechhub.edu.ar', 'felipelucero534@gmail.com'];
+        // 13. Sembrado / Aseguramiento de Administradores Principales (Siempre activo e idempotente)
+        const adminAccounts = [
+            { correo: 'admin@edutechhub.edu.ar', nombre: 'Administrador General', pass: 'Donpatricio111', dni: 'ADM-001', rol: 'admin' },
+            { correo: 'felipelucero534@gmail.com', nombre: 'Felipe Lucero', pass: 'Donpatricio111', dni: 'ADM-OWNER-001', rol: 'admin' }
+        ];
         if (process.env.ADMIN_EMAIL) {
-            adminEmails.push(process.env.ADMIN_EMAIL.trim().toLowerCase());
-        }
-        const adminPass = process.env.ADMIN_PASSWORD || 'Donpatricio111';
-        for (const email of adminEmails) {
-            const hashed = await bcrypt.hash(adminPass, saltRounds);
-            const existing = await conexion_pg_1.default.query('SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1', [email.toLowerCase()]);
-            if (existing.rows.length === 0) {
-                await conexion_pg_1.default.query(`INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI) 
-                     VALUES ($1, $2, $3, 'admin', $4)`, ['Administrador General', email, hashed, `DNI-${Math.floor(Math.random() * 10000000)}`]);
-                console.log(`🔐 Usuario admin creado: ${email}`);
-            }
-            else {
-                await conexion_pg_1.default.query(`UPDATE usuarios SET contrasena = $1, rol = 'admin' WHERE LOWER(correo) = $2`, [hashed, email.toLowerCase()]);
-                console.log(`🔐 Rol y contraseña admin actualizados para: ${email}`);
+            const extraEmail = process.env.ADMIN_EMAIL.trim().toLowerCase();
+            if (!adminAccounts.some(a => a.correo.toLowerCase() === extraEmail)) {
+                adminAccounts.push({
+                    correo: extraEmail,
+                    nombre: 'Administrador del Sistema',
+                    pass: process.env.ADMIN_PASSWORD || 'Donpatricio111',
+                    dni: 'ADM-ENV-001',
+                    rol: 'admin'
+                });
             }
         }
+        for (const adm of adminAccounts) {
+            await upsertUsuario({
+                ...adm,
+                pass: adm.pass || process.env.ADMIN_PASSWORD || 'Donpatricio111',
+                rol: 'admin',
+                estado_acceso: 'ACTIVO'
+            }, saltRounds);
+            console.log(`🔐 Administrador asegurado (ACTIVO): ${adm.correo} [${adm.dni}]`);
+        }
+        console.log("🚀 Inicialización y sincronización de base de datos finalizada con éxito.");
     }
     catch (error) {
         console.error("❌ Error al crear tablas o sembrar datos en SQLite:", error);
+        throw error;
     }
 };
 exports.default = crearTablas;

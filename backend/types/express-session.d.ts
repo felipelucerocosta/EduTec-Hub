@@ -5,7 +5,7 @@ declare module 'express-session' {
     id: number;
     nombre: string;
     correo: string;
-    rol: 'alumno' | 'profesor' | 'admin' | string;
+    rol: 'alumno' | 'profesor' | 'admin';
     estado_acceso?: 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO' | string;
     isAdmin?: boolean;
   }

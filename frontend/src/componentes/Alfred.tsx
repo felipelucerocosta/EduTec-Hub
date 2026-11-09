@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../alfred.css";
 import { useAuth } from "../contexts/AuthContext";
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL } from "../config/api";
 
 // ─── Árbol de decisiones ────────────────────────────────────────────────────
 interface TreeNode {
@@ -274,15 +273,36 @@ interface Message {
   options?: Option[];
 }
 
-const Alfred: React.FC = () => {
+interface AlfredProps {
+  isOpenOverride?: boolean;
+  onCloseOverride?: () => void;
+}
+
+const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isOpen = isOpenOverride !== undefined ? isOpenOverride : isOpenInternal;
+  const setIsOpen = (open: boolean | ((prev: boolean) => boolean)) => {
+    setIsOpenInternal(prev => {
+      const next = typeof open === "function" ? open(prev) : open;
+      if (!next && onCloseOverride) onCloseOverride();
+      return next;
+    });
+  };
   const [, setCurrentNode] = useState<string>("start");
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsOpenInternal(prev => !prev);
+    };
+    window.addEventListener("toggle-alfred", handleToggle);
+    return () => window.removeEventListener("toggle-alfred", handleToggle);
+  }, []);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {

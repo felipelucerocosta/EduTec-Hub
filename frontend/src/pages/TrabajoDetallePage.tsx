@@ -4,8 +4,7 @@ import AppLayout from '../components/layout/AppLayout';
 import Button from '../components reutilizables/Button';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import { useToast } from '../contexts/ToastContext';
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL } from '../config/api';
 
 interface TrabajoDetalle {
   id: number;

@@ -1,69 +1,104 @@
-# React + TypeScript + Vite
+# 🎓 EduTechHub — Plataforma de Gestión Educativa para Escuelas Técnicas
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+EduTechHub es una plataforma integral de gestión educativa y aula virtual diseñada para escuelas técnicas secundarias. Proporciona control de acceso basado en roles (**RBAC**), gestión independiente de clases por división, seguimiento de rendimiento académico, entrega y corrección de trabajos prácticos, simuladores técnicos interactivos y asistencia con Alfred.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Características Principales
 
-## Expanding the ESLint configuration
+- 🔐 **Control de Acceso Basado en Roles (RBAC):**
+  - **Administrador:** Gestión total de usuarios, roles, creación de clases, asignación de docentes/alumnos y auditoría.
+  - **Profesor:** Gestión de trabajos prácticos, corrección con devoluciones, subida de recursos didácticos y análisis de rendimiento de sus cursos asignados.
+  - **Alumno:** Entrega de tareas, visualización de calificaciones, boletín de períodos académicos, acceso a simuladores y foro de debate.
+- 🏫 **Aislamiento Estricto de Clases por División:**
+  - Las clases nuevas nacen con 0 profesores y 0 alumnos hasta ser asignadas por el administrador.
+  - Las divisiones (3ro 1ra, 4to 2da, 5to 1ra, etc.) no comparten contenido ni matriculaciones por defecto.
+- 📊 **Seguimiento del Rendimiento Académico y Boletín:**
+  - Gráficos interactivos de evolución temporal, tasas de aprobación y promedios automáticos agrupados por períodos académicos.
+- 🧪 **Simuladores Técnicos:**
+  - Simuladores interactivos integrados para especialidades técnicas (circuitos, programación, lógica digital, etc.).
+- 🤖 **Asistente Alfred:**
+  - Generación y recuperación segura de credenciales institucionales mediante códigos de verificación de un solo uso.
+- 💻 **Multiplataforma:**
+  - Aplicación Web responsiva y empaquetado para escritorio en Windows mediante Electron.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🛠️ Stack Tecnológico
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+| Capa | Tecnologías |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite, React Router 7, Vanilla CSS Modules, Socket.io-client |
+| **Backend** | Node.js, Express, TypeScript, Express-Session, Bcrypt, Multer, Socket.io |
+| **Base de Datos** | SQLite3 / PostgreSQL compatible (`conexion_pg.ts` con pool transaccional) |
+| **Escritorio** | Electron, Electron Builder (generación de instalador NSIS y Portable `.exe`) |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## 📦 Instalación y Puesta en Marcha
+
+### Prerrequisitos
+- **Node.js** >= 18.x
+- **npm** >= 9.x
+
+### 1. Clonar e Instalar Dependencias
+```bash
+# Clonar el repositorio
+git clone https://github.com/felipelucerocosta/EduTec-Hub.git
+cd EduTec-Hub
+
+# Instalar dependencias raíz y backend
+npm install
+cd backend && npm install && cd ..
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Configurar Variables de Entorno
+```bash
+# Crear .env en la carpeta backend
+cp backend/.env.example backend/.env
 ```
+
+Configurar en `backend/.env`:
+```env
+PORT=3001
+SESSION_SECRET=tu_clave_secreta_super_segura
+NODE_ENV=development
+ADMIN_EMAIL=admin@edutechhub.edu.ar
+ADMIN_PASSWORD=Donpatricio111
+```
+
+### 3. Iniciar el Entorno de Desarrollo
+```bash
+# Inicia Frontend (Vite :5173) y Backend (Express :3001) concurrentemente
+npm run dev
+```
+
+Acceder desde el navegador a: **`http://localhost:5173`**
+
+---
+
+## 📜 Scripts Disponibles
+
+| Script | Descripción |
+| :--- | :--- |
+| `npm run dev` | Inicia backend y frontend en paralelo con recarga en vivo |
+| `npm run typecheck` | Ejecuta verificación estricta de tipos de TypeScript en el frontend |
+| `npm run build:backend` | Compila el backend TypeScript a `dist_backend/` |
+| `npm run build` | Compila el frontend con Vite a la carpeta `dist/` |
+| `npm run clean:db` | Script interactivo para limpiar y sembrar datos de prueba |
+| `npm run clean:db:force` | Resetea la base de datos de testing sin solicitar confirmación |
+| `npm run build:exe` | Genera el instalador `.exe` para Windows vía Electron |
+
+---
+
+## 📚 Documentación Adicional
+
+- [📘 Manual Técnico y Funcional](docs/MANUAL_TECNICO_FUNCIONAL.md) — Explicación profunda de la arquitectura, modelos de base de datos, RBAC y endpoints.
+- [🧪 Guía de Testing y Credenciales](TESTING_CREDENTIALS.md) — Lista oficial de cuentas de prueba por rol y división.
+- [📦 Guía de Distribución](DISTRIBUCION.md) — Pasos para compilación y despliegue del binario ejecutable.
+
+---
+
+## 👥 Equipo y Créditos
+
+Desarrollado con pasión para la comunidad educativa técnica por **The Twisted Techlands**.

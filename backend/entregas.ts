@@ -3,6 +3,7 @@ import pool from './conexion_pg';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { verificarAccesoClase } from './permisos';
 
 const router = Router();
 
@@ -29,13 +30,13 @@ const upload = multer({
 
 const getUserId = (req: Request) => req.session?.usuario?.id;
 
-// POST /api/trabajos/:trabajoId/entregar - Submit assignment (Student)
+// POST /api/trabajos/:trabajoId/entregar - Submit assignment (Student enrolled in class)
 router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (req: Request, res: Response) => {
   const { trabajoId } = req.params;
   const { comentario } = req.body;
-  const userId = getUserId(req);
+  const usuario = req.session?.usuario;
 
-  if (!userId) {
+  if (!usuario || !usuario.id) {
     return res.status(401).json({ error: 'Debes iniciar sesión para entregar.' });
   }
 
@@ -47,6 +48,13 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
     }
 
     const trabajo = trabajoQ.rows[0];
+
+    // Verificar que el alumno pertenezca a la clase del trabajo
+    const { permitido, motivo } = await verificarAccesoClase(usuario, trabajo.clase_id);
+    if (!permitido) {
+      return res.status(403).json({ error: motivo || 'No tienes permisos para entregar trabajos en esta clase.' });
+    }
+
     const now = new Date();
     const esTardia = trabajo.fecha_limite && new Date(trabajo.fecha_limite) < now;
     const estado = esTardia ? 'entrega_tardia' : 'entregado';
@@ -55,7 +63,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
     const archivoPath = req.file ? req.file.filename : null;
 
     // Check if already submitted
-    const existingQ = await pool.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, userId]);
+    const existingQ = await pool.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
     
     if (existingQ.rows.length > 0) {
       // Update existing submission
@@ -68,7 +76,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
             fecha_entrega = CURRENT_TIMESTAMP
         WHERE trabajo_id = $5 AND alumno_id = $6
       `;
-      await pool.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, trabajoId, userId]);
+      await pool.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, trabajoId, usuario.id]);
       return res.json({ success: true, message: 'Entrega actualizada correctamente' });
     } else {
       // Insert new submission
@@ -76,7 +84,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
         INSERT INTO entregas (trabajo_id, alumno_id, archivo_nombre, archivo_path, comentario, estado)
         VALUES ($1, $2, $3, $4, $5, $6)
       `;
-      await pool.query(insertQ, [trabajoId, userId, archivoNombre, archivoPath, comentario || '', estado]);
+      await pool.query(insertQ, [trabajoId, usuario.id, archivoNombre, archivoPath, comentario || '', estado]);
       return res.status(201).json({ success: true, message: 'Trabajo entregado exitosamente' });
     }
   } catch (error) {
@@ -88,14 +96,24 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
 // DELETE /api/trabajos/:trabajoId/retirar - Withdraw submission (Student)
 router.delete('/trabajos/:trabajoId/retirar', async (req: Request, res: Response) => {
   const { trabajoId } = req.params;
-  const userId = getUserId(req);
+  const usuario = req.session?.usuario;
 
-  if (!userId) {
+  if (!usuario || !usuario.id) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
   try {
-    await pool.query('DELETE FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, userId]);
+    const trabajoQ = await pool.query('SELECT clase_id FROM trabajos WHERE id = $1', [trabajoId]);
+    if (trabajoQ.rows.length === 0) {
+      return res.status(404).json({ error: 'Trabajo no encontrado.' });
+    }
+
+    const { permitido, motivo } = await verificarAccesoClase(usuario, trabajoQ.rows[0].clase_id);
+    if (!permitido) {
+      return res.status(403).json({ error: motivo || 'No perteneces a esta clase.' });
+    }
+
+    await pool.query('DELETE FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
     return res.json({ success: true, message: 'Entrega retirada correctamente' });
   } catch (error) {
     console.error('Error al retirar entrega:', error);
@@ -103,17 +121,30 @@ router.delete('/trabajos/:trabajoId/retirar', async (req: Request, res: Response
   }
 });
 
-// GET /api/trabajos/:trabajoId/entregas - List all students & submission status for a task (Teacher / Admin)
+// GET /api/trabajos/:trabajoId/entregas - List all students & submission status for a task (Teacher assigned / Admin)
 router.get('/trabajos/:trabajoId/entregas', async (req: Request, res: Response) => {
   const { trabajoId } = req.params;
-  const userId = getUserId(req);
-  const userRol = req.session?.usuario?.rol;
+  const usuario = req.session?.usuario;
 
-  if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+  }
+
+  if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
     return res.status(403).json({ error: 'No tienes permiso para ver entregas de otros alumnos.' });
   }
 
   try {
+    const trabajoQ = await pool.query('SELECT clase_id FROM trabajos WHERE id = $1', [trabajoId]);
+    if (trabajoQ.rows.length === 0) {
+      return res.status(404).json({ error: 'Trabajo no encontrado.' });
+    }
+
+    const { permitido, motivo } = await verificarAccesoClase(usuario, trabajoQ.rows[0].clase_id);
+    if (!permitido) {
+      return res.status(403).json({ error: motivo || 'No tienes permisos sobre esta clase.' });
+    }
+
     const query = `
       WITH alumnos_curso AS (
         SELECT DISTINCT u.id_usuario as alumno_id, u.nombre_completo as alumno_nombre, u.correo as alumno_correo
@@ -153,14 +184,17 @@ router.get('/trabajos/:trabajoId/entregas', async (req: Request, res: Response) 
   }
 });
 
-// POST /api/entregas/:id/calificar - Grade submission by submission ID (Teacher / Admin)
+// POST /api/entregas/:id/calificar - Grade submission by submission ID (Teacher assigned / Admin)
 router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { calificacion, feedback } = req.body;
-  const userId = getUserId(req);
-  const userRol = req.session?.usuario?.rol;
+  const usuario = req.session?.usuario;
 
-  if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+  }
+
+  if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
     return res.status(403).json({ error: 'Solo los profesores pueden calificar.' });
   }
 
@@ -169,6 +203,23 @@ router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
   }
 
   try {
+    const entregaQ = await pool.query(
+      `SELECT e.alumno_id, t.clase_id, t.titulo, t.puntos_max 
+       FROM entregas e 
+       JOIN trabajos t ON e.trabajo_id = t.id 
+       WHERE e.id = $1`,
+      [id]
+    );
+
+    if (entregaQ.rows.length === 0) {
+      return res.status(404).json({ error: 'Entrega no encontrada.' });
+    }
+
+    const { permitido, motivo } = await verificarAccesoClase(usuario, entregaQ.rows[0].clase_id);
+    if (!permitido) {
+      return res.status(403).json({ error: motivo || 'No tienes permisos para calificar en esta clase.' });
+    }
+
     const updateQ = `
       UPDATE entregas 
       SET calificacion = $1, feedback = $2, estado = 'corregido', fecha_calificacion = CURRENT_TIMESTAMP
@@ -177,16 +228,15 @@ router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
     await pool.query(updateQ, [calificacion, feedback || '', id]);
 
     // Send notification to student
-    const entregaQ = await pool.query('SELECT e.alumno_id, t.titulo, t.puntos_max FROM entregas e JOIN trabajos t ON e.trabajo_id = t.id WHERE e.id = $1', [id]);
-    if (entregaQ.rows.length > 0) {
-      const { alumno_id, titulo, puntos_max } = entregaQ.rows[0];
-      const maxPts = puntos_max || 10;
+    const { alumno_id, titulo, puntos_max } = entregaQ.rows[0];
+    const maxPts = puntos_max || 10;
+    try {
       await pool.query(
         `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
          VALUES ($1, 'calificacion', $2, $3, 'entrega', $4)`,
         [alumno_id, `Trabajo calificado: ${titulo}`, `Tu entrega de "${titulo}" fue calificada con ${calificacion}/${maxPts}.`, id]
       );
-    }
+    } catch (_e) {}
 
     return res.json({ success: true, message: 'Calificación guardada exitosamente' });
   } catch (error) {
@@ -195,14 +245,17 @@ router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/trabajos/:trabajoId/alumnos/:alumnoId/calificar - Grade student directly (even if no file submitted)
+// POST /api/trabajos/:trabajoId/alumnos/:alumnoId/calificar - Grade student directly (Teacher assigned / Admin)
 router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req: Request, res: Response) => {
   const { trabajoId, alumnoId } = req.params;
   const { calificacion, feedback } = req.body;
-  const userId = getUserId(req);
-  const userRol = req.session?.usuario?.rol;
+  const usuario = req.session?.usuario;
 
-  if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+  }
+
+  if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
     return res.status(403).json({ error: 'Solo los profesores pueden calificar.' });
   }
 
@@ -211,6 +264,16 @@ router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req: Requ
   }
 
   try {
+    const tQ = await pool.query('SELECT clase_id, titulo, puntos_max FROM trabajos WHERE id = $1', [trabajoId]);
+    if (tQ.rows.length === 0) {
+      return res.status(404).json({ error: 'Trabajo no encontrado.' });
+    }
+
+    const { permitido, motivo } = await verificarAccesoClase(usuario, tQ.rows[0].clase_id);
+    if (!permitido) {
+      return res.status(403).json({ error: motivo || 'No tienes permisos para calificar en esta clase.' });
+    }
+
     const existingQ = await pool.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, alumnoId]);
     if (existingQ.rows.length > 0) {
       const updateQ = `
@@ -228,14 +291,15 @@ router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req: Requ
     }
 
     // Send notification to student
-    const tQ = await pool.query('SELECT titulo, puntos_max FROM trabajos WHERE id = $1', [trabajoId]);
     const titulo = tQ.rows[0]?.titulo || 'Trabajo';
     const maxPts = tQ.rows[0]?.puntos_max || 10;
-    await pool.query(
-      `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
-       VALUES ($1, 'calificacion', $2, $3, 'trabajo', $4)`,
-      [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion}/${maxPts} en "${titulo}".`, trabajoId]
-    );
+    try {
+      await pool.query(
+        `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
+         VALUES ($1, 'calificacion', $2, $3, 'trabajo', $4)`,
+        [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion}/${maxPts} en "${titulo}".`, trabajoId]
+      );
+    } catch (_e) {}
 
     return res.json({ success: true, message: 'Calificación guardada exitosamente' });
   } catch (error) {

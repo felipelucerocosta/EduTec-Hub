@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
+import { verificarAccesoClase } from './permisos';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.get('/rendimiento/alumno', async (req: Request, res: Response) => {
     const clasesQ = `
       SELECT c.id, c.nombre, c.materia, c.codigo
       FROM clases c
-      JOIN alumnos_clases ac ON ac.codigo = c.codigo
+      JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM(c.codigo))
       WHERE ac.alumno_id = $1
     `;
     const clasesRes = await pool.query(clasesQ, [userId]);
@@ -145,7 +146,7 @@ router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
         COUNT(*) as cantidad
       FROM entregas e
       JOIN trabajos t ON t.id = e.trabajo_id
-      JOIN alumnos_clases ac ON ac.codigo = (SELECT codigo FROM clases WHERE id = t.clase_id)
+      JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM((SELECT codigo FROM clases WHERE id = t.clase_id)))
       WHERE e.alumno_id = $1 
         AND e.estado = 'corregido' 
         AND e.calificacion IS NOT NULL
@@ -172,11 +173,19 @@ router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────
 router.get('/rendimiento/clase/:claseId', async (req: Request, res: Response) => {
   const { claseId } = req.params;
-  const userId = getUserId(req);
-  const rol = getUserRol(req);
+  const usuario = req.session?.usuario;
 
-  if (!userId || (rol !== 'profesor' && rol !== 'admin')) {
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+  }
+
+  if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
     return res.status(403).json({ error: 'Solo los profesores pueden ver el rendimiento del curso.' });
+  }
+
+  const { permitido, motivo } = await verificarAccesoClase(usuario, claseId);
+  if (!permitido) {
+    return res.status(403).json({ error: motivo || 'No tienes permisos para ver el rendimiento de esta clase.' });
   }
 
   try {
@@ -196,7 +205,7 @@ router.get('/rendimiento/clase/:claseId', async (req: Request, res: Response) =>
       SELECT DISTINCT u.id_usuario as id, u.nombre_completo, u.correo
       FROM alumnos_clases ac
       JOIN usuarios u ON u.id_usuario = ac.alumno_id
-      WHERE ac.codigo = $1
+      WHERE LOWER(TRIM(ac.codigo)) = LOWER(TRIM($1))
       ORDER BY u.nombre_completo ASC
     `;
     const alumnosRes = await pool.query(alumnosQ, [clase.codigo]);

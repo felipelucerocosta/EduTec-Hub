@@ -6,6 +6,7 @@ import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
 import Modal from "../components reutilizables/Modal";
 import styles from "../Registro.module.css";
+import { API_URL } from "../config/api";
 
 // ─── Types ────────────────────────────────────────────────
 interface Notification {
@@ -23,9 +24,6 @@ interface FormData {
 }
 
 type Role = "alumno" | "profesor";
-
-// ─── Constants ────────────────────────────────────────────
-const API_URL = "http://localhost:3001/api";
 
 // ─── Component ────────────────────────────────────────────
 const Registro: React.FC = () => {

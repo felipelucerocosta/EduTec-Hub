@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL } from '../config/api';
 
 interface Props {
   email: string;
@@ -8,7 +9,7 @@ interface Props {
   onVerified: (password: string | null, reply?: string) => void;
 }
 
-export default function AlfredVerificationModal({ email, open, onClose, backendBaseUrl = 'http://localhost:3001/api', onVerified }: Props) {
+export default function AlfredVerificationModal({ email, open, onClose, backendBaseUrl = API_URL, onVerified }: Props) {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

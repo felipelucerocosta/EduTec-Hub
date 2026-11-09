@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-07T20:15:00.000Z",
+  "title": "Design System: TECH-ROOM 29 / EduTech",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Tech Violet",
+        "canonical": "#7c3aed",
+        "tonalRamp": ["#2e1065", "#4c1d95", "#5b21b6", "#6d28d9", "#7c3aed", "#8b5cf6", "#a78bfa", "#c4b5fd"]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Electric Blue",
+        "canonical": "#38bdf8",
+        "tonalRamp": ["#082f49", "#0c4a6e", "#0369a1", "#0284c7", "#0ea5e9", "#38bdf8", "#7dd3fc", "#bae6fd"]
+      },
+      "accent-emerald": {
+        "role": "tertiary",
+        "displayName": "Academic Success",
+        "canonical": "#10b981",
+        "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#6ee7b7"]
+      },
+      "canvas-dark": {
+        "role": "neutral",
+        "displayName": "Obsidian Deep Canvas",
+        "canonical": "#030014",
+        "tonalRamp": ["#010007", "#030014", "#090d16", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Slate Text Primary",
+        "canonical": "#f8fafc",
+        "tonalRamp": ["#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9", "#f8fafc"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines and landing banners." },
+      "headline": { "displayName": "Headline", "purpose": "Main page titles in app dashboard." },
+      "title": { "displayName": "Title", "purpose": "Card titles, section headers, modal titles." },
+      "body": { "displayName": "Body", "purpose": "General UI text, descriptions, table contents." },
+      "label": { "displayName": "Label", "purpose": "Badges, tabs, table headers and form labels." }
+    },
+    "shadows": [
+      { "name": "subtle-lift", "value": "0 2px 8px rgba(0, 0, 0, 0.2)", "purpose": "Rest elevation for cards." },
+      { "name": "elevated", "value": "0 4px 20px rgba(0, 0, 0, 0.35)", "purpose": "Toasts and active elements." },
+      { "name": "hover-glow", "value": "0 12px 36px rgba(124, 58, 237, 0.18), 0 4px 12px rgba(0, 0, 0, 0.3)", "purpose": "Hover lift and luminous feedback." },
+      { "name": "deep-modal", "value": "0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 58, 237, 0.1)", "purpose": "Modals and floating widgets." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default transitions for buttons and cards." },
+      { "name": "ease-out-elastic", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrances for toasts and modals." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal tecnológica con degradado violeta e índigo.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M10 3H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zm10 0h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM10 13H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1zm8 1h-2v2h-2v2h2v2h2v-2h2v-2h-2z\"/></svg> ACCEDER AL CURSO</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 0.65rem 1.4rem; border-radius: 10px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28); transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.02em; } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124, 58, 237, 0.42); background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); } .ds-btn-primary:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Botón neutro para acciones de soporte o cancelación.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.06); color: #e2e8f0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 0.65rem 1.4rem; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); cursor: pointer; transition: all 0.25s ease; } .ds-btn-secondary:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto oscuro translúcido con foco violeta.",
+      "html": "<div class=\"ds-input-group\"><label class=\"ds-input-label\">CÓDIGO DE MATERIA</label><input type=\"text\" class=\"ds-input-control\" placeholder=\"Ej: MAT-31-01\" /></div>",
+      "css": ".ds-input-group { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; max-width: 320px; font-family: 'Plus Jakarta Sans', sans-serif; } .ds-input-label { font-size: 0.78rem; font-weight: 600; color: #94a3b8; letter-spacing: 0.04em; text-transform: uppercase; } .ds-input-control { width: 100%; padding: 0.75rem 1rem; font-size: 0.9rem; border-radius: 10px; border: 1.5px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.04); color: #f1f5f9; outline: none; transition: all 0.2s ease; box-sizing: border-box; } .ds-input-control:focus { border-color: rgba(124, 58, 237, 0.6); background: rgba(124, 58, 237, 0.05); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Tarjeta institucional vidriada con acento lumínico superior al hover.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-badge\">3RO 1RA</div><h3 class=\"ds-card-title\">Sistemas Digitales</h3><p class=\"ds-card-desc\">Arquitectura de microcontroladores y programación en C.</p></div>",
+      "css": ".ds-card { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 1.5rem; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; } .ds-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #7c3aed, #06b6d4); opacity: 0; transition: opacity 0.3s ease; } .ds-card:hover { transform: translateY(-5px); border-color: rgba(124, 58, 237, 0.3); box-shadow: 0 12px 36px rgba(124, 58, 237, 0.15); background: rgba(124, 58, 237, 0.05); } .ds-card:hover::before { opacity: 1; } .ds-card-badge { display: inline-block; padding: 0.2rem 0.65rem; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 50px; color: #a78bfa; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.75rem; } .ds-card-title { font-size: 1.15rem; font-weight: 700; color: #f8fafc; margin: 0 0 0.4rem 0; } .ds-card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin: 0; }"
+    },
+    {
+      "name": "Badge Pill",
+      "kind": "chip",
+      "refersTo": "badge-status",
+      "description": "Indicador de estado semántico en formato píldora.",
+      "html": "<span class=\"ds-badge ds-badge-emerald\">Aprobado</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 50px; font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-family: 'Plus Jakarta Sans', sans-serif; } .ds-badge-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Digital Campus Matrix",
+    "overview": "El sistema visual de TECH-ROOM 29 / EduTech materializa la intersección entre infraestructura tecnológica de vanguardia, rigor académico institucional y confiabilidad operativa de nivel profesional. Diseñado para dar soporte a instituciones de todos los niveles educativos (desde Inicial hasta Terciario), el entorno visual rechaza tanto la frialdad corporativa plana como el diseño informal de consumo, articulando una atmósfera de sala técnica de operaciones académicas.\n\nLa interfaz se estructura sobre una base tonal oscura profunda inspirada en centros de control e infraestructura de telecomunicaciones (#030014 y #090d16), enriquecida mediante superficies translúcidas (glassmorphism controlado con backdrop-filter: blur(12px-20px)), trazos de borde luminiscentes milimétricos (1px) y una firma cromática dual: Violeta Tecnológico (#7c3aed) como ancla de identidad e innovación de sistemas, y Azul Eléctrico / Sky (#38bdf8) como vector de interacción y dinamismo cibernético.\n\nLa densidad es deliberada: alta legibilidad de datos, micro-etiquetado en mayúsculas espaciadas (0.75rem, letter-spacing: 0.04em), tarjetas con respuesta háptica visual al cursor (transform: translateY(-4px) y resplandor difuso) y componentes modulares que transmiten orden analítico y precisión de laboratorio.",
+    "keyCharacteristics": [
+      "Atmósfera Glassmórfica Oscura: Lienzo de baja luminosidad con paneles vidriados semitransparentes y velos de gradiente radial ambiental.",
+      "Acento Tecnológico Bicolor: Gradiente y contraste complementario entre violeta #7c3aed, azul índigo #4f46e5 y azul eléctrico #38bdf8.",
+      "Estructura Analítica de Datos: Visualizaciones de métricas con micrográficos SVG responsivos, tablas de bordes etéreos y tarjetas de resumen KPI.",
+      "Jerarquía Tipográfica Moderna: Coexistencia de tipografías geométricas contemporáneas con pesos contrastados.",
+      "Semántica de Estado Rápida: Código de color unificado para alertas, aprobaciones y vencimientos."
+    ],
+    "rules": [
+      {
+        "name": "The Luminescence Control Rule",
+        "body": "Los fondos luminosos o colores saturados al 100% nunca deben cubrir más del 8% de la superficie visible. El violeta y el azul actúan como haces de luz sobre la base oscura, nunca como fondos sólidos masivos de página.",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Badge Rule",
+        "body": "Ningún estado semántico (Aprobado, Pendiente, Vencido) se representa únicamente con color plano; siempre debe combinar un borde tenue (30% opacidad), un fondo con baja opacidad (12-15%) y una etiqueta de texto explícita o icono inequívoco.",
+        "section": "colors"
+      },
+      {
+        "name": "The Single Scale Rule",
+        "body": "Los tamaños de texto no deben definirse arbitrariamente con píxeles dispersos; deben adherirse estrictamente a la escala: 0.75rem (12px), 0.85rem (13.6px), 0.95rem (15.2px), 1.15rem (18.4px), 1.75rem (28px), 2.25rem (36px).",
+        "section": "typography"
+      },
+      {
+        "name": "The Glass Border Fallback",
+        "body": "Toda superficie flotante o semitransparente (backdrop-filter) debe poseer obligatoriamente un borde físico continuo de 1px con opacidad reducida (rgba(255, 255, 255, 0.08) o rgba(124, 58, 237, 0.2)).",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do utilizar siempre la tríada cromática de identidad: Violeta Tecnológico (#7c3aed) como color dominante de marca, Azul Eléctrico (#38bdf8) para enlaces y datos dinámicos, y Azul Índigo (#4f46e5) para enriquecer gradientes de botones.",
+      "Do mantener bordes translúcidos de 1px (rgba(255, 255, 255, 0.08)) en todas las tarjetas y contenedores para garantizar contraste estructural en cualquier monitor escolar.",
+      "Do preservar los componentes reutilizables base (Button, Card, InputField, Modal, EmptyState, ErrorState, LoadingSkeleton) manteniendo coherentes sus radios y rellenos.",
+      "Do utilizar exclusivamente la librería de iconos Boxicons (bx bx-...) ya integrada en el proyecto, evitando mezclar con emojis o librerías SVG externas incoherentes.",
+      "Do implementar siempre estados de carga con LoadingSkeleton y vistas vacías informativas con EmptyState cuando los datos de cursos o tareas sean nulos."
+    ],
+    "donts": [
+      "Don't aplicar fondos completamente blancos (#ffffff) o fondos azules planos heredados (#0b61d6); la aplicación opera bajo un paradigma dark-mode tecnológico contemporáneo.",
+      "Don't saturar pantallas operativas (como el Boletín de Calificaciones o la Corrección de TPs) con animaciones innecesarias o resplandores excesivos que distraigan de la tarea académica.",
+      "Don't hardcodear colores hexadecimales directos en estilos en línea (style={{ color: '#xxx' }}); canalizar siempre a través de las variables CSS de tokens (var(--primary), var(--text-main), etc.).",
+      "Don't utilizar múltiples familias tipográficas dispersas; consolidar en la dupla oficial 'Plus Jakarta Sans' para lectura general y 'Outfit' para encabezados y números destacados.",
+      "Don't inventar componentes con radios de esquina rectos de 0px o radios de pastilla completa sin justificación funcional; ceñirse a la escala de 8px, 10px, 14px, 18px, 20px."
+    ]
+  }
+}
+

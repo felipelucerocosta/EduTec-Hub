@@ -96,7 +96,7 @@ function AppRoutes() {
       } />
 
       <Route path="/foro" element={
-        <ProtectedRoute allowedRoles={["alumno", "admin"]}>
+        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin"]}>
           <Foro />
         </ProtectedRoute>
       } />

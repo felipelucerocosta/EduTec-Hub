@@ -5,8 +5,7 @@ import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Button from '../components reutilizables/Button';
 import { useToast } from '../contexts/ToastContext';
-
-const API_URL = 'http://localhost:3001/api';
+import { API_URL, BACKEND_URL } from '../config/api';
 
 const TrabajoProfesorPage: React.FC = () => {
   const { claseId, trabajoId } = useParams<{ claseId: string; trabajoId: string }>();
@@ -258,7 +257,7 @@ const TrabajoProfesorPage: React.FC = () => {
                           <td style={{ padding: '0.85rem 1.25rem' }}>
                             {ent.archivo_path ? (
                               <a
-                                href={`http://localhost:3001/uploads/${ent.archivo_path}`}
+                                href={`${BACKEND_URL}/uploads/${ent.archivo_path}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 style={{ color: '#38bdf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}
@@ -378,7 +377,7 @@ const TrabajoProfesorPage: React.FC = () => {
                     {currentEditingEntrega.archivo_path && (
                       <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                         <a
-                          href={`http://localhost:3001/uploads/${currentEditingEntrega.archivo_path}`}
+                          href={`${BACKEND_URL}/uploads/${currentEditingEntrega.archivo_path}`}
                           target="_blank"
                           rel="noreferrer"
                           style={{ color: '#38bdf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.88rem', fontWeight: 600 }}

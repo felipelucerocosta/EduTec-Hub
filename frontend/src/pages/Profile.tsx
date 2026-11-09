@@ -7,8 +7,7 @@ import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
 import LoadingSkeleton from "../components/ui/LoadingSkeleton";
 import EmptyState from "../components/ui/EmptyState";
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL } from "../config/api";
 
 const Profile: React.FC = () => {
   const { user } = useAuth();

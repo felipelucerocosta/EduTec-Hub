@@ -8,6 +8,7 @@ const conexion_pg_1 = __importDefault(require("./conexion_pg"));
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const permisos_1 = require("./permisos");
 const router = (0, express_1.Router)();
 // Configure multer storage for submissions
 const uploadsDir = process.env.UPLOADS_PATH || path_1.default.join(__dirname, '../uploads');
@@ -28,12 +29,12 @@ const upload = (0, multer_1.default)({
     limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit
 });
 const getUserId = (req) => req.session?.usuario?.id;
-// POST /api/trabajos/:trabajoId/entregar - Submit assignment (Student)
+// POST /api/trabajos/:trabajoId/entregar - Submit assignment (Student enrolled in class)
 router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (req, res) => {
     const { trabajoId } = req.params;
     const { comentario } = req.body;
-    const userId = getUserId(req);
-    if (!userId) {
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
         return res.status(401).json({ error: 'Debes iniciar sesión para entregar.' });
     }
     try {
@@ -43,13 +44,18 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
             return res.status(404).json({ error: 'Trabajo no encontrado.' });
         }
         const trabajo = trabajoQ.rows[0];
+        // Verificar que el alumno pertenezca a la clase del trabajo
+        const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, trabajo.clase_id);
+        if (!permitido) {
+            return res.status(403).json({ error: motivo || 'No tienes permisos para entregar trabajos en esta clase.' });
+        }
         const now = new Date();
         const esTardia = trabajo.fecha_limite && new Date(trabajo.fecha_limite) < now;
         const estado = esTardia ? 'entrega_tardia' : 'entregado';
         const archivoNombre = req.file ? req.file.originalname : null;
         const archivoPath = req.file ? req.file.filename : null;
         // Check if already submitted
-        const existingQ = await conexion_pg_1.default.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, userId]);
+        const existingQ = await conexion_pg_1.default.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
         if (existingQ.rows.length > 0) {
             // Update existing submission
             const updateQ = `
@@ -61,7 +67,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
             fecha_entrega = CURRENT_TIMESTAMP
         WHERE trabajo_id = $5 AND alumno_id = $6
       `;
-            await conexion_pg_1.default.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, trabajoId, userId]);
+            await conexion_pg_1.default.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, trabajoId, usuario.id]);
             return res.json({ success: true, message: 'Entrega actualizada correctamente' });
         }
         else {
@@ -70,7 +76,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
         INSERT INTO entregas (trabajo_id, alumno_id, archivo_nombre, archivo_path, comentario, estado)
         VALUES ($1, $2, $3, $4, $5, $6)
       `;
-            await conexion_pg_1.default.query(insertQ, [trabajoId, userId, archivoNombre, archivoPath, comentario || '', estado]);
+            await conexion_pg_1.default.query(insertQ, [trabajoId, usuario.id, archivoNombre, archivoPath, comentario || '', estado]);
             return res.status(201).json({ success: true, message: 'Trabajo entregado exitosamente' });
         }
     }
@@ -82,12 +88,20 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
 // DELETE /api/trabajos/:trabajoId/retirar - Withdraw submission (Student)
 router.delete('/trabajos/:trabajoId/retirar', async (req, res) => {
     const { trabajoId } = req.params;
-    const userId = getUserId(req);
-    if (!userId) {
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
         return res.status(401).json({ error: 'No autorizado' });
     }
     try {
-        await conexion_pg_1.default.query('DELETE FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, userId]);
+        const trabajoQ = await conexion_pg_1.default.query('SELECT clase_id FROM trabajos WHERE id = $1', [trabajoId]);
+        if (trabajoQ.rows.length === 0) {
+            return res.status(404).json({ error: 'Trabajo no encontrado.' });
+        }
+        const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, trabajoQ.rows[0].clase_id);
+        if (!permitido) {
+            return res.status(403).json({ error: motivo || 'No perteneces a esta clase.' });
+        }
+        await conexion_pg_1.default.query('DELETE FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
         return res.json({ success: true, message: 'Entrega retirada correctamente' });
     }
     catch (error) {
@@ -95,15 +109,25 @@ router.delete('/trabajos/:trabajoId/retirar', async (req, res) => {
         return res.status(500).json({ error: 'Error al retirar la entrega' });
     }
 });
-// GET /api/trabajos/:trabajoId/entregas - List all students & submission status for a task (Teacher / Admin)
+// GET /api/trabajos/:trabajoId/entregas - List all students & submission status for a task (Teacher assigned / Admin)
 router.get('/trabajos/:trabajoId/entregas', async (req, res) => {
     const { trabajoId } = req.params;
-    const userId = getUserId(req);
-    const userRol = req.session?.usuario?.rol;
-    if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
+        return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+    }
+    if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
         return res.status(403).json({ error: 'No tienes permiso para ver entregas de otros alumnos.' });
     }
     try {
+        const trabajoQ = await conexion_pg_1.default.query('SELECT clase_id FROM trabajos WHERE id = $1', [trabajoId]);
+        if (trabajoQ.rows.length === 0) {
+            return res.status(404).json({ error: 'Trabajo no encontrado.' });
+        }
+        const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, trabajoQ.rows[0].clase_id);
+        if (!permitido) {
+            return res.status(403).json({ error: motivo || 'No tienes permisos sobre esta clase.' });
+        }
         const query = `
       WITH alumnos_curso AS (
         SELECT DISTINCT u.id_usuario as alumno_id, u.nombre_completo as alumno_nombre, u.correo as alumno_correo
@@ -143,19 +167,32 @@ router.get('/trabajos/:trabajoId/entregas', async (req, res) => {
         return res.status(500).json({ error: 'Error al obtener entregas' });
     }
 });
-// POST /api/entregas/:id/calificar - Grade submission by submission ID (Teacher / Admin)
+// POST /api/entregas/:id/calificar - Grade submission by submission ID (Teacher assigned / Admin)
 router.post('/entregas/:id/calificar', async (req, res) => {
     const { id } = req.params;
     const { calificacion, feedback } = req.body;
-    const userId = getUserId(req);
-    const userRol = req.session?.usuario?.rol;
-    if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
+        return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+    }
+    if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
         return res.status(403).json({ error: 'Solo los profesores pueden calificar.' });
     }
     if (calificacion === undefined || calificacion === null) {
         return res.status(400).json({ error: 'La calificación es obligatoria.' });
     }
     try {
+        const entregaQ = await conexion_pg_1.default.query(`SELECT e.alumno_id, t.clase_id, t.titulo, t.puntos_max 
+       FROM entregas e 
+       JOIN trabajos t ON e.trabajo_id = t.id 
+       WHERE e.id = $1`, [id]);
+        if (entregaQ.rows.length === 0) {
+            return res.status(404).json({ error: 'Entrega no encontrada.' });
+        }
+        const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, entregaQ.rows[0].clase_id);
+        if (!permitido) {
+            return res.status(403).json({ error: motivo || 'No tienes permisos para calificar en esta clase.' });
+        }
         const updateQ = `
       UPDATE entregas 
       SET calificacion = $1, feedback = $2, estado = 'corregido', fecha_calificacion = CURRENT_TIMESTAMP
@@ -163,13 +200,13 @@ router.post('/entregas/:id/calificar', async (req, res) => {
     `;
         await conexion_pg_1.default.query(updateQ, [calificacion, feedback || '', id]);
         // Send notification to student
-        const entregaQ = await conexion_pg_1.default.query('SELECT e.alumno_id, t.titulo, t.puntos_max FROM entregas e JOIN trabajos t ON e.trabajo_id = t.id WHERE e.id = $1', [id]);
-        if (entregaQ.rows.length > 0) {
-            const { alumno_id, titulo, puntos_max } = entregaQ.rows[0];
-            const maxPts = puntos_max || 10;
+        const { alumno_id, titulo, puntos_max } = entregaQ.rows[0];
+        const maxPts = puntos_max || 10;
+        try {
             await conexion_pg_1.default.query(`INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
          VALUES ($1, 'calificacion', $2, $3, 'entrega', $4)`, [alumno_id, `Trabajo calificado: ${titulo}`, `Tu entrega de "${titulo}" fue calificada con ${calificacion}/${maxPts}.`, id]);
         }
+        catch (_e) { }
         return res.json({ success: true, message: 'Calificación guardada exitosamente' });
     }
     catch (error) {
@@ -177,19 +214,29 @@ router.post('/entregas/:id/calificar', async (req, res) => {
         return res.status(500).json({ error: 'Error al calificar la entrega' });
     }
 });
-// POST /api/trabajos/:trabajoId/alumnos/:alumnoId/calificar - Grade student directly (even if no file submitted)
+// POST /api/trabajos/:trabajoId/alumnos/:alumnoId/calificar - Grade student directly (Teacher assigned / Admin)
 router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req, res) => {
     const { trabajoId, alumnoId } = req.params;
     const { calificacion, feedback } = req.body;
-    const userId = getUserId(req);
-    const userRol = req.session?.usuario?.rol;
-    if (!userId || (userRol !== 'profesor' && userRol !== 'admin')) {
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
+        return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+    }
+    if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
         return res.status(403).json({ error: 'Solo los profesores pueden calificar.' });
     }
     if (calificacion === undefined || calificacion === null) {
         return res.status(400).json({ error: 'La calificación es obligatoria.' });
     }
     try {
+        const tQ = await conexion_pg_1.default.query('SELECT clase_id, titulo, puntos_max FROM trabajos WHERE id = $1', [trabajoId]);
+        if (tQ.rows.length === 0) {
+            return res.status(404).json({ error: 'Trabajo no encontrado.' });
+        }
+        const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, tQ.rows[0].clase_id);
+        if (!permitido) {
+            return res.status(403).json({ error: motivo || 'No tienes permisos para calificar en esta clase.' });
+        }
         const existingQ = await conexion_pg_1.default.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, alumnoId]);
         if (existingQ.rows.length > 0) {
             const updateQ = `
@@ -207,11 +254,13 @@ router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req, res)
             await conexion_pg_1.default.query(insertQ, [trabajoId, alumnoId, calificacion, feedback || '']);
         }
         // Send notification to student
-        const tQ = await conexion_pg_1.default.query('SELECT titulo, puntos_max FROM trabajos WHERE id = $1', [trabajoId]);
         const titulo = tQ.rows[0]?.titulo || 'Trabajo';
         const maxPts = tQ.rows[0]?.puntos_max || 10;
-        await conexion_pg_1.default.query(`INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
-       VALUES ($1, 'calificacion', $2, $3, 'trabajo', $4)`, [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion}/${maxPts} en "${titulo}".`, trabajoId]);
+        try {
+            await conexion_pg_1.default.query(`INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, referencia_tipo, referencia_id)
+         VALUES ($1, 'calificacion', $2, $3, 'trabajo', $4)`, [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion}/${maxPts} en "${titulo}".`, trabajoId]);
+        }
+        catch (_e) { }
         return res.json({ success: true, message: 'Calificación guardada exitosamente' });
     }
     catch (error) {

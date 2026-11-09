@@ -3,8 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
-
-const API_URL = 'http://localhost:3001/api';
+import { API_URL } from '../../config/api';
 
 interface Usuario {
   id_usuario: number;

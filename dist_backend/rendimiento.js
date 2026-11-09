@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const conexion_pg_1 = __importDefault(require("./conexion_pg"));
+const permisos_1 = require("./permisos");
 const router = (0, express_1.Router)();
 const getUserId = (req) => req.session?.usuario?.id;
 const getUserRol = (req) => req.session?.usuario?.rol;
@@ -20,7 +21,7 @@ router.get('/rendimiento/alumno', async (req, res) => {
         const clasesQ = `
       SELECT c.id, c.nombre, c.materia, c.codigo
       FROM clases c
-      JOIN alumnos_clases ac ON ac.codigo = c.codigo
+      JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM(c.codigo))
       WHERE ac.alumno_id = $1
     `;
         const clasesRes = await conexion_pg_1.default.query(clasesQ, [userId]);
@@ -139,7 +140,7 @@ router.get('/rendimiento/evolucion', async (req, res) => {
         COUNT(*) as cantidad
       FROM entregas e
       JOIN trabajos t ON t.id = e.trabajo_id
-      JOIN alumnos_clases ac ON ac.codigo = (SELECT codigo FROM clases WHERE id = t.clase_id)
+      JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM((SELECT codigo FROM clases WHERE id = t.clase_id)))
       WHERE e.alumno_id = $1 
         AND e.estado = 'corregido' 
         AND e.calificacion IS NOT NULL
@@ -166,10 +167,16 @@ router.get('/rendimiento/evolucion', async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 router.get('/rendimiento/clase/:claseId', async (req, res) => {
     const { claseId } = req.params;
-    const userId = getUserId(req);
-    const rol = getUserRol(req);
-    if (!userId || (rol !== 'profesor' && rol !== 'admin')) {
+    const usuario = req.session?.usuario;
+    if (!usuario || !usuario.id) {
+        return res.status(401).json({ error: 'No autorizado. Debes iniciar sesión.' });
+    }
+    if (usuario.rol !== 'profesor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
         return res.status(403).json({ error: 'Solo los profesores pueden ver el rendimiento del curso.' });
+    }
+    const { permitido, motivo } = await (0, permisos_1.verificarAccesoClase)(usuario, claseId);
+    if (!permitido) {
+        return res.status(403).json({ error: motivo || 'No tienes permisos para ver el rendimiento de esta clase.' });
     }
     try {
         const claseRes = await conexion_pg_1.default.query('SELECT * FROM clases WHERE id = $1', [claseId]);
@@ -184,7 +191,7 @@ router.get('/rendimiento/clase/:claseId', async (req, res) => {
       SELECT DISTINCT u.id_usuario as id, u.nombre_completo, u.correo
       FROM alumnos_clases ac
       JOIN usuarios u ON u.id_usuario = ac.alumno_id
-      WHERE ac.codigo = $1
+      WHERE LOWER(TRIM(ac.codigo)) = LOWER(TRIM($1))
       ORDER BY u.nombre_completo ASC
     `;
         const alumnosRes = await conexion_pg_1.default.query(alumnosQ, [clase.codigo]);

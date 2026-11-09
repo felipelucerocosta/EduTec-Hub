@@ -6,8 +6,7 @@ import InputField from "../components reutilizables/InputField";
 import Modal from "../components reutilizables/Modal";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL } from "../config/api";
 
 interface Nota {
   id_nota: number;

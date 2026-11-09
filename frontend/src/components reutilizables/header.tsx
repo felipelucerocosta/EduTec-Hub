@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styles from "./header.module.css";
+import { API_URL } from "../config/api";
 
 interface NavLinkItem {
   label: string;
@@ -21,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ navLinks, showLogout = true }) => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/whoami", { credentials: "include" });
+        const res = await fetch(`${API_URL}/whoami`, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           setUser(data.user || null);
@@ -40,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ navLinks, showLogout = true }) => {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/logout", {
+      const res = await fetch(`${API_URL}/logout`, {
         method: "POST",
         credentials: "include",
       });

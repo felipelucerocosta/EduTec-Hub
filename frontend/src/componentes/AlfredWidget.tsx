@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import AlfredVerificationModal from './AlfredVerificationModal';
+import { API_URL } from '../config/api';
 
 export default function AlfredWidget() {
   const [email, setEmail] = useState('');
   const [messages, setMessages] = useState<{ from: 'user'|'alfred', text: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [backendBaseUrl] = useState('http://localhost:3001/api');
+  const [backendBaseUrl] = useState(API_URL);
 
   function pushAlfred(text: string) {
     setMessages(m => [...m, { from: 'alfred', text }]);

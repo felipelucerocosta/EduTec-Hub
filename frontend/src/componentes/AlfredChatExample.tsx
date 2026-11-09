@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import AlfredVerificationModal from './AlfredVerificationModal';
+import { API_URL } from '../config/api';
 
 export default function AlfredChatExample() {
   const [email, setEmail] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [backendBaseUrl] = useState('http://localhost:3001/api');
+  const [backendBaseUrl] = useState(API_URL);
   const [lastGeneratedPassword, setLastGeneratedPassword] = useState<string | null>(null);
 
   async function requestGeneratePassword() {

@@ -207,19 +207,30 @@ router.post('/admin/clases', requireAdmin, async (req: Request, res: Response) =
   const adminNombre = req.session?.usuario?.nombre || 'Admin';
 
   // Si hay titular, obtener su nombre
-  let titularNombre = adminNombre;
+  let titularNombre = 'Sin Asignar';
   if (titular_id) {
     const titQ = await pool.query('SELECT nombre_completo FROM usuarios WHERE id_usuario = $1', [titular_id]);
     if (titQ.rows.length > 0) titularNombre = titQ.rows[0].nombre_completo;
   }
 
   try {
-    await pool.query(
+    const insertRes = await pool.query(
       `INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
       [nombre.trim(), seccion || '', materia.trim(), aula || '', titularNombre, adminId, titular_id || null, codigo]
     );
-    return res.status(201).json({ success: true, message: 'Clase creada exitosamente.', codigo });
+    const newId = insertRes.rows?.[0]?.id;
+
+    if (titular_id && newId) {
+      try {
+        await pool.query(
+          'INSERT INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2)',
+          [titular_id, newId]
+        );
+      } catch (_e) {}
+    }
+
+    return res.status(201).json({ success: true, message: 'Clase creada exitosamente con 0 alumnos.', codigo, id: newId });
   } catch (error) {
     console.error('Error al crear clase (admin):', error);
     return res.status(500).json({ error: 'Error al crear la clase.' });
@@ -261,10 +272,20 @@ router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Requ
 
     const { nombre_completo } = profQ.rows[0];
     await pool.query(
-      `UPDATE clases SET titular_id = $1, creador = $2, creador_id = $1 WHERE id = $3`,
+      `UPDATE clases SET titular_id = $1, creador = $2 WHERE id = $3`,
       [profesor_id, nombre_completo, id]
     );
-    return res.json({ success: true, message: `Profesor "${nombre_completo}" asignado correctamente.` });
+
+    // Sincronizar en tabla profesores_clases
+    try {
+      await pool.query('DELETE FROM profesores_clases WHERE clase_id = $1', [id]);
+      await pool.query(
+        'INSERT INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2)',
+        [profesor_id, id]
+      );
+    } catch (_e) {}
+
+    return res.json({ success: true, message: `Profesor "${nombre_completo}" asignado correctamente a la clase.` });
   } catch (error) {
     console.error('Error asignando profesor:', error);
     return res.status(500).json({ error: 'Error al asignar el profesor.' });
@@ -276,8 +297,11 @@ router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Requ
 router.delete('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    await pool.query(`UPDATE clases SET titular_id = NULL WHERE id = $1`, [id]);
-    return res.json({ success: true, message: 'Titular removido.' });
+    await pool.query(`UPDATE clases SET titular_id = NULL, creador = 'Sin Asignar' WHERE id = $1`, [id]);
+    try {
+      await pool.query('DELETE FROM profesores_clases WHERE clase_id = $1', [id]);
+    } catch (_e) {}
+    return res.json({ success: true, message: 'Titular removido de la clase.' });
   } catch (error) {
     console.error('Error removiendo titular:', error);
     return res.status(500).json({ error: 'Error al remover titular.' });

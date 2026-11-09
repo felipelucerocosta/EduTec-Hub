@@ -31,7 +31,7 @@ try {
 const DB_PATH = process.env.DB_PATH || path.resolve(__dirname, '../database/edutechhub.sql');
 
 // ══════════════════════════════════════════════════════════════════
-// CUENTAS DE TESTING — Modificar aquí si es necesario
+// CUENTAS DE TESTING — Multi-rol y Multi-división
 // ══════════════════════════════════════════════════════════════════
 const TESTING_ACCOUNTS = [
   // Admin General
@@ -40,33 +40,69 @@ const TESTING_ACCOUNTS = [
     nombre: 'Administrador General',
     email: 'admin@edutechhub.edu.ar',
     password: 'Donpatricio111',
-    dni: 'ADM-OWNER-001'
+    dni: 'ADM-001'
   },
-  // Admin 2: Testing adicional
+  // Admin Owner Felipe
   {
     type: 'admin',
-    nombre: 'Administrador Testing',
-    email: (process.env.ADMIN_EMAIL || 'admin.test@tecnica29de6.edu.ar').trim().toLowerCase(),
-    password: process.env.ADMIN_PASSWORD || 'Donpatricio11123',
-    dni: 'ADM-TEST-002'
+    nombre: 'Felipe Lucero',
+    email: 'felipelucero534@gmail.com',
+    password: 'Donpatricio111',
+    dni: 'ADM-OWNER-001'
   },
-  // Profesor de prueba
+  // Profesor 1: Matemática (3ro 1ra)
   {
     type: 'profesor',
-    nombre: 'Profesor Técnico',
-    email: 'profesor.prueba@tecnica29de6.edu.ar',
+    nombre: 'Profesor de Matemática',
+    email: 'profesor.matematica@tecnica29de6.edu.ar',
     password: '12345678',
-    dni: 'PROF-TEST-001',
-    materia: 'Tecnología'
+    dni: 'PROF-MAT-001',
+    materia: 'Matemática'
   },
-  // Alumno de prueba
+  // Profesor 2: Programación (4to 2da)
+  {
+    type: 'profesor',
+    nombre: 'Profesor de Programación',
+    email: 'profesor.programacion@tecnica29de6.edu.ar',
+    password: '12345678',
+    dni: 'PROF-PRG-002',
+    materia: 'Programación'
+  },
+  // Profesor 3: Sin clases asignadas
+  {
+    type: 'profesor',
+    nombre: 'Profesor Sin Asignar',
+    email: 'profesor.sinclase@tecnica29de6.edu.ar',
+    password: '12345678',
+    dni: 'PROF-VAC-003',
+    materia: 'Educación Tecnológica'
+  },
+  // Alumno 1: 3ro 1ra
   {
     type: 'alumno',
-    nombre: 'Alumno de Prueba',
-    email: 'alumno.prueba@tecnica29de6.edu.ar',
+    nombre: 'Alumno Tres Uno',
+    email: 'alumno.3ro1ra@tecnica29de6.edu.ar',
     password: '123456789',
-    dni: 'ALU-TEST-001',
-    curso: '3ro A'
+    dni: 'ALU-31-001',
+    curso: '3ro 1ra'
+  },
+  // Alumno 2: 4to 2da
+  {
+    type: 'alumno',
+    nombre: 'Alumno Cuatro Dos',
+    email: 'alumno.4to2da@tecnica29de6.edu.ar',
+    password: '123456789',
+    dni: 'ALU-42-002',
+    curso: '4to 2da'
+  },
+  // Alumno 3: Sin clases asignadas
+  {
+    type: 'alumno',
+    nombre: 'Alumno Sin Clases',
+    email: 'alumno.sinclase@tecnica29de6.edu.ar',
+    password: '123456789',
+    dni: 'ALU-VAC-003',
+    curso: '1ro 1ra'
   }
 ];
 
@@ -121,6 +157,7 @@ async function main() {
       'anuncios',
       'tablon_mensajes',
       'alumnos_clases',
+      'profesores_clases',
       'clases',
       'calendario_notas',
       'sesiones_simulador',
@@ -150,19 +187,12 @@ async function main() {
       console.warn(`  ⚠️  No se pudo reiniciar sqlite_sequence: ${e.message}`);
     }
 
-    // 4. Crear las 4 cuentas de testing
+    // 4. Crear cuentas de testing
     console.log('\n  👤 Creando cuentas de testing...\n');
     const SALT = 10;
-
     const createdIds = {};
 
     for (const acc of TESTING_ACCOUNTS) {
-      // Saltar admin 2 si tiene el mismo email que admin 1
-      if (acc === TESTING_ACCOUNTS[1] && acc.email === TESTING_ACCOUNTS[0].email) {
-        console.log(`  ⏭️  Admin 2 tiene el mismo email que Admin 1, omitido.`);
-        continue;
-      }
-
       const hash = await bcrypt.hash(acc.password, SALT);
 
       const result = await db.run(
@@ -171,16 +201,16 @@ async function main() {
         [acc.nombre, acc.email, hash, acc.type, acc.dni, acc.curso || null]
       );
       const userId = result.lastID;
-      createdIds[acc.type + '_' + acc.email] = userId;
+      createdIds[acc.email] = userId;
 
       // Para alumnos, también insertar en tabla alumno
       if (acc.type === 'alumno') {
-        const cursoRes = await db.get(`SELECT id_curso FROM curso WHERE nombre_curso = ?`, ['3ro 1ra']);
+        const cursoRes = await db.get(`SELECT id_curso FROM curso WHERE nombre_curso = ?`, [acc.curso || '3ro 1ra']);
         const idCurso = cursoRes ? cursoRes.id_curso : null;
         await db.run(
           `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [acc.dni, 'Alumno', 'de Prueba', idCurso, userId, acc.email, hash]
+          [acc.dni, acc.nombre, '', idCurso, userId, acc.email, hash]
         );
       }
 
@@ -196,29 +226,36 @@ async function main() {
       console.log(`  ✅  [${acc.type.toUpperCase()}] Creado: ${acc.email} (ID: ${userId})`);
     }
 
-    // 5. Crear una clase de testing y asignar al profesor
-    const profesorId = createdIds['profesor_profe.test@edutechhub.test'];
-    const alumnoId   = createdIds['alumno_alumno.test@edutechhub.test'];
+    // 5. Crear clases independientes por división
+    const profeMatId = createdIds['profesor.matematica@tecnica29de6.edu.ar'];
+    const profePrgId = createdIds['profesor.programacion@tecnica29de6.edu.ar'];
+    const alu31Id = createdIds['alumno.3ro1ra@tecnica29de6.edu.ar'];
+    const alu42Id = createdIds['alumno.4to2da@tecnica29de6.edu.ar'];
 
-    if (profesorId && alumnoId) {
-      const claseResult = await db.run(
-        `INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ['Programación 3ro A', '3ro A', 'Programación', 'Laboratorio 1', 'Profesor de Prueba', profesorId, profesorId, 'PROG-TEST-2026']
-      );
-      const claseId = claseResult.lastID;
+    // Clase 1: Matemática (3ro 1ra)
+    const c1 = await db.run(
+      `INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ['Matemática 3ro 1ra', '3ro 1ra', 'Matemática', 'Aula 12', 'Profesor de Matemática', profeMatId, profeMatId, 'MAT-31-01']
+    );
+    await db.run(`INSERT INTO profesores_clases (profesor_id, clase_id) VALUES (?, ?)`, [profeMatId, c1.lastID]);
+    await db.run(`INSERT INTO alumnos_clases (alumno_id, materia, codigo) VALUES (?, ?, ?)`, [alu31Id, 'Matemática', 'MAT-31-01']);
 
-      // Inscribir al alumno en la clase
-      await db.run(
-        `INSERT INTO alumnos_clases (alumno_id, materia, codigo)
-         VALUES (?, ?, ?)`,
-        [alumnoId, 'Programación', 'PROG-TEST-2026']
-      );
+    // Clase 2: Programación (4to 2da)
+    const c2 = await db.run(
+      `INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ['Programación 4to 2da', '4to 2da', 'Programación', 'Lab 2', 'Profesor de Programación', profePrgId, profePrgId, 'PRG-42-02']
+    );
+    await db.run(`INSERT INTO profesores_clases (profesor_id, clase_id) VALUES (?, ?)`, [profePrgId, c2.lastID]);
+    await db.run(`INSERT INTO alumnos_clases (alumno_id, materia, codigo) VALUES (?, ?, ?)`, [alu42Id, 'Programación', 'PRG-42-02']);
 
-      console.log(`\n  🏫  Clase de testing creada: "Programación 3ro A" (ID: ${claseId}, código: PROG-TEST-2026)`);
-      console.log(`  👩‍🏫  Profesor asignado: Profesor de Prueba`);
-      console.log(`  🎓  Alumno inscripto: Alumno de Prueba`);
-    }
+    // Clase 3: Redes (5to 1ra) — Creada sin profesor ni alumnos (para probar asignación limpia)
+    await db.run(
+      `INSERT INTO clases (nombre, seccion, materia, aula, creador, creador_id, titular_id, codigo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ['Redes 5to 1ra', '5to 1ra', 'Redes Informáticas', 'Lab Redes', 'Admin', 1, null, 'RED-51-03']
+    );
 
     await db.run('COMMIT');
     await db.run('PRAGMA foreign_keys = ON');
@@ -258,17 +295,10 @@ async function main() {
     console.log('  CREDENCIALES DE TESTING:');
     console.log('');
     TESTING_ACCOUNTS.forEach(acc => {
-      const label = acc === TESTING_ACCOUNTS[1] && acc.email === TESTING_ACCOUNTS[0].email
-        ? '(omitido - mismo email que Admin 1)'
-        : `contraseña: ${acc.password}`;
-      console.log(`  [${acc.type.toUpperCase().padEnd(8)}] ${acc.email.padEnd(40)} ${label}`);
+      console.log(`  [${acc.type.toUpperCase().padEnd(8)}] ${acc.email.padEnd(42)} contraseña: ${acc.password}`);
     });
     console.log('');
-    console.log('  CLASE DE TESTING:');
-    console.log('  📚 Nombre:  Programación 3ro A');
-    console.log('  🔑 Código:  PROG-TEST-2026');
-    console.log('');
-    console.log('  Ver TESTING_CREDENTIALS.md para flujo completo.');
+    console.log('  Ver TESTING_CREDENTIALS.md y docs/MANUAL_TECNICO_FUNCIONAL.md para flujos y detalles.');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   } catch (err) {

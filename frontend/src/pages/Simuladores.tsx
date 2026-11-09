@@ -6,8 +6,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Button from '../components reutilizables/Button';
 import { useToast } from '../contexts/ToastContext';
 import { getSimulatorComponent } from '../simuladores/SimulatorRegistry';
-
-const API_URL = "http://localhost:3001/api";
+import { API_URL } from '../config/api';
 
 const Simuladores: React.FC = () => {
   const { claseId } = useParams<{ claseId: string }>();

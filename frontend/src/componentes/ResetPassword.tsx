@@ -4,6 +4,7 @@ import styles from "../Registro.module.css";
 import Header from "../components reutilizables/header";
 import Button from "../components reutilizables/Button";
 import InputField from "../components reutilizables/InputField";
+import { API_URL } from "../config/api";
 
 interface Notification {
   msg: string;
@@ -21,13 +22,13 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const tokenFromUrl = searchParams.get("token");
-    if (!tokenFromUrl) {
-      showNotification("Token inválido o faltante.", "error");
-      setTimeout(() => navigate("/"), 3000);
+    const t = searchParams.get("token");
+    if (!t) {
+      showNotification("El enlace de restablecimiento es inválido o ha expirado.", "error");
+    } else {
+      setToken(t);
     }
-    setToken(tokenFromUrl);
-  }, [searchParams, navigate]);
+  }, [searchParams]);
 
   const showNotification = (msg: string, type: "success" | "error") => {
     setNotification({ msg, type });
@@ -36,6 +37,10 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!password || !confirmPassword) {
+      showNotification("Por favor, complete todos los campos.", "error");
+      return;
+    }
     if (password !== confirmPassword) {
       showNotification("Las contraseñas no coinciden.", "error");
       return;
@@ -52,7 +57,7 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3001/api/reset-password", {
+      const response = await fetch(`${API_URL}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: token, contrasena: password }),

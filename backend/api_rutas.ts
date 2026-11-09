@@ -19,17 +19,66 @@ const upload = multer({ storage });
 const router = Router();
 
 // ======================================================
-// 1. CALENDARIO (Adaptado a SQLite)
+// 1. CALENDARIO (Filtrado por usuario y clases asignadas)
 // ======================================================
 
 router.get('/calendario/notas', async (req: Request, res: Response) => { 
-  // Si no hay sesión, usamos un id_usuario por defecto (1) en lugar de devolver 401
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : 1;
+  const usuario = req.session?.usuario;
+
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ error: 'No autorizado. Inicia sesión para ver tu calendario.' });
+  }
+
+  const id_usuario = Number(usuario.id);
 
   try {
-    const query = `SELECT * FROM calendario_notas WHERE id_usuario = $1 ORDER BY fecha_evento ASC`;
-    const result = await pool.query(query, [id_usuario]); 
-    res.status(200).json(result.rows);
+    // 1. Notas personales del usuario
+    const queryNotas = `SELECT id_nota, id_usuario, titulo, descripcion, fecha_evento, 'nota' as tipo FROM calendario_notas WHERE id_usuario = $1 ORDER BY fecha_evento ASC`;
+    const resultNotas = await pool.query(queryNotas, [id_usuario]);
+    const notas = resultNotas.rows || [];
+
+    // 2. Vencimientos de trabajos pertenecientes a clases asignadas
+    let trabajosDeadlines: any[] = [];
+    try {
+      let queryTrabajos = '';
+      let paramsTrabajos: any[] = [];
+
+      if (usuario.rol === 'admin' || usuario.isAdmin) {
+        queryTrabajos = `
+          SELECT t.id as id_nota, t.titulo, ('Fecha límite - ' || c.nombre) as descripcion, 
+                 t.fecha_limite as fecha_evento, 'trabajo' as tipo, t.clase_id
+          FROM trabajos t
+          JOIN clases c ON t.clase_id = c.id
+          WHERE t.fecha_limite IS NOT NULL
+        `;
+      } else if (usuario.rol === 'profesor') {
+        queryTrabajos = `
+          SELECT t.id as id_nota, t.titulo, ('Fecha límite - ' || c.nombre) as descripcion, 
+                 t.fecha_limite as fecha_evento, 'trabajo' as tipo, t.clase_id
+          FROM trabajos t
+          JOIN clases c ON t.clase_id = c.id
+          WHERE t.fecha_limite IS NOT NULL
+            AND (c.titular_id = $1 OR c.id IN (SELECT clase_id FROM profesores_clases WHERE profesor_id = $1))
+        `;
+        paramsTrabajos = [id_usuario];
+      } else {
+        queryTrabajos = `
+          SELECT t.id as id_nota, t.titulo, ('Entrega TP - ' || c.nombre) as descripcion, 
+                 t.fecha_limite as fecha_evento, 'trabajo' as tipo, t.clase_id
+          FROM trabajos t
+          JOIN clases c ON t.clase_id = c.id
+          JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM(c.codigo))
+          WHERE t.fecha_limite IS NOT NULL AND ac.alumno_id = $1
+        `;
+        paramsTrabajos = [id_usuario];
+      }
+
+      const resT = await pool.query(queryTrabajos, paramsTrabajos);
+      trabajosDeadlines = resT.rows || [];
+    } catch (_e) {}
+
+    const totalEventos = [...notas, ...trabajosDeadlines];
+    res.status(200).json(totalEventos);
   } catch (error) {
     console.error('Error al obtener notas:', error);
     res.status(500).json({ message: 'Error interno del servidor.' });
@@ -37,22 +86,25 @@ router.get('/calendario/notas', async (req: Request, res: Response) => {
 });
 
 router.post('/calendario/notas', async (req: Request, res: Response) => {
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : 1;
+  const usuario = req.session?.usuario;
 
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ message: 'Debes iniciar sesión para crear notas.' });
+  }
+
+  const id_usuario = Number(usuario.id);
   const { titulo, descripcion, fecha_evento } = req.body;
   if (!titulo || !fecha_evento) {
     return res.status(400).json({ message: 'El título y la fecha son obligatorios.' });
   }
 
   try {
-    // SQLite: Quitamos RETURNING * para evitar errores
     const query = `
       INSERT INTO calendario_notas (id_usuario, titulo, descripcion, fecha_evento)
       VALUES ($1, $2, $3, $4)
     `;
-    await pool.query(query, [id_usuario, titulo, descripcion, fecha_evento]);
+    await pool.query(query, [id_usuario, titulo.trim(), descripcion ? descripcion.trim() : '', fecha_evento]);
     
-    // Devolvemos lo que insertamos manualmente
     res.status(201).json({ 
         id_usuario, titulo, descripcion, fecha_evento, success: true 
     });
@@ -63,11 +115,16 @@ router.post('/calendario/notas', async (req: Request, res: Response) => {
 });
 
 router.delete('/calendario/notas/:id', async (req: Request, res: Response) => {
-  const id_usuario = req.session.usuario ? Number(req.session.usuario.id) : 1;
+  const usuario = req.session?.usuario;
+
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ message: 'No autorizado.' });
+  }
+
+  const id_usuario = Number(usuario.id);
   const { id } = req.params;
 
   try {
-    // SQLite: Quitamos RETURNING *
     const query = `DELETE FROM calendario_notas WHERE id_nota = $1 AND id_usuario = $2`;
     await pool.query(query, [id, id_usuario]);
 

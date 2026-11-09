@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-import Header from '../../components reutilizables/header';
+import ConsoleTopbar from './ConsoleTopbar';
+import CommandPalette from './CommandPalette';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -8,22 +9,42 @@ interface AppLayoutProps {
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children, showSidebar = true }) => {
-  if (!showSidebar) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Header showLogout={true} />
-        <main className="app-page-body">{children}</main>
-      </div>
-    );
-  }
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+
+  // Global Ctrl+K / Cmd+K shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCmdPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleToggleAlfred = () => {
+    window.dispatchEvent(new CustomEvent('toggle-alfred'));
+  };
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      {showSidebar && <Sidebar />}
+
       <div className="app-main-content">
-        <Header showLogout={false} />
+        <ConsoleTopbar
+          onOpenCommandPalette={() => setCmdPaletteOpen(true)}
+          onToggleAlfred={handleToggleAlfred}
+        />
         <main className="app-page-body">{children}</main>
       </div>
+
+      {/* Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={cmdPaletteOpen}
+        onClose={() => setCmdPaletteOpen(false)}
+        onOpenAlfred={handleToggleAlfred}
+      />
     </div>
   );
 };

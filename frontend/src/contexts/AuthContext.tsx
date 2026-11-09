@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { API_URL } from '../config/api';
 
 export interface User {
   id: number;
@@ -27,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/whoami', { credentials: 'include' });
+      const res = await fetch(`${API_URL}/whoami`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         // Only update from server if login() hasn't already set the user
@@ -62,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:3001/api/logout', {
+      await fetch(`${API_URL}/logout`, {
         method: 'POST',
         credentials: 'include'
       });

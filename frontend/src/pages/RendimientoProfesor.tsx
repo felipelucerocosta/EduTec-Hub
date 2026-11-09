@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../contexts/ToastContext';
-
-const API_URL = 'http://localhost:3001/api';
+import { API_URL } from '../config/api';
 
 interface RendimientoProfesorProps {
   claseId: string | number;

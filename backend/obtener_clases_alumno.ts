@@ -1,10 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
+import type { UsuarioSesion } from './permisos';
 
 const router = Router();
 
 router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
-  const usuario = req.session?.usuario;
+  const usuario = req.session?.usuario as UsuarioSesion | undefined;
   const alumno_id = usuario?.id;
 
   if (!alumno_id) {
@@ -20,14 +21,13 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
       );
       const estado = estadoQ.rows[0]?.estado_acceso || 'PENDIENTE_DE_ASIGNACION';
       if (estado !== 'ACTIVO') {
-        // Registrar intento de acceso en auditoría
         try {
           await pool.query(
             `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'ACCESO_DENEGADO_PENDIENTE', $3)`,
             [alumno_id, usuario.correo || '', `Intento de acceder a clases con estado: ${estado}`]
           );
         } catch (_e) {}
-        return res.json([]); // Array vacío – sin listado, sin candados
+        return res.json([]); // Array vacío
       }
     }
 
@@ -45,13 +45,15 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
           c.aula, 
           c.creador, 
           c.codigo,
-          (SELECT COUNT(*) FROM alumnos_clases ac2 WHERE LOWER(TRIM(ac2.codigo)) = LOWER(TRIM(c.codigo))) AS cantidad_alumnos
+          c.titular_id,
+          (SELECT COUNT(*) FROM alumnos_clases ac2 WHERE LOWER(TRIM(ac2.codigo)) = LOWER(TRIM(c.codigo))) AS cantidad_alumnos,
+          (SELECT COUNT(*) FROM trabajos t WHERE t.clase_id = c.id) AS total_trabajos
         FROM clases c
         ORDER BY c.id DESC
       `;
       params = [];
     } else {
-      // Alumno ACTIVO: solo ve las clases donde está inscripto
+      // Alumno ACTIVO: solo ve las clases donde esté inscripto
       query = `
         SELECT DISTINCT
           c.id,
@@ -61,7 +63,9 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
           c.aula, 
           c.creador, 
           c.codigo,
-          (SELECT COUNT(*) FROM alumnos_clases ac2 WHERE LOWER(TRIM(ac2.codigo)) = LOWER(TRIM(c.codigo))) AS cantidad_alumnos
+          c.titular_id,
+          (SELECT COUNT(*) FROM alumnos_clases ac2 WHERE LOWER(TRIM(ac2.codigo)) = LOWER(TRIM(c.codigo))) AS cantidad_alumnos,
+          (SELECT COUNT(*) FROM trabajos t WHERE t.clase_id = c.id) AS total_trabajos
         FROM clases c
         INNER JOIN alumnos_clases ac ON LOWER(TRIM(c.codigo)) = LOWER(TRIM(ac.codigo))
         WHERE ac.alumno_id = $1
@@ -71,10 +75,10 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(query, params);
-    res.json(result.rows || []);
+    return res.json(result.rows || []);
   } catch (error) {
     console.error('Error al obtener clases del alumno:', error);
-    res.status(500).json({ error: 'Error interno al obtener las clases.' });
+    return res.status(500).json({ error: 'Error interno al obtener las clases.' });
   }
 });
 

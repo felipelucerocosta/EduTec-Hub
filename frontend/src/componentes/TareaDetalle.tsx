@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import Button from "../components reutilizables/Button";
+import { API_URL } from "../config/api";
 
 interface Tarea {
   id: number;
@@ -60,7 +61,7 @@ const TareaDetalle: React.FC<Props> = ({ tarea, onClose, onSubmitted }) => {
       }
       formData.append("comentario", comentario);
 
-      const res = await fetch(`http://localhost:3001/api/trabajos/${tarea.id}/entregar`, {
+      const res = await fetch(`${API_URL}/trabajos/${tarea.id}/entregar`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -84,7 +85,7 @@ const TareaDetalle: React.FC<Props> = ({ tarea, onClose, onSubmitted }) => {
   const handleRetirarEntrega = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/trabajos/${tarea.id}/retirar`, {
+      const res = await fetch(`${API_URL}/trabajos/${tarea.id}/retirar`, {
         method: "DELETE",
         credentials: "include",
       });

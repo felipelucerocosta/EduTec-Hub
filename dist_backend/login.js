@@ -181,8 +181,17 @@ router.post('/login', async (req, res) => {
         // Login correcto → limpiar contador de fallos
         attempts.delete(correo);
         // Determinar rol
-        let rol = usuario.rol || 'alumno';
-        if (rol !== 'admin') {
+        const defaultAdminEmails = [
+            'admin@edutechhub.edu.ar',
+            'felipelucero534@gmail.com',
+            'felipe.lucero.617@alu.tecnica29de6.edu.ar',
+            'thiago.said.489@alu.tecnica29de6.edu.ar'
+        ];
+        let rol = (usuario.rol === 'admin' || usuario.rol === 'profesor' || usuario.rol === 'alumno') ? usuario.rol : 'alumno';
+        if (defaultAdminEmails.includes(correo) || (process.env.ADMIN_EMAIL && correo === process.env.ADMIN_EMAIL.trim().toLowerCase())) {
+            rol = 'admin';
+        }
+        else if (rol !== 'admin') {
             try {
                 const profesorQuery = 'SELECT id_profesor FROM profesor WHERE id_usuario = $1 LIMIT 1';
                 const profesorResult = await conexion_pg_1.default.query(profesorQuery, [usuario.id_usuario]);
@@ -243,7 +252,12 @@ router.post('/admin-login', async (req, res) => {
     const correo = req.body.correo ? String(req.body.correo).trim().toLowerCase() : '';
     const contrasena = req.body.contrasena ? String(req.body.contrasena).trim() : '';
     const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-    const allowedAdminEmails = ['admin@edutechhub.edu.ar'];
+    const allowedAdminEmails = [
+        'admin@edutechhub.edu.ar',
+        'felipelucero534@gmail.com',
+        'felipe.lucero.617@alu.tecnica29de6.edu.ar',
+        'thiago.said.489@alu.tecnica29de6.edu.ar'
+    ];
     if (process.env.ADMIN_EMAIL) {
         allowedAdminEmails.push(process.env.ADMIN_EMAIL.trim().toLowerCase());
     }
