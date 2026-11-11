@@ -27,6 +27,8 @@ import Boletin from "./pages/Boletin";
 import Simuladores from "./pages/Simuladores";
 import TrabajoDetallePage from "./pages/TrabajoDetallePage";
 import TrabajoProfesorPage from "./pages/TrabajoProfesorPage";
+// === PLUGIN 1: ASISTENCIA ACADÉMICA ===
+import AsistenciaPage from "../../plugins/asistencia-academica/frontend/pages/AsistenciaPage";
 
 
 // Protected route component
@@ -104,6 +106,13 @@ function AppRoutes() {
       <Route path="/calendario" element={
         <ProtectedRoute>
           <Calendario />
+        </ProtectedRoute>
+      } />
+
+      {/* PLUGIN 1: CONTROL DE ASISTENCIA Y REGULARIDAD */}
+      <Route path="/asistencia" element={
+        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin"]}>
+          <AsistenciaPage />
         </ProtectedRoute>
       } />
 

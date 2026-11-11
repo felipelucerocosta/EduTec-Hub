@@ -21,6 +21,7 @@ interface Profesor {
   nombre: string;
   correo: string;
   materia?: string;
+  nivel_educativo?: string;
   clases_asignadas?: number;
 }
 
@@ -30,6 +31,7 @@ interface Alumno {
   correo: string;
   DNI?: string;
   curso?: string;
+  nivel_educativo?: string;
   clases_inscriptas?: number;
 }
 
@@ -325,7 +327,7 @@ const AdminAsignaciones: React.FC = () => {
                       <option value="">— Ninguno (Sin profesor) —</option>
                       {profesores.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.nombre} ({p.correo}) {p.materia ? `- ${p.materia}` : ''}
+                          {p.nombre} ({p.correo}){p.nivel_educativo ? ` [${p.nivel_educativo}]` : ''} {p.materia ? `- ${p.materia}` : ''}
                         </option>
                       ))}
                     </select>
@@ -399,7 +401,7 @@ const AdminAsignaciones: React.FC = () => {
                       <option value="">— Seleccionar alumno para inscribir —</option>
                       {alumnosNoInscriptos.map(a => (
                         <option key={a.id} value={a.id}>
-                          {a.nombre} ({a.correo}) {a.curso ? `- ${a.curso}` : ''}
+                          {a.nombre} ({a.correo}){a.nivel_educativo ? ` [${a.nivel_educativo}]` : ''} {a.curso ? `- ${a.curso}` : ''}
                         </option>
                       ))}
                     </select>

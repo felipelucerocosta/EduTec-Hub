@@ -1,0 +1,16 @@
+{
+  "name": "edutechhub-plugin-asistencia-academica",
+  "version": "1.0.0",
+  "description": "Plugin institucional para EduTech-Hub: Control de Asistencia Escolar y Alertas Tempranas de Regularidad",
+  "main": "backend/index.ts",
+  "author": "Equipo de Prácticas Profesionalizantes - E.E.S.T. N° 29 D.E. 6",
+  "license": "MIT",
+  "edutechhub": {
+    "pluginId": "asistencia-academica",
+    "displayName": "Asistencia y Regularidad Académica",
+    "version": "1.0.0",
+    "entryRoute": "/asistencia",
+    "roles": ["admin", "profesor", "alumno"]
+  }
+}
+

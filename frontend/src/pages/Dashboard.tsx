@@ -129,8 +129,8 @@ const Dashboard: React.FC = () => {
 
   // Datos para el gráfico circular (Donut Ring)
   const donutData = [
-    { label: 'Calificados', count: totalEntregados, color: '#7c3aed', pct: porcentajeAvance },
-    { label: 'En Revisión', count: Math.round(totalTrabajos * 0.15), color: '#38bdf8', pct: 15 },
+    { label: 'Calificados', count: totalEntregados, color: '#7929d2', pct: porcentajeAvance },
+    { label: 'En Revisión', count: Math.round(totalTrabajos * 0.15), color: '#55ddf5', pct: 15 },
     { label: 'Pendientes', count: totalPendientes, color: '#f59e0b', pct: Math.max(5, 100 - porcentajeAvance - 15) }
   ];
 
@@ -144,7 +144,7 @@ const Dashboard: React.FC = () => {
               style={{
                 fontSize: '1.75rem',
                 fontWeight: 800,
-                color: '#f8fafc',
+                color: '#f3f0ff',
                 margin: 0,
                 letterSpacing: '-0.02em',
                 fontFamily: 'var(--font-family-display)'
@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
             >
               Consola Académica
             </h1>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.25rem', margin: 0 }}>
+            <p style={{ color: '#a9a3c7', fontSize: '0.9rem', marginTop: '0.25rem', margin: 0 }}>
               {user.rol === 'alumno'
                 ? 'Monitoreo de rendimiento académico, entregas y estado de cursada'
                 : 'Supervisión de cursos asignados, calificaciones y entregas de alumnos'}
@@ -177,23 +177,23 @@ const Dashboard: React.FC = () => {
           {/* KPI 1: Promedio General */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '16px',
               padding: '1.25rem',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               position: 'relative',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.78rem', color: '#a9a3c7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Promedio Ponderado
                 </span>
-                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f3f0ff', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
                   {promedioGeneral.toFixed(1)}
                 </div>
               </div>
@@ -214,8 +214,8 @@ const Dashboard: React.FC = () => {
             {/* Sparkline SVG */}
             <div style={{ height: '32px', marginTop: '0.75rem' }}>
               <svg width="100%" height="32" viewBox="0 0 160 32" fill="none">
-                <path d="M 0 24 Q 40 28, 80 14 T 160 6" stroke="#7c3aed" strokeWidth="2" fill="none" />
-                <path d="M 0 24 Q 40 28, 80 14 T 160 6 L 160 32 L 0 32 Z" fill="rgba(124, 58, 237, 0.15)" />
+                <path d="M 0 24 Q 40 28, 80 14 T 160 6" stroke="#7929d2" strokeWidth="2" fill="none" />
+                <path d="M 0 24 Q 40 28, 80 14 T 160 6 L 160 32 L 0 32 Z" fill="rgba(121, 41, 210, 0.18)" />
               </svg>
             </div>
           </div>
@@ -223,54 +223,54 @@ const Dashboard: React.FC = () => {
           {/* KPI 2: Avance de Trabajos / Entregas */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '16px',
               padding: '1.25rem',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.78rem', color: '#a9a3c7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {user.rol === 'alumno' ? 'Entregas Realizadas' : 'Correcciones'}
                 </span>
-                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f3f0ff', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
                   {porcentajeAvance}%
                 </div>
               </div>
-              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.85rem', color: '#a9a3c7' }}>
                 {totalEntregados} / {totalTrabajos} TPs
               </span>
             </div>
             {/* Progress Bar */}
             <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', marginTop: '1rem', overflow: 'hidden' }}>
-              <div style={{ width: `${porcentajeAvance}%`, height: '100%', background: 'linear-gradient(90deg, #7c3aed, #38bdf8)', borderRadius: '3px' }}></div>
+              <div style={{ width: `${porcentajeAvance}%`, height: '100%', background: 'linear-gradient(90deg, #7929d2, #55ddf5)', borderRadius: '3px' }}></div>
             </div>
           </div>
 
           {/* KPI 3: Clases y Divisiones */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '16px',
               padding: '1.25rem',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.78rem', color: '#a9a3c7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Divisiones Activas
                 </span>
-                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f3f0ff', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
                   {totalClases}
                 </div>
               </div>
@@ -278,9 +278,9 @@ const Dashboard: React.FC = () => {
                 style={{
                   padding: '2px 8px',
                   borderRadius: '50px',
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  color: '#38bdf8',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  background: 'rgba(85, 221, 245, 0.12)',
+                  color: '#55ddf5',
+                  border: '1px solid rgba(85, 221, 245, 0.28)',
                   fontSize: '0.72rem',
                   fontWeight: 600
                 }}
@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
                 Cursado Regular
               </span>
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+            <div style={{ fontSize: '0.82rem', color: '#6b6688', marginTop: '0.75rem' }}>
               Espacios curriculares independientes
             </div>
           </div>
@@ -296,19 +296,19 @@ const Dashboard: React.FC = () => {
           {/* KPI 4: Tareas Pendientes / Alertas */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '16px',
               padding: '1.25rem',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.78rem', color: '#a9a3c7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Pendientes de Entrega
                 </span>
                 <div style={{ fontSize: '2.1rem', fontWeight: 800, color: totalPendientes > 0 ? '#fbbf24' : '#34d399', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
@@ -317,7 +317,7 @@ const Dashboard: React.FC = () => {
               </div>
               <i className="bx bx-time" style={{ fontSize: '1.5rem', color: '#f59e0b' }}></i>
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '0.75rem' }}>
+            <div style={{ fontSize: '0.82rem', color: '#a9a3c7', marginTop: '0.75rem' }}>
               {totalPendientes > 0 ? 'Requiere atención esta semana' : 'Al día con todas las consignas'}
             </div>
           </div>
@@ -328,22 +328,22 @@ const Dashboard: React.FC = () => {
           {/* Panel Izquierdo: Evolución Académica Multicurva */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '18px',
               padding: '1.5rem',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: 'var(--shadow-sm)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
               gridColumn: 'span 2'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f3f0ff', margin: 0, letterSpacing: '-0.01em' }}>
                   Evolución Académica y Rendimiento
                 </h2>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.82rem', color: '#a9a3c7' }}>
                   Curva de notas mensuales vs. promedio objetivo institucional
                 </span>
               </div>
@@ -357,8 +357,8 @@ const Dashboard: React.FC = () => {
                     style={{
                       padding: '4px 10px',
                       borderRadius: '6px',
-                      background: selectedPeriod === period ? '#7c3aed' : 'transparent',
-                      color: selectedPeriod === period ? '#ffffff' : '#94a3b8',
+                      background: selectedPeriod === period ? '#7929d2' : 'transparent',
+                      color: selectedPeriod === period ? '#ffffff' : '#a9a3c7',
                       border: 'none',
                       fontSize: '0.75rem',
                       fontWeight: 600,
@@ -378,8 +378,8 @@ const Dashboard: React.FC = () => {
               <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" style={{ minWidth: '500px' }}>
                 <defs>
                   <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.0" />
+                    <stop offset="0%" stopColor="#7929d2" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#7929d2" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
 
@@ -389,7 +389,7 @@ const Dashboard: React.FC = () => {
                   return (
                     <g key={val}>
                       <line x1={paddingX} y1={y} x2={chartWidth - paddingX} y2={y} stroke="rgba(255, 255, 255, 0.06)" strokeDasharray="3 3" />
-                      <text x={paddingX - 10} y={y + 4} fill="#64748b" fontSize="10" textAnchor="end">
+                      <text x={paddingX - 10} y={y + 4} fill="#6b6688" fontSize="10" textAnchor="end">
                         {val}
                       </text>
                     </g>
@@ -398,8 +398,8 @@ const Dashboard: React.FC = () => {
 
                 {/* Curva de Área y Línea Principal */}
                 <path d={areaPath} fill="url(#curveGradient)" />
-                <path d={targetPath} stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="4 4" fill="none" opacity="0.6" />
-                <path d={linePath} stroke="#7c3aed" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <path d={targetPath} stroke="#55ddf5" strokeWidth="1.5" strokeDasharray="4 4" fill="none" opacity="0.6" />
+                <path d={linePath} stroke="#7929d2" strokeWidth="2.5" fill="none" strokeLinecap="round" />
 
                 {/* Puntos Interactivos */}
                 {points.map((p, idx) => (
@@ -408,14 +408,14 @@ const Dashboard: React.FC = () => {
                       cx={p.x}
                       cy={p.y}
                       r={hoveredPoint === idx ? 6 : 4}
-                      fill="#7c3aed"
-                      stroke="#f8fafc"
+                      fill="#7929d2"
+                      stroke="#f3f0ff"
                       strokeWidth={hoveredPoint === idx ? 2 : 1}
                       style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
                       onMouseEnter={() => setHoveredPoint(idx)}
                       onMouseLeave={() => setHoveredPoint(null)}
                     />
-                    <text x={p.x} y={chartHeight - 6} fill="#94a3b8" fontSize="11" textAnchor="middle">
+                    <text x={p.x} y={chartHeight - 6} fill="#a9a3c7" fontSize="11" textAnchor="middle">
                       {p.label}
                     </text>
                   </g>
@@ -429,31 +429,31 @@ const Dashboard: React.FC = () => {
                     position: 'absolute',
                     top: '10px',
                     left: `${(hoveredPoint / (chartTimeline.length - 1)) * 80 + 10}%`,
-                    background: '#1e293b',
-                    border: '1px solid rgba(124, 58, 237, 0.4)',
+                    background: '#16142a',
+                    border: '1px solid rgba(151, 71, 255, 0.4)',
                     padding: '6px 12px',
                     borderRadius: '8px',
                     boxShadow: 'var(--shadow-md)',
                     pointerEvents: 'none',
                     fontSize: '0.78rem',
-                    color: '#f8fafc',
+                    color: '#f3f0ff',
                     whiteSpace: 'nowrap'
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>{chartTimeline[hoveredPoint].label}: Nota {chartTimeline[hoveredPoint].valor}</div>
-                  <div style={{ color: '#38bdf8', fontSize: '0.72rem' }}>Meta: {chartTimeline[hoveredPoint].target}</div>
+                  <div style={{ color: '#55ddf5', fontSize: '0.72rem' }}>Meta: {chartTimeline[hoveredPoint].target}</div>
                 </div>
               )}
             </div>
 
             {/* Leyenda Inferior */}
             <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#94a3b8' }}>
-                <span style={{ width: '12px', height: '3px', background: '#7c3aed', borderRadius: '2px' }}></span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#a9a3c7' }}>
+                <span style={{ width: '12px', height: '3px', background: '#7929d2', borderRadius: '2px' }}></span>
                 Calificación Lograda
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#94a3b8' }}>
-                <span style={{ width: '12px', height: '3px', background: '#38bdf8', borderRadius: '2px' }}></span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#a9a3c7' }}>
+                <span style={{ width: '12px', height: '3px', background: '#55ddf5', borderRadius: '2px' }}></span>
                 Objetivo Institucional
               </div>
             </div>
@@ -462,21 +462,21 @@ const Dashboard: React.FC = () => {
           {/* Panel Derecho: Donut Ring Chart de Tareas */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '18px',
               padding: '1.5rem',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f3f0ff', margin: 0, letterSpacing: '-0.01em' }}>
                 Distribución de Trabajos
               </h2>
-              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.82rem', color: '#a9a3c7' }}>
                 Estado global de entregas y evaluaciones
               </span>
             </div>
@@ -492,7 +492,7 @@ const Dashboard: React.FC = () => {
                   cy="50"
                   r="38"
                   fill="transparent"
-                  stroke="#7c3aed"
+                  stroke="#7929d2"
                   strokeWidth="10"
                   strokeDasharray={`${porcentajeAvance * 2.38} 238`}
                   strokeDashoffset="0"
@@ -505,7 +505,7 @@ const Dashboard: React.FC = () => {
                   cy="50"
                   r="38"
                   fill="transparent"
-                  stroke="#38bdf8"
+                  stroke="#55ddf5"
                   strokeWidth="10"
                   strokeDasharray="35 238"
                   strokeDashoffset={`-${porcentajeAvance * 2.38}`}
@@ -514,10 +514,10 @@ const Dashboard: React.FC = () => {
                 />
               </svg>
               <div style={{ position: 'absolute', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f3f0ff', fontFamily: 'var(--font-family-display)' }}>
                   {totalTrabajos}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total TPs</div>
+                <div style={{ fontSize: '0.68rem', color: '#a9a3c7', textTransform: 'uppercase' }}>Total TPs</div>
               </div>
             </div>
 
@@ -527,9 +527,9 @@ const Dashboard: React.FC = () => {
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }}></span>
-                    <span style={{ color: '#cbd5e1' }}>{d.label}</span>
+                    <span style={{ color: '#c5bde0' }}>{d.label}</span>
                   </div>
-                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>{d.count} ({d.pct}%)</span>
+                  <span style={{ fontWeight: 600, color: '#f3f0ff' }}>{d.count} ({d.pct}%)</span>
                 </div>
               ))}
             </div>
@@ -541,19 +541,19 @@ const Dashboard: React.FC = () => {
           {/* Bloque: Mis Clases */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '18px',
               padding: '1.5rem',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f3f0ff', margin: 0, letterSpacing: '-0.01em' }}>
                   Mis Materias y Divisiones
                 </h2>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.82rem', color: '#a9a3c7' }}>
                   Espacios curriculares en curso
                 </span>
               </div>
@@ -592,8 +592,8 @@ const Dashboard: React.FC = () => {
                       transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.3)';
-                      e.currentTarget.style.background = 'rgba(124, 58, 237, 0.06)';
+                      e.currentTarget.style.borderColor = 'rgba(151, 71, 255, 0.35)';
+                      e.currentTarget.style.background = 'rgba(121, 41, 210, 0.08)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
@@ -606,8 +606,8 @@ const Dashboard: React.FC = () => {
                           width: '36px',
                           height: '36px',
                           borderRadius: '8px',
-                          background: 'rgba(124, 58, 237, 0.15)',
-                          color: '#a78bfa',
+                          background: 'rgba(121, 41, 210, 0.18)',
+                          color: '#B99AFF',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -617,10 +617,10 @@ const Dashboard: React.FC = () => {
                         <i className="bx bx-book"></i>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f8fafc' }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#f3f0ff' }}>
                           {clase.materia || clase.nombre}
                         </div>
-                        <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#6b6688' }}>
                           {clase.seccion || 'División Regular'} · {clase.aula || 'Aula Técnica'}
                         </div>
                       </div>
@@ -630,7 +630,7 @@ const Dashboard: React.FC = () => {
                         padding: '2px 8px',
                         borderRadius: '4px',
                         background: 'rgba(255, 255, 255, 0.06)',
-                        color: '#cbd5e1',
+                        color: '#c5bde0',
                         fontSize: '0.75rem',
                         fontWeight: 600,
                         fontFamily: 'var(--font-family-mono)'
@@ -647,19 +647,19 @@ const Dashboard: React.FC = () => {
           {/* Bloque: Notificaciones y Actividad Reciente */}
           <div
             style={{
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#0d1222',
+              border: '1px solid rgba(151, 71, 255, 0.12)',
               borderRadius: '18px',
               padding: '1.5rem',
-              boxShadow: 'var(--shadow-sm)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc', margin: 0, letterSpacing: '-0.01em' }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f3f0ff', margin: 0, letterSpacing: '-0.01em' }}>
                   Avisos y Novedades
                 </h2>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.82rem', color: '#a9a3c7' }}>
                   Notificaciones académicas del curso
                 </span>
               </div>
@@ -667,8 +667,8 @@ const Dashboard: React.FC = () => {
                 style={{
                   padding: '2px 8px',
                   borderRadius: '50px',
-                  background: 'rgba(124, 58, 237, 0.15)',
-                  color: '#a78bfa',
+                  background: 'rgba(121, 41, 210, 0.18)',
+                  color: '#B99AFF',
                   fontSize: '0.72rem',
                   fontWeight: 600
                 }}
@@ -703,8 +703,8 @@ const Dashboard: React.FC = () => {
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: 'rgba(56, 189, 248, 0.15)',
-                        color: '#38bdf8',
+                        background: 'rgba(85, 221, 245, 0.12)',
+                        color: '#55ddf5',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -716,10 +716,10 @@ const Dashboard: React.FC = () => {
                       <i className="bx bx-bell"></i>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#f8fafc' }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#f3f0ff' }}>
                         {notif.titulo || notif.mensaje || 'Nueva publicación institucional'}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#6b6688', marginTop: '2px' }}>
                         {notif.fecha_creacion ? new Date(notif.fecha_creacion).toLocaleDateString('es-AR') : 'Reciente'}
                       </div>
                     </div>

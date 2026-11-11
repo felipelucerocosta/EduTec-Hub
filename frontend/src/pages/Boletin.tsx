@@ -54,7 +54,7 @@ const Boletin: React.FC = () => {
     switch (estado) {
       case 'Excelente':
         return (
-          <span style={{ ...baseStyle, background: 'rgba(124,58,237,0.18)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.35)' }}>
+          <span style={{ ...baseStyle, background: 'rgba(121,41,210,0.22)', color: '#d8c5ff', border: '1px solid rgba(151,71,255,0.4)' }}>
             Excelente
           </span>
         );
@@ -80,7 +80,7 @@ const Boletin: React.FC = () => {
         );
       default:
         return (
-          <span style={{ ...baseStyle, background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.25)' }}>
+          <span style={{ ...baseStyle, background: 'rgba(100,116,139,0.15)', color: '#a9a3c7', border: '1px solid rgba(100,116,139,0.25)' }}>
             {estado}
           </span>
         );
@@ -88,7 +88,7 @@ const Boletin: React.FC = () => {
   };
 
   const getScoreColor = (score: number | null) => {
-    if (score === null) return '#64748b';
+    if (score === null) return '#6b6688';
     if (score >= 7) return '#34d399';
     if (score >= 4) return '#fbbf24';
     return '#f87171';
@@ -104,9 +104,9 @@ const Boletin: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.3rem' }}>
               <div style={{
                 width: '36px', height: '36px', borderRadius: '10px',
-                background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.3)',
+                background: 'rgba(121,41,210,0.2)', border: '1px solid rgba(151,71,255,0.35)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#a78bfa', fontSize: '1.1rem'
+                color: '#b99aff', fontSize: '1.1rem'
               }}>
                 <i className="bx bx-receipt"></i>
               </div>
@@ -114,14 +114,14 @@ const Boletin: React.FC = () => {
                 fontFamily: "'Outfit', sans-serif",
                 fontSize: '1.85rem',
                 fontWeight: 800,
-                color: '#f8fafc',
+                color: '#f3f0ff',
                 margin: 0,
                 letterSpacing: '-0.03em'
               }}>
                 Boletín Académico
               </h1>
             </div>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0, paddingLeft: '3rem' }}>
+            <p style={{ color: '#6b6688', fontSize: '0.875rem', margin: 0, paddingLeft: '3rem' }}>
               Calificaciones y promedios por período lectivo
             </p>
           </div>
@@ -133,8 +133,8 @@ const Boletin: React.FC = () => {
               padding: '0.65rem 1.2rem',
               borderRadius: '10px',
               background: 'rgba(255,255,255,0.055)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#e2e8f0',
+              border: '1px solid rgba(151,71,255,0.2)',
+              color: '#f3f0ff',
               fontFamily: "'Sora', sans-serif",
               fontWeight: 600,
               fontSize: '0.875rem',
@@ -142,7 +142,7 @@ const Boletin: React.FC = () => {
               transition: 'all 0.2s ease',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.09)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(121,41,210,0.15)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.055)'; }}
           >
             <i className="bx bx-printer"></i> Imprimir
@@ -176,9 +176,9 @@ const Boletin: React.FC = () => {
                       cursor: 'pointer',
                       border: '1px solid',
                       transition: 'all 0.2s ease',
-                      background: isActive ? 'rgba(124,58,237,0.18)' : 'rgba(255,255,255,0.04)',
-                      borderColor: isActive ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.08)',
-                      color: isActive ? '#c4b5fd' : '#94a3b8',
+                      background: isActive ? 'rgba(121,41,210,0.22)' : 'rgba(255,255,255,0.04)',
+                      borderColor: isActive ? 'rgba(151,71,255,0.5)' : 'rgba(255,255,255,0.08)',
+                      color: isActive ? '#d8c5ff' : '#a9a3c7',
                     }}
                   >
                     {b.periodo.nombre} ({b.periodo.anio})
@@ -195,8 +195,8 @@ const Boletin: React.FC = () => {
 
                   {/* Promedio General */}
                   <div style={{
-                    background: 'rgba(255,255,255,0.038)',
-                    border: '1px solid rgba(255,255,255,0.075)',
+                    background: 'rgba(13,18,34,0.85)',
+                    border: '1px solid rgba(151,71,255,0.15)',
                     borderRadius: '16px',
                     padding: '1.5rem',
                     display: 'flex',
@@ -205,29 +205,29 @@ const Boletin: React.FC = () => {
                     position: 'relative',
                     overflow: 'hidden',
                   }}>
-                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '1.4rem', color: 'rgba(124,58,237,0.4)' }}>
+                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '1.4rem', color: 'rgba(121,41,210,0.5)' }}>
                       <i className="bx bx-trending-up"></i>
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Sora', sans-serif" }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Sora', sans-serif" }}>
                       Promedio General
                     </span>
                     <div style={{
                       fontFamily: "'Outfit', sans-serif",
                       fontSize: '2.8rem',
                       fontWeight: 800,
-                      color: '#f8fafc',
+                      color: '#f3f0ff',
                       letterSpacing: '-0.03em',
                       lineHeight: 1,
                     }}>
                       {currentBoletin.promedio_general !== null ? currentBoletin.promedio_general : '—'}
                     </div>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Período actual</span>
+                    <span style={{ fontSize: '0.8rem', color: '#6b6688' }}>Período actual</span>
                   </div>
 
                   {/* Mejor Rendimiento */}
                   <div style={{
-                    background: 'rgba(255,255,255,0.038)',
-                    border: '1px solid rgba(255,255,255,0.075)',
+                    background: 'rgba(13,18,34,0.85)',
+                    border: '1px solid rgba(151,71,255,0.15)',
                     borderRadius: '16px',
                     padding: '1.5rem',
                     display: 'flex',
@@ -239,7 +239,7 @@ const Boletin: React.FC = () => {
                     <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '1.4rem', color: 'rgba(16,185,129,0.4)' }}>
                       <i className="bx bx-medal"></i>
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Sora', sans-serif" }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Sora', sans-serif" }}>
                       Mejor Materia
                     </span>
                     <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#34d399', marginTop: '0.3rem' }}>
@@ -248,7 +248,7 @@ const Boletin: React.FC = () => {
                         : 'Sin datos'}
                     </div>
                     {currentBoletin.mejor_materia && (
-                      <span style={{ fontSize: '0.875rem', color: '#64748b', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.875rem', color: '#6b6688', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>
                         {currentBoletin.mejor_materia.promedio} / 10
                       </span>
                     )}
@@ -256,8 +256,8 @@ const Boletin: React.FC = () => {
 
                   {/* Materias Count */}
                   <div style={{
-                    background: 'rgba(255,255,255,0.038)',
-                    border: '1px solid rgba(255,255,255,0.075)',
+                    background: 'rgba(13,18,34,0.85)',
+                    border: '1px solid rgba(151,71,255,0.15)',
                     borderRadius: '16px',
                     padding: '1.5rem',
                     display: 'flex',
@@ -266,46 +266,46 @@ const Boletin: React.FC = () => {
                     position: 'relative',
                     overflow: 'hidden',
                   }}>
-                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '1.4rem', color: 'rgba(56,189,248,0.4)' }}>
+                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '1.4rem', color: 'rgba(85,221,245,0.5)' }}>
                       <i className="bx bx-book-open"></i>
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Sora', sans-serif" }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: "'Sora', sans-serif" }}>
                       Materias
                     </span>
                     <div style={{
                       fontFamily: "'Outfit', sans-serif",
                       fontSize: '2.8rem',
                       fontWeight: 800,
-                      color: '#f8fafc',
+                      color: '#f3f0ff',
                       letterSpacing: '-0.03em',
                       lineHeight: 1,
                     }}>
                       {currentBoletin.materias?.length ?? 0}
                     </div>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Cursadas este período</span>
+                    <span style={{ fontSize: '0.8rem', color: '#6b6688' }}>Cursadas este período</span>
                   </div>
                 </div>
 
                 {/* ── Subject Table ──────────────────── */}
                 <div style={{
-                  background: 'rgba(10,14,23,0.7)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(13,18,34,0.85)',
+                  border: '1px solid rgba(151,71,255,0.15)',
                   borderRadius: '16px',
                   overflow: 'hidden',
                 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'Sora', sans-serif" }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.025)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      <tr style={{ background: 'rgba(121,41,210,0.06)', borderBottom: '1px solid rgba(151,71,255,0.12)' }}>
+                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                           Materia
                         </th>
-                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                           Trabajos
                         </th>
-                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                           Promedio
                         </th>
-                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: '#6b6688', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                           Estado
                         </th>
                       </tr>
@@ -315,18 +315,18 @@ const Boletin: React.FC = () => {
                         <tr
                           key={idx}
                           style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(124,58,237,0.04)'; }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(121,41,210,0.06)'; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
                         >
                           <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-                            <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.92rem' }}>
+                            <div style={{ fontWeight: 700, color: '#f3f0ff', fontSize: '0.92rem' }}>
                               {mat.materia || mat.nombre}
                             </div>
                             {mat.nombre && mat.materia && (
-                              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.1rem' }}>{mat.nombre}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#6b6688', marginTop: '0.1rem' }}>{mat.nombre}</div>
                             )}
                           </td>
-                          <td style={{ padding: '1rem 1.25rem', color: '#94a3b8', fontSize: '0.875rem', verticalAlign: 'middle' }}>
+                          <td style={{ padding: '1rem 1.25rem', color: '#a9a3c7', fontSize: '0.875rem', verticalAlign: 'middle' }}>
                             {mat.cantidad_calificadas} trabajos
                           </td>
                           <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
@@ -340,7 +340,7 @@ const Boletin: React.FC = () => {
                               {mat.promedio !== null ? mat.promedio : '—'}
                             </span>
                             {mat.promedio !== null && (
-                              <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: '0.3rem' }}>/10</span>
+                              <span style={{ color: '#6b6688', fontSize: '0.78rem', marginLeft: '0.3rem' }}>/10</span>
                             )}
                           </td>
                           <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>

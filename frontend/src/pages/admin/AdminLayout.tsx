@@ -27,14 +27,14 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#06080f', color: '#f8fafc', fontFamily: 'var(--font-family-body)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-dark, #070913)', color: '#f3f0ff', fontFamily: 'var(--font-family-body)' }}>
       {/* ── Console Sidebar / Left Rail ── */}
       <aside
         style={{
           width: sidebarOpen ? '250px' : '72px',
           minHeight: '100vh',
-          background: '#090d16',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#0b0d1a',
+          borderRight: '1px solid rgba(151, 71, 255, 0.12)',
           display: 'flex',
           flexDirection: 'column',
           transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -53,7 +53,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
             display: 'flex',
             alignItems: 'center',
             justifyContent: sidebarOpen ? 'space-between' : 'center',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid rgba(151, 71, 255, 0.12)',
             minHeight: '64px',
           }}
         >
@@ -66,7 +66,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #f59e0b, #7c3aed)',
+                background: 'linear-gradient(135deg, #f59e0b, #7929d2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -80,7 +80,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
             </div>
             {sidebarOpen && (
               <div>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f8fafc', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f3f0ff', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
                   TECH-ROOM 29
                 </div>
                 <div style={{ fontSize: '0.7rem', color: '#fbbf24', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -96,7 +96,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: '#6b6688',
                 cursor: 'pointer',
                 padding: '4px',
                 display: 'flex',
@@ -119,7 +119,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
               style={{
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#94a3b8',
+                color: '#a9a3c7',
                 cursor: 'pointer',
                 width: '28px',
                 height: '28px',
@@ -156,7 +156,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 borderRight: 'none',
                 borderBottom: 'none',
                 borderRadius: sidebarOpen ? '8px' : '0',
-                color: isActive(item) ? '#fbbf24' : '#94a3b8',
+                color: isActive(item) ? '#fbbf24' : '#a9a3c7',
                 cursor: 'pointer',
                 fontSize: '0.88rem',
                 fontWeight: isActive(item) ? 700 : 500,
@@ -164,10 +164,10 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
                 textAlign: 'left',
               }}
               onMouseEnter={(e) => {
-                if (!isActive(item)) (e.currentTarget as HTMLButtonElement).style.color = '#f8fafc';
+                if (!isActive(item)) (e.currentTarget as HTMLButtonElement).style.color = '#f3f0ff';
               }}
               onMouseLeave={(e) => {
-                if (!isActive(item)) (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8';
+                if (!isActive(item)) (e.currentTarget as HTMLButtonElement).style.color = '#a9a3c7';
               }}
             >
               <i className={`bx ${item.icon}`} style={{ fontSize: '1.25rem', flexShrink: 0, color: 'inherit' }}></i>
@@ -178,33 +178,33 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
 
         {/* Console Health Indicators */}
         {sidebarOpen && (
-          <div style={{ padding: '0.85rem', margin: '0.5rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+          <div style={{ padding: '0.85rem', margin: '0.5rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid rgba(151, 71, 255, 0.12)' }}>
+            <div style={{ fontSize: '0.7rem', color: '#6b6688', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
               Telemetría del Servidor
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#34d399' }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
               Base de Datos SQLite: OK
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#38bdf8', marginTop: '4px' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8' }}></span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#55ddf5', marginTop: '4px' }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#55ddf5' }}></span>
               Aislamiento RBAC: ACTIVO
             </div>
           </div>
         )}
 
         {/* User Identity & Logout Footer */}
-        <div style={{ padding: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div style={{ padding: '0.75rem', borderTop: '1px solid rgba(151, 71, 255, 0.12)' }}>
           {sidebarOpen && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.65rem' }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f59e0b', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem' }}>
                 A
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '0.8rem', color: '#f8fafc', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '0.8rem', color: '#f3f0ff', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user?.nombre || 'Administrador'}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '0.68rem', color: '#6b6688', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user?.correo}
                 </div>
               </div>

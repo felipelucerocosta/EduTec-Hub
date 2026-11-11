@@ -15,6 +15,21 @@
 }
 
 /* ── Multi-Layer Cosmic Atmosphere ────────────────────────── */
+.spaceNebulaBackdrop {
+  position: fixed;
+  inset: 0;
+  background-image: url('./assets/textures/space_nebula.jpg');
+  background-size: cover;
+  background-position: center 25%;
+  background-repeat: no-repeat;
+  opacity: 0.24;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse at 50% 35%, rgba(0, 0, 0, 0.95) 0%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 35%, rgba(0, 0, 0, 0.95) 0%, transparent 82%);
+}
+
 .spaceNebulaTop {
   position: fixed;
   top: -15%;
@@ -450,6 +465,18 @@
   line-height: 1.65;
   color: #94a3b8;
   margin: 0;
+}
+
+.pillarConceptImage {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(151, 71, 255, 0.25);
+  margin-top: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 70%, rgba(0, 0, 0, 0.4) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 70%, rgba(0, 0, 0, 0.4) 100%);
 }
 
 /* Diagrama visual esquemático de aislamiento escolar */

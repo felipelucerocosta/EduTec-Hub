@@ -28,5 +28,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["frontend/src/**/*"]
+  "include": ["frontend/src/**/*", "plugins/**/frontend/**/*"]
 }

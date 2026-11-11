@@ -12,8 +12,22 @@ interface Usuario {
   rol: string;
   DNI: string;
   curso?: string;
+  nivel_educativo?: string;
   fecha_registro?: string;
   estado_acceso?: string;
+}
+
+interface CursoItem {
+  id_curso: number;
+  nombre_curso: string;
+  nivel_educativo: string;
+}
+
+interface ClaseItem {
+  id: number;
+  nombre: string;
+  materia: string;
+  seccion?: string;
 }
 
 interface AuditoriaItem {
@@ -30,6 +44,13 @@ const ROL_COLORS: Record<string, { bg: string; color: string; border: string; la
   admin:   { bg: 'rgba(245,158,11,0.12)',  color: '#fbbf24', border: 'rgba(245,158,11,0.3)', label: 'Admin' },
   profesor:{ bg: 'rgba(56,189,248,0.12)',  color: '#38bdf8', border: 'rgba(56,189,248,0.3)', label: 'Profesor' },
   alumno:  { bg: 'rgba(124,58,237,0.12)', color: '#a78bfa', border: 'rgba(124,58,237,0.3)', label: 'Alumno' },
+};
+
+const NIVEL_COLORS: Record<string, { bg: string; color: string; border: string; label: string }> = {
+  Inicial:    { bg: 'rgba(236,72,153,0.15)', color: '#f472b6', border: 'rgba(236,72,153,0.35)', label: 'Inicial' },
+  Primario:   { bg: 'rgba(16,185,129,0.15)', color: '#34d399', border: 'rgba(16,185,129,0.35)', label: 'Primario' },
+  Secundario: { bg: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: 'rgba(124,58,237,0.35)', label: 'Secundario' },
+  Terciario:  { bg: 'rgba(56,189,248,0.15)', color: '#38bdf8', border: 'rgba(56,189,248,0.35)', label: 'Terciario' },
 };
 
 const ESTADO_COLORS: Record<string, { bg: string; color: string; border: string; label: string; icon: string }> = {
@@ -65,6 +86,11 @@ const AdminUsuarios: React.FC = () => {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEstado, setFilterEstado] = useState<'TODOS' | 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO'>('TODOS');
+  const [filterNivel, setFilterNivel] = useState<'TODOS' | 'Inicial' | 'Primario' | 'Secundario' | 'Terciario'>('TODOS');
+
+  // Academic Catalogs
+  const [cursosDisponibles, setCursosDisponibles] = useState<CursoItem[]>([]);
+  const [clasesDisponibles, setClasesDisponibles] = useState<ClaseItem[]>([]);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,8 +106,10 @@ const AdminUsuarios: React.FC = () => {
     contrasena: '',
     rol: 'alumno',
     DNI: '',
-    curso: '',
+    nivel_educativo: 'Secundario',
+    curso: '1ro 1ra',
     materia: '',
+    clases_ids: [] as number[],
     estado_acceso: 'ACTIVO'
   });
   const [editForm, setEditForm] = useState({
@@ -89,7 +117,9 @@ const AdminUsuarios: React.FC = () => {
     correo: '',
     rol: 'alumno',
     DNI: '',
+    nivel_educativo: 'Secundario',
     curso: '',
+    materia: '',
     estado_acceso: 'ACTIVO',
     contrasena: ''
   });
@@ -126,6 +156,23 @@ const AdminUsuarios: React.FC = () => {
     }
   }, []);
 
+  const fetchCursosYClases = useCallback(async () => {
+    try {
+      const [rCursos, rClases] = await Promise.all([
+        fetch(`${API_URL}/admin/cursos`, { credentials: 'include' }),
+        fetch(`${API_URL}/admin/clases`, { credentials: 'include' })
+      ]);
+      if (rCursos.ok) {
+        const data = await rCursos.json();
+        if (Array.isArray(data)) setCursosDisponibles(data);
+      }
+      if (rClases.ok) {
+        const data = await rClases.json();
+        if (Array.isArray(data)) setClasesDisponibles(data);
+      }
+    } catch (_e) {}
+  }, []);
+
   const fetchAuditoria = async () => {
     setLoadingAuditoria(true);
     try {
@@ -148,6 +195,10 @@ const AdminUsuarios: React.FC = () => {
   useEffect(() => {
     fetchPendientes();
   }, [fetchPendientes]);
+
+  useEffect(() => {
+    fetchCursosYClases();
+  }, [fetchCursosYClases]);
 
   const handleTabChange = (tab: 'todos' | 'alumno' | 'profesor' | 'admin') => {
     setActiveTab(tab);
@@ -207,6 +258,26 @@ const AdminUsuarios: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validaciones estrictas de integridad académica
+    if (form.rol === 'alumno') {
+      if (!form.nivel_educativo) {
+        showToast('El nivel educativo es obligatorio para alumnos (Inicial, Primario, Secundario o Terciario).', 'error');
+        return;
+      }
+      if (!form.curso || !form.curso.trim()) {
+        showToast('El curso / año / división es obligatorio para los alumnos.', 'error');
+        return;
+      }
+    }
+
+    if (form.rol === 'profesor') {
+      if (!form.nivel_educativo) {
+        showToast('El nivel educativo es obligatorio para profesores.', 'error');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`${API_URL}/admin/usuarios`, {
@@ -224,8 +295,10 @@ const AdminUsuarios: React.FC = () => {
           contrasena: '',
           rol: 'alumno',
           DNI: '',
-          curso: '',
+          nivel_educativo: 'Secundario',
+          curso: '1ro 1ra',
           materia: '',
+          clases_ids: [],
           estado_acceso: 'ACTIVO'
         });
         fetchUsuarios();
@@ -248,7 +321,9 @@ const AdminUsuarios: React.FC = () => {
       correo: u.correo,
       rol: u.rol,
       DNI: u.DNI,
+      nivel_educativo: u.nivel_educativo || 'Secundario',
       curso: u.curso || '',
+      materia: '',
       estado_acceso: u.estado_acceso || 'ACTIVO',
       contrasena: ''
     });
@@ -288,14 +363,16 @@ const AdminUsuarios: React.FC = () => {
         u.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.correo.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.DNI.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.curso && u.curso.toLowerCase().includes(searchQuery.toLowerCase()));
+        (u.curso && u.curso.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (u.nivel_educativo && u.nivel_educativo.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const estado = u.estado_acceso || 'PENDIENTE_DE_ASIGNACION';
       const matchEstado = filterEstado === 'TODOS' || estado === filterEstado;
+      const matchNivel = filterNivel === 'TODOS' || (u.nivel_educativo && u.nivel_educativo.toLowerCase() === filterNivel.toLowerCase());
 
-      return matchSearch && matchEstado;
+      return matchSearch && matchEstado && matchNivel;
     });
-  }, [usuarios, searchQuery, filterEstado]);
+  }, [usuarios, searchQuery, filterEstado, filterNivel]);
 
   const tabs: { key: typeof activeTab; label: string; icon: string }[] = [
     { key: 'todos',    label: 'Todos',      icon: 'bx-list-ul' },
@@ -538,6 +615,24 @@ const AdminUsuarios: React.FC = () => {
               <option value="PENDIENTE_DE_ASIGNACION">Pendientes</option>
               <option value="SUSPENDIDO">Suspendidos</option>
             </select>
+            <select
+              value={filterNivel}
+              onChange={e => setFilterNivel(e.target.value as any)}
+              style={{
+                ...inputStyle,
+                width: 'auto',
+                paddingTop: '0.45rem',
+                paddingBottom: '0.45rem',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="TODOS">Todos los niveles</option>
+              <option value="Inicial">Inicial</option>
+              <option value="Primario">Primario</option>
+              <option value="Secundario">Secundario</option>
+              <option value="Terciario">Terciario</option>
+            </select>
           </div>
         </div>
 
@@ -560,8 +655,9 @@ const AdminUsuarios: React.FC = () => {
                     <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Usuario</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>DNI</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Rol</th>
+                    <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Nivel Educativo</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Estado de Acceso</th>
-                    <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Curso</th>
+                    <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Curso / Asignación</th>
                     <th style={{ padding: '0.85rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>Acciones</th>
                   </tr>
                 </thead>
@@ -571,6 +667,7 @@ const AdminUsuarios: React.FC = () => {
                     const estado = u.estado_acceso || 'PENDIENTE_DE_ASIGNACION';
                     const ec = ESTADO_COLORS[estado] || ESTADO_COLORS.PENDIENTE_DE_ASIGNACION;
                     const isSelf = authUser?.id === u.id_usuario;
+                    const nc = u.nivel_educativo ? NIVEL_COLORS[u.nivel_educativo] : null;
 
                     return (
                       <tr key={u.id_usuario} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -600,6 +697,20 @@ const AdminUsuarios: React.FC = () => {
                             border: `1px solid ${rc.border}`,
                             fontSize: '0.75rem', fontWeight: 700,
                           }}>{rc.label}</span>
+                        </td>
+                        <td style={{ padding: '0.85rem 1.25rem' }}>
+                          {nc ? (
+                            <span style={{
+                              padding: '0.2rem 0.65rem', borderRadius: '999px',
+                              background: nc.bg, color: nc.color,
+                              border: `1px solid ${nc.border}`,
+                              fontSize: '0.72rem', fontWeight: 700,
+                            }}>
+                              {nc.label}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#475569', fontSize: '0.78rem' }}>—</span>
+                          )}
                         </td>
                         <td style={{ padding: '0.85rem 1.25rem' }}>
                           <span style={{
@@ -717,7 +828,16 @@ const AdminUsuarios: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Rol *</label>
-                  <select style={inputStyle} value={form.rol} onChange={e => setForm(f => ({ ...f, rol: e.target.value }))}>
+                  <select
+                    style={inputStyle}
+                    value={form.rol}
+                    onChange={e => {
+                      const newRol = e.target.value;
+                      const defaultLvl = form.nivel_educativo || 'Secundario';
+                      const firstCourse = cursosDisponibles.find(c => c.nivel_educativo.toLowerCase() === defaultLvl.toLowerCase())?.nombre_curso || '';
+                      setForm(f => ({ ...f, rol: newRol, curso: newRol === 'alumno' ? firstCourse : f.curso }));
+                    }}
+                  >
                     <option value="alumno">Alumno</option>
                     <option value="profesor">Profesor</option>
                     <option value="admin">Administrador</option>
@@ -732,18 +852,87 @@ const AdminUsuarios: React.FC = () => {
                 </div>
               </div>
 
+              {(form.rol === 'alumno' || form.rol === 'profesor') && (
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
+                    Nivel Educativo *
+                  </label>
+                  <select
+                    style={inputStyle}
+                    value={form.nivel_educativo}
+                    onChange={e => {
+                      const lvl = e.target.value;
+                      const firstCourse = cursosDisponibles.find(c => c.nivel_educativo.toLowerCase() === lvl.toLowerCase())?.nombre_curso || '';
+                      setForm(f => ({ ...f, nivel_educativo: lvl, curso: firstCourse }));
+                    }}
+                  >
+                    <option value="Inicial">Nivel Inicial (Jardín)</option>
+                    <option value="Primario">Nivel Primario</option>
+                    <option value="Secundario">Nivel Secundario Técnico</option>
+                    <option value="Terciario">Nivel Terciario (Tecnicatura)</option>
+                  </select>
+                </div>
+              )}
+
               {form.rol === 'alumno' && (
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Curso / Comisión</label>
-                  <input style={inputStyle} value={form.curso} onChange={e => setForm(f => ({ ...f, curso: e.target.value }))} placeholder="Ej: 3ro 1ra Informática" />
+                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
+                    Curso / Año / División ({form.nivel_educativo}) *
+                  </label>
+                  <select
+                    required
+                    style={inputStyle}
+                    value={form.curso}
+                    onChange={e => setForm(f => ({ ...f, curso: e.target.value }))}
+                  >
+                    <option value="">-- Seleccionar Curso --</option>
+                    {cursosDisponibles
+                      .filter(c => c.nivel_educativo.toLowerCase() === form.nivel_educativo.toLowerCase())
+                      .map(c => (
+                        <option key={c.id_curso} value={c.nombre_curso}>
+                          {c.nombre_curso}
+                        </option>
+                      ))}
+                  </select>
                 </div>
               )}
 
               {form.rol === 'profesor' && (
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Materia Principal</label>
-                  <input style={inputStyle} value={form.materia} onChange={e => setForm(f => ({ ...f, materia: e.target.value }))} placeholder="Ej: Redes y Telecomunicaciones" />
-                </div>
+                <>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Materia Principal</label>
+                    <input style={inputStyle} value={form.materia} onChange={e => setForm(f => ({ ...f, materia: e.target.value }))} placeholder="Ej: Redes y Telecomunicaciones" />
+                  </div>
+
+                  {clasesDisponibles.length > 0 && (
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
+                        Asignar Clases a su Cargo (Opcional)
+                      </label>
+                      <div style={{ maxHeight: '110px', overflowY: 'auto', background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0.5rem' }}>
+                        {clasesDisponibles.map(c => {
+                          const isChecked = form.clases_ids.includes(c.id);
+                          return (
+                            <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#cbd5e1', fontSize: '0.8rem', padding: '0.2rem 0', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={e => {
+                                  if (e.target.checked) {
+                                    setForm(f => ({ ...f, clases_ids: [...f.clases_ids, c.id] }));
+                                  } else {
+                                    setForm(f => ({ ...f, clases_ids: f.clases_ids.filter(id => id !== c.id) }));
+                                  }
+                                }}
+                              />
+                              <span>{c.nombre} ({c.materia}{c.seccion ? ` - ${c.seccion}` : ''})</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -819,10 +1008,57 @@ const AdminUsuarios: React.FC = () => {
                 </div>
               </div>
 
+              {(editForm.rol === 'alumno' || editForm.rol === 'profesor') && (
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
+                    Nivel Educativo
+                  </label>
+                  <select
+                    style={inputStyle}
+                    value={editForm.nivel_educativo || 'Secundario'}
+                    onChange={e => {
+                      const lvl = e.target.value;
+                      const firstCourse = cursosDisponibles.find(c => c.nivel_educativo.toLowerCase() === lvl.toLowerCase())?.nombre_curso || '';
+                      setEditForm(f => ({ ...f, nivel_educativo: lvl, curso: firstCourse }));
+                    }}
+                  >
+                    <option value="Inicial">Nivel Inicial (Jardín)</option>
+                    <option value="Primario">Nivel Primario</option>
+                    <option value="Secundario">Nivel Secundario Técnico</option>
+                    <option value="Terciario">Nivel Terciario (Tecnicatura)</option>
+                  </select>
+                </div>
+              )}
+
               {editForm.rol === 'alumno' && (
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Curso / Comisión</label>
-                  <input style={inputStyle} value={editForm.curso} onChange={e => setEditForm(f => ({ ...f, curso: e.target.value }))} placeholder="Ej: 3ro A" />
+                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Curso / Comisión ({editForm.nivel_educativo || 'Secundario'})</label>
+                  <select
+                    style={inputStyle}
+                    value={editForm.curso}
+                    onChange={e => setEditForm(f => ({ ...f, curso: e.target.value }))}
+                  >
+                    <option value="">-- Seleccionar Curso --</option>
+                    {cursosDisponibles
+                      .filter(c => c.nivel_educativo.toLowerCase() === (editForm.nivel_educativo || 'Secundario').toLowerCase())
+                      .map(c => (
+                        <option key={c.id_curso} value={c.nombre_curso}>
+                          {c.nombre_curso}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {editForm.rol === 'profesor' && (
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>Materia Principal</label>
+                  <input
+                    style={inputStyle}
+                    value={editForm.materia || ''}
+                    onChange={e => setEditForm(f => ({ ...f, materia: e.target.value }))}
+                    placeholder="Ej: Sistemas Operativos"
+                  />
                 </div>
               )}
 

@@ -21,7 +21,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
 
   const getRoleBadgeStyle = (rol?: string) => {
     if (rol === 'admin') return { background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)' };
-    if (rol === 'profesor') return { background: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', border: '1px solid rgba(124, 58, 237, 0.3)' };
+    if (rol === 'profesor') return { background: 'rgba(121, 41, 210, 0.18)', color: '#B99AFF', border: '1px solid rgba(151, 71, 255, 0.35)' };
     return { background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)' };
   };
 
@@ -29,8 +29,8 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
     <header
       style={{
         height: '64px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'rgba(10, 14, 23, 0.85)',
+        borderBottom: '1px solid rgba(151, 71, 255, 0.12)',
+        background: 'rgba(11, 13, 26, 0.88)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         position: 'sticky',
@@ -56,15 +56,15 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
             borderRadius: '10px',
             background: 'rgba(255, 255, 255, 0.04)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            color: '#94a3b8',
+            color: '#a9a3c7',
             fontSize: '0.88rem',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             textAlign: 'left'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.3)';
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+            e.currentTarget.style.borderColor = 'rgba(151, 71, 255, 0.4)';
+            e.currentTarget.style.background = 'rgba(121, 41, 210, 0.08)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
@@ -73,7 +73,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
           aria-label="Buscar o abrir consola de comandos"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <i className="bx bx-search" style={{ fontSize: '1.1rem', color: '#7c3aed' }}></i>
+            <i className="bx bx-search" style={{ fontSize: '1.1rem', color: '#7929d2' }}></i>
             <span>Buscar materias, entregas, alumnos...</span>
           </div>
           <kbd
@@ -83,7 +83,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
               background: 'rgba(255, 255, 255, 0.06)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               fontSize: '0.72rem',
-              color: '#94a3b8',
+              color: '#a9a3c7',
               fontFamily: 'monospace'
             }}
           >
@@ -102,16 +102,16 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
             gap: '6px',
             padding: '4px 10px',
             borderRadius: '50px',
-            background: 'rgba(56, 189, 248, 0.1)',
-            border: '1px solid rgba(56, 189, 248, 0.2)',
-            color: '#38bdf8',
+            background: 'rgba(85, 221, 245, 0.12)',
+            border: '1px solid rgba(85, 221, 245, 0.28)',
+            color: '#55ddf5',
             fontSize: '0.75rem',
             fontWeight: 600,
             letterSpacing: '0.02em'
           }}
           className="hide-on-mobile"
         >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }}></span>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#55ddf5', display: 'inline-block' }}></span>
           Ciclo Lectivo 2026
         </div>
 
@@ -124,25 +124,25 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
             gap: '6px',
             padding: '7px 12px',
             borderRadius: '10px',
-            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(56, 189, 248, 0.15))',
-            border: '1px solid rgba(124, 58, 237, 0.35)',
-            color: '#e2e8f0',
+            background: 'linear-gradient(135deg, rgba(121, 41, 210, 0.25), rgba(85, 221, 245, 0.15))',
+            border: '1px solid rgba(151, 71, 255, 0.35)',
+            color: '#f3f0ff',
             fontSize: '0.82rem',
             fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#7c3aed';
+            e.currentTarget.style.borderColor = '#9747ff';
             e.currentTarget.style.transform = 'translateY(-1px)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.35)';
+            e.currentTarget.style.borderColor = 'rgba(151, 71, 255, 0.35)';
             e.currentTarget.style.transform = 'translateY(0)';
           }}
           title="Abrir Asistente Institucional Alfred"
         >
-          <i className="bx bx-bot" style={{ color: '#38bdf8', fontSize: '1.1rem' }}></i>
+          <i className="bx bx-bot" style={{ color: '#55ddf5', fontSize: '1.1rem' }}></i>
           <span>Alfred IA</span>
         </button>
 
@@ -167,7 +167,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                  background: 'linear-gradient(135deg, #7929d2, #5B21B6)',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
@@ -179,7 +179,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
                 {userInitial}
               </div>
               <div className="hide-on-mobile" style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f3f0ff', lineHeight: 1.2 }}>
                   {userName}
                 </span>
                 <span
@@ -204,7 +204,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
               style={{
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#94a3b8',
+                color: '#a9a3c7',
                 borderRadius: '8px',
                 width: '32px',
                 height: '32px',
@@ -219,7 +219,7 @@ const ConsoleTopbar: React.FC<ConsoleTopbarProps> = ({ onOpenCommandPalette, onT
                 e.currentTarget.style.borderColor = 'rgba(244, 63, 94, 0.3)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#94a3b8';
+                e.currentTarget.style.color = '#a9a3c7';
                 e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
               }}
               title="Cerrar Sesión"

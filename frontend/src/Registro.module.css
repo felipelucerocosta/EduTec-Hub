@@ -4,11 +4,12 @@
 
 .loginRegisterBody {
   min-height: 100vh;
-  background: var(--bg-primary, #030014);
+  background: var(--bg-dark, #070913);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
 }
 
 /* Ambient glows */
@@ -19,7 +20,7 @@
   right: -15%;
   width: 55%;
   height: 65%;
-  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.14) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(121, 41, 210, 0.16) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -30,7 +31,7 @@
   left: -10%;
   width: 45%;
   height: 55%;
-  background: radial-gradient(ellipse, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(85, 221, 245, 0.09) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -123,34 +124,35 @@
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  background: linear-gradient(135deg, var(--purple-electric, #7929d2), var(--cyan-electric, #55ddf5));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
   color: #fff;
   margin: 0 auto 1rem;
-  box-shadow: 0 0 24px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 0 24px var(--primary-glow, rgba(121, 41, 210, 0.4));
 }
 
 .formTitle {
+  font-family: var(--font-family-display, 'Outfit', sans-serif);
   font-size: 1.6rem;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--text-main, #f3f0ff);
   letter-spacing: -0.03em;
   margin-bottom: 0.35rem;
 }
 
 .formSubtitle {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-secondary, #a9a3c7);
 }
 
 /* ── Tab Switcher ────────────────────────── */
 .tabSwitcher {
   display: flex;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 1.75rem;
@@ -163,18 +165,18 @@
   border-radius: 9px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--text-secondary, #a9a3c7);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
 }
 
 .tabBtnActive {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  background: linear-gradient(135deg, var(--purple-electric, #7929d2), var(--violet-bright, #9747ff));
   color: #fff;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 4px 14px var(--primary-glow, rgba(121, 41, 210, 0.35));
 }
 
 /* ── Role Selector ───────────────────────── */
@@ -192,12 +194,12 @@
   gap: 0.4rem;
   padding: 0.9rem 0.5rem;
   border-radius: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  color: #64748b;
+  color: var(--text-secondary, #a9a3c7);
   cursor: pointer;
   transition: all 0.22s ease;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
   font-size: 0.84rem;
   font-weight: 600;
 }
@@ -207,16 +209,16 @@
 }
 
 .roleOption:hover {
-  border-color: rgba(124, 58, 237, 0.3);
-  color: #a78bfa;
-  background: rgba(124, 58, 237, 0.06);
+  border-color: var(--border-color-hover, rgba(151, 71, 255, 0.4));
+  color: var(--lavender, #b99aff);
+  background: var(--primary-light, rgba(121, 41, 210, 0.08));
 }
 
 .roleOptionActive {
-  border-color: rgba(124, 58, 237, 0.55);
-  background: rgba(124, 58, 237, 0.1);
-  color: #c4b5fd;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+  border-color: var(--violet-bright, #9747ff);
+  background: var(--primary-light, rgba(121, 41, 210, 0.16));
+  color: var(--lilac-light, #d8c5ff);
+  box-shadow: 0 0 0 3px rgba(121, 41, 210, 0.15);
 }
 
 /* ── Form fields ─────────────────────────── */
@@ -254,10 +256,10 @@
 .switchLink {
   background: none;
   border: none;
-  color: #a78bfa;
+  color: var(--lavender, #b99aff);
   font-weight: 700;
   cursor: pointer;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
   font-size: 0.84rem;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -266,7 +268,7 @@
 }
 
 .switchLink:hover {
-  color: #c4b5fd;
+  color: var(--lilac-light, #d8c5ff);
 }
 
 /* ── Admin Button ────────────────────────── */
@@ -283,7 +285,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
 }
 
 .adminToggle:hover {

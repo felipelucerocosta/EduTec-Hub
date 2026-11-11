@@ -1,38 +1,52 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@300;400;500;600;700&display=swap');
 
 :root {
+  /* ========================================================
+     TECH-ROOM 29 — PALETA CROMÁTICA OFICIAL (Identidad Violeta)
+     ======================================================== */
+  --violet-deep: #241044;
+  --violet-dark: #32105E;
+  --purple-electric: #7929D2;
+  --violet-bright: #9747FF;
+  --lavender: #B99AFF;
+  --lilac-light: #D8C5FF;
+  --space-blue: #101C45;
+  --ocean-blue: #153B70;
+  --cyan-electric: #55DDF5;
+  --white-cool: #F3F0FF;
+
   /* Color Palette - TECH-ROOM 29 Digital Campus Matrix */
-  --bg-dark: #0a0e17;
-  --bg-card: #0f172a;
-  --bg-card-glass: rgba(15, 23, 42, 0.78);
-  --bg-card-hover: rgba(30, 41, 59, 0.85);
-  --bg-input: rgba(15, 23, 42, 0.85);
-  --bg-surface: #0f172a;
-  --bg-surface-elevated: #1e293b;
+  --bg-dark: #070913;
+  --bg-card: #0d1222;
+  --bg-card-glass: rgba(13, 18, 34, 0.82);
+  --bg-card-hover: rgba(28, 22, 54, 0.88);
+  --bg-input: rgba(13, 18, 34, 0.88);
+  --bg-surface: #0d1222;
+  --bg-surface-elevated: #161c33;
   
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-color-hover: rgba(124, 58, 237, 0.4);
-  --border-focus: rgba(124, 58, 237, 0.6);
+  --border-color-hover: rgba(151, 71, 255, 0.4);
+  --border-focus: rgba(121, 41, 210, 0.65);
   
-  /* Primary Accent Colors */
-  --primary: #7c3aed;
-  --primary-hover: #6d28d9;
-  --primary-light: rgba(124, 58, 237, 0.15);
-  --primary-glow: rgba(124, 58, 237, 0.28);
+  /* Primary Accent Colors - Conducción Violeta */
+  --primary: #7929d2;
+  --primary-hover: #9747ff;
+  --primary-light: rgba(121, 41, 210, 0.16);
+  --primary-glow: rgba(151, 71, 255, 0.32);
 
-  --secondary: #38bdf8;
-  --secondary-hover: #0284c7;
-  --secondary-light: rgba(56, 189, 248, 0.15);
+  --secondary: #55ddf5;
+  --secondary-hover: #38bdf8;
+  --secondary-light: rgba(85, 221, 245, 0.15);
 
-  --accent-cyan: #06b6d4;
+  --accent-cyan: #55ddf5;
   --accent-amber: #f59e0b;
   --accent-emerald: #10b981;
   --accent-rose: #f43f5e;
 
   /* Text Colors */
-  --text-main: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-main: #f3f0ff;
+  --text-secondary: #a9a3c7;
+  --text-muted: #6b6688;
 
   /* Border Radius & Depth */
   --radius-xs: 6px;
@@ -42,9 +56,9 @@
   --radius-xl: 20px;
   --radius-pill: 9999px;
   
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 25px rgba(124, 58, 237, 0.22);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 28px rgba(121, 41, 210, 0.28);
 
   --font-family-display: 'Outfit', sans-serif;
   --font-family-body: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -62,17 +76,17 @@
 }
 
 ::selection {
-  background: rgba(124, 58, 237, 0.35);
-  color: #f8fafc;
+  background: rgba(151, 71, 255, 0.4);
+  color: #f3f0ff;
 }
 
 body {
-  background-color: #060911;
+  background-color: #070913;
   background-image: 
-    radial-gradient(circle at 12% 18%, rgba(124, 58, 237, 0.09) 0%, transparent 45%),
-    radial-gradient(circle at 88% 82%, rgba(56, 189, 248, 0.07) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.04) 0%, transparent 55%),
-    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    radial-gradient(circle at 14% 18%, rgba(121, 41, 210, 0.14) 0%, transparent 48%),
+    radial-gradient(circle at 86% 82%, rgba(85, 221, 245, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(36, 16, 68, 0.35) 0%, transparent 60%),
+    radial-gradient(rgba(216, 197, 255, 0.04) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px;
   background-attachment: fixed;
   color: var(--text-main);

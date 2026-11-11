@@ -1,5 +1,6 @@
 /* ============================================
    MATERIALES / TRABAJOS EN CLASE - Premium Dark Layout
+   TECH-ROOM 29 — Design System v2
    ============================================ */
 
 .contenedorPrincipal {
@@ -9,20 +10,21 @@
   max-width: 1200px;
   margin: 2rem auto 4rem;
   padding: 0 1.5rem;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #f1f5f9;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
+  color: var(--text-main, #f3f0ff);
   position: relative;
   z-index: 1;
 }
 
 /* ── Columns ─────────────────────────────── */
 .columna {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(13, 18, 34, 0.85);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(151, 71, 255, 0.15);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -30,17 +32,18 @@
 }
 
 .columna:hover {
-  border-color: rgba(124, 58, 237, 0.15);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(151, 71, 255, 0.35);
+  background: rgba(13, 18, 34, 0.95);
 }
 
 .columna h2 {
+  font-family: var(--font-family-display, 'Outfit', sans-serif);
   font-size: 1.35rem;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--white-cool, #f3f0ff);
   letter-spacing: -0.02em;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(151, 71, 255, 0.12);
   margin: 0;
 }
 
@@ -53,16 +56,17 @@
 }
 
 .headerColumna h2 {
+  font-family: var(--font-family-display, 'Outfit', sans-serif);
   font-size: 1.35rem;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--white-cool, #f3f0ff);
   margin: 0;
 }
 
 /* ── Form components ─────────────────────── */
 .formGestion {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(151, 71, 255, 0.12);
   padding: 1.25rem;
   border-radius: 14px;
 }
@@ -70,7 +74,7 @@
 .formGestion h3 {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #a78bfa;
+  color: var(--lavender, #b99aff);
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -86,26 +90,26 @@
 .formGestion textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
   font-size: 0.88rem;
   border-radius: 10px;
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(151, 71, 255, 0.18);
   background: rgba(255, 255, 255, 0.04);
-  color: #f1f5f9;
+  color: var(--text-main, #f3f0ff);
   transition: all 0.2s ease;
   outline: none;
 }
 
 .formGestion input::placeholder,
 .formGestion textarea::placeholder {
-  color: #475569;
+  color: var(--text-muted, #6b6688);
 }
 
 .formGestion input:focus,
 .formGestion textarea:focus {
-  border-color: rgba(124, 58, 237, 0.5);
-  background: rgba(124, 58, 237, 0.04);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  border-color: #9747ff;
+  background: rgba(121, 41, 210, 0.08);
+  box-shadow: 0 0 0 3px rgba(151, 71, 255, 0.2);
 }
 
 .formGestion textarea {
@@ -125,7 +129,7 @@
 /* ── Material Items ──────────────────────── */
 .materialItem {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(151, 71, 255, 0.12);
   border-radius: 12px;
   padding: 1.1rem;
   margin-top: 0.75rem;
@@ -142,26 +146,26 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #7c3aed, #06b6d4);
-  opacity: 0.5;
+  background: linear-gradient(90deg, #7929d2, #55ddf5);
+  opacity: 0.7;
 }
 
 .materialItem:hover {
   transform: translateY(-2px);
-  border-color: rgba(124, 58, 237, 0.25);
-  background: rgba(124, 58, 237, 0.04);
+  border-color: rgba(151, 71, 255, 0.4);
+  background: rgba(121, 41, 210, 0.08);
 }
 
 .materialItem h4 {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--white-cool, #f3f0ff);
   margin: 0;
 }
 
 .materialItem p {
   font-size: 0.84rem;
-  color: #94a3b8;
+  color: var(--text-secondary, #a9a3c7);
   margin: 0;
   line-height: 1.5;
 }
@@ -169,12 +173,12 @@
 /* ── Alumno / Student Items ──────────────── */
 .alumnoItem {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(151, 71, 255, 0.1);
   border-radius: 10px;
   padding: 0.85rem 1.1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-main, #f3f0ff);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -183,8 +187,8 @@
 }
 
 .alumnoItem:hover {
-  background: rgba(124, 58, 237, 0.05);
-  border-color: rgba(124, 58, 237, 0.2);
+  background: rgba(121, 41, 210, 0.08);
+  border-color: rgba(151, 71, 255, 0.35);
   transform: translateX(4px);
 }
 
@@ -192,8 +196,8 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(3, 0, 20, 0.75);
-  backdrop-filter: blur(6px);
+  background: rgba(7, 9, 19, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -201,17 +205,17 @@
 }
 
 .modalContenido {
-  background: rgba(13, 9, 39, 0.95);
+  background: rgba(13, 18, 34, 0.96);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(151, 71, 255, 0.2);
   border-radius: 20px;
   padding: 2rem;
   width: min(560px, calc(100vw - 2rem));
   max-height: 85vh;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
   position: relative;
   overflow-y: auto;
-  color: #f1f5f9;
+  color: var(--text-main, #f3f0ff);
 }
 
 .modalCerrar {
@@ -219,7 +223,7 @@
   top: 1rem; right: 1rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  color: var(--text-secondary, #a9a3c7);
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -247,25 +251,25 @@
   width: 100%;
   border-collapse: collapse;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(151, 71, 255, 0.1);
   border-radius: 12px;
   overflow: hidden;
   font-size: 0.88rem;
 }
 
 #contenedor-libreta th {
-  background: rgba(124, 58, 237, 0.15);
-  color: #a78bfa;
+  background: rgba(121, 41, 210, 0.18);
+  color: var(--lavender, #b99aff);
   padding: 0.85rem;
   text-align: left;
   font-weight: 700;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(151, 71, 255, 0.15);
 }
 
 #contenedor-libreta td {
   padding: 0.85rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  color: var(--text-main, #f3f0ff);
 }
 
 #contenedor-libreta tr:last-child td {
@@ -273,13 +277,13 @@
 }
 
 #contenedor-libreta tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(121, 41, 210, 0.05);
 }
 
 .promedio {
   font-weight: 700;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  color: #55ddf5;
+  background: rgba(85, 221, 245, 0.12);
   padding: 0.15rem 0.5rem;
   border-radius: 6px;
 }
@@ -290,7 +294,7 @@
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 1rem;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border: 1px dashed rgba(151, 71, 255, 0.35);
   background: rgba(255, 255, 255, 0.02);
   padding: 1.25rem;
   border-radius: 12px;
@@ -299,8 +303,8 @@
 }
 
 .uploadBox:hover {
-  border-color: rgba(124, 58, 237, 0.4);
-  background: rgba(124, 58, 237, 0.02);
+  border-color: #9747ff;
+  background: rgba(121, 41, 210, 0.06);
 }
 
 /* Buttons style locally used */
@@ -316,28 +320,28 @@
   border: 1.5px solid transparent;
   cursor: pointer;
   transition: all 0.25s ease;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #f1f5f9;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
+  color: var(--white-cool, #f3f0ff);
   background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(151, 71, 255, 0.15);
 }
 
 .btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(121, 41, 210, 0.2);
+  border-color: rgba(151, 71, 255, 0.4);
   transform: translateY(-1px);
 }
 
 .btnPrincipal {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  background: linear-gradient(135deg, #7929d2, #5B21B6);
   color: #fff;
   border: none;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 4px 14px rgba(121, 41, 210, 0.35);
 }
 
 .btnPrincipal:hover {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
-  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, #9747ff, #7929d2);
+  box-shadow: 0 6px 18px rgba(151, 71, 255, 0.5);
 }
 
 /* ── Responsive ─────────────────────────── */

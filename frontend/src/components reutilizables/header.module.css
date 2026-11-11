@@ -1,5 +1,6 @@
 /* ============================================
    HEADER - Premium Glassmorphic Dark NavBar
+   TECH-ROOM 29 — Design System v2
    ============================================ */
 
 .header {
@@ -13,18 +14,18 @@
   justify-content: space-between;
   padding: 0 2rem;
   height: 64px;
-  background: rgba(3, 0, 20, 0.5);
+  background: rgba(7, 9, 19, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(151, 71, 255, 0.12);
   transition: all 0.3s ease;
   gap: 1rem;
 }
 
 .headerScrolled {
-  background: rgba(3, 0, 20, 0.88);
-  border-bottom-color: rgba(124, 58, 237, 0.2);
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+  background: rgba(11, 13, 26, 0.92);
+  border-bottom-color: rgba(151, 71, 255, 0.25);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.55);
 }
 
 /* ── Brand ──────────────────────────────── */
@@ -41,24 +42,25 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  background: linear-gradient(135deg, #7929d2, #55ddf5);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
   color: #fff;
-  box-shadow: 0 0 16px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 0 16px rgba(121, 41, 210, 0.45);
   flex-shrink: 0;
 }
 
 .brandName {
+  font-family: var(--font-family-display, 'Outfit', sans-serif);
   font-size: 1.25rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  background: linear-gradient(135deg, var(--white-cool, #f3f0ff), var(--lavender, #b99aff));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
 }
 
 /* ── Nav ────────────────────────────────── */
@@ -77,7 +79,7 @@
   padding: 0.45rem 0.85rem;
   border-radius: 8px;
   text-decoration: none;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a9a3c7);
   font-size: 0.88rem;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -85,8 +87,8 @@
 }
 
 .navLink:hover {
-  color: var(--text-primary, #f8fafc);
-  background: rgba(255, 255, 255, 0.07);
+  color: var(--white-cool, #f3f0ff);
+  background: rgba(121, 41, 210, 0.12);
 }
 
 .navLink i {
@@ -107,8 +109,8 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.35rem 0.75rem 0.35rem 0.35rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(151, 71, 255, 0.15);
   border-radius: 50px;
 }
 
@@ -116,7 +118,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  background: linear-gradient(135deg, #7929d2, #55ddf5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,7 +137,7 @@
 .userName {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-primary, #f8fafc);
+  color: var(--white-cool, #f3f0ff);
 }
 
 .userRole {
@@ -145,8 +147,8 @@
   letter-spacing: 0.5px;
 }
 
-.role_alumno  { color: #38bdf8; }
-.role_profesor { color: #a78bfa; }
+.role_alumno  { color: #55ddf5; }
+.role_profesor { color: #b99aff; }
 .role_admin   { color: #f59e0b; }
 
 /* Logout Button */
@@ -178,18 +180,18 @@
   gap: 0.4rem;
   padding: 0.5rem 1.1rem;
   border-radius: 8px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  background: linear-gradient(135deg, #7929d2, #5B21B6);
   color: #fff;
   text-decoration: none;
   font-size: 0.88rem;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 4px 14px rgba(121, 41, 210, 0.35);
   transition: all 0.2s ease;
 }
 
 .loginBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.5);
+  box-shadow: 0 6px 18px rgba(151, 71, 255, 0.5);
 }
 
 /* ── Responsive ─────────────────────────── */

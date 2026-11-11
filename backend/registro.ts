@@ -8,6 +8,7 @@ interface RegistroAlumnoBody {
   nombre_completo: string;
   correo: string;
   curso: string;
+  nivel_educativo?: string;
   DNI: string;
   contrasena: string;
 }
@@ -16,6 +17,7 @@ interface RegistroProfesorBody {
   nombre_completo: string;
   correo: string;
   materia: string;
+  nivel_educativo?: string;
   DNI: string;
   contrasena: string;
 }
@@ -24,7 +26,7 @@ interface RegistroProfesorBody {
 router.post(
   '/registro-alumno',
   async (req: Request<{}, any, RegistroAlumnoBody>, res: Response) => {
-    const { nombre_completo, correo, curso, DNI, contrasena } = req.body;
+    const { nombre_completo, correo, curso, nivel_educativo, DNI, contrasena } = req.body;
 
     if (!nombre_completo || !correo || !DNI || !contrasena) {
       return res.status(400).json({ error: 'Datos incompletos. Nombre, correo, DNI y contraseña son obligatorios.' });
@@ -45,9 +47,9 @@ router.post(
 
       // 3. Insertar en usuarios con estado PENDIENTE_DE_ASIGNACION
       const usuarioResult = await pool.query(
-        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso)
-         VALUES (?, ?, ?, ?, ?, 'alumno', 'PENDIENTE_DE_ASIGNACION')`,
-        [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null]
+        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, nivel_educativo, rol, estado_acceso)
+         VALUES (?, ?, ?, ?, ?, ?, 'alumno', 'PENDIENTE_DE_ASIGNACION')`,
+        [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null, nivel_educativo || null]
       );
 
       // Obtener el ID del usuario recién insertado
@@ -73,16 +75,16 @@ router.post(
 
       // 6. Insertar en tabla alumno
       await pool.query(
-        `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [DNI.trim(), nombre, apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword]
+        `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena, nivel_educativo)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [DNI.trim(), nombre, apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword, nivel_educativo || null]
       );
 
       // 7. Registrar auditoría de registro
       try {
         await pool.query(
           `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES (?, ?, 'REGISTRO_ALUMNO', ?)`,
-          [ID_Usuario, correo.toLowerCase().trim(), `Estado inicial: PENDIENTE_DE_ASIGNACION, Curso: ${curso || 'sin asignar'}`]
+          [ID_Usuario, correo.toLowerCase().trim(), `Estado inicial: PENDIENTE_DE_ASIGNACION, Nivel: ${nivel_educativo || 'sin asignar'}, Curso: ${curso || 'sin asignar'}`]
         );
       } catch (_e) {}
 
@@ -101,7 +103,7 @@ router.post(
 router.post(
   '/registro-profesor',
   async (req: Request<{}, any, RegistroProfesorBody>, res: Response) => {
-    const { nombre_completo, correo, materia, DNI, contrasena } = req.body;
+    const { nombre_completo, correo, materia, nivel_educativo, DNI, contrasena } = req.body;
 
     if (!nombre_completo || !correo || !DNI || !contrasena) {
       return res.status(400).json({ error: 'Datos incompletos. Nombre, correo, DNI y contraseña son obligatorios.' });
@@ -120,11 +122,11 @@ router.post(
       // 2. Hashear contraseña
       const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-      // 3. Insertar en usuarios (sin campo 'usuario' — no existe en el schema)
+      // 3. Insertar en usuarios
       const usuarioResult = await pool.query(
-        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, rol)
-         VALUES (?, ?, ?, ?, 'profesor')`,
-        [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim()]
+        `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, nivel_educativo, rol, estado_acceso)
+         VALUES (?, ?, ?, ?, ?, 'profesor', 'ACTIVO')`,
+        [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), nivel_educativo || null]
       );
 
       // Obtener el ID del usuario recién insertado
@@ -135,9 +137,9 @@ router.post(
 
       // 4. Insertar en tabla profesor
       await pool.query(
-        `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [ID_Usuario, correo.toLowerCase().trim(), DNI.trim(), nombre_completo.trim(), materia || '', hashedPassword]
+        `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena, nivel_educativo)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [ID_Usuario, correo.toLowerCase().trim(), DNI.trim(), nombre_completo.trim(), materia || '', hashedPassword, nivel_educativo || null]
       );
 
       return res.status(201).json({ success: true, message: '¡Profesor registrado exitosamente!' });

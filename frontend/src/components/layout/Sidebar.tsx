@@ -15,6 +15,7 @@ const Sidebar: React.FC = () => {
     { label: 'Mis Clases', to: user.rol === 'alumno' ? '/alumno' : '/clases', icon: 'bx-book-open' },
     { label: user.rol === 'alumno' ? 'Mi Rendimiento' : 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
     ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín Oficial', to: '/boletin', icon: 'bx-receipt' }] : []),
+    { label: 'Asistencias', to: '/asistencia', icon: 'bx-calendar-check' },
     { label: 'Calendario Académico', to: '/calendario', icon: 'bx-calendar' },
     ...(user.rol !== 'profesor' ? [{ label: 'Foro Técnico', to: '/foro', icon: 'bx-conversation' }] : []),
     { label: 'Simuladores', to: '/simuladores', icon: 'bx-chip' },
@@ -57,8 +58,8 @@ const Sidebar: React.FC = () => {
       <aside
         style={{
           width: collapsed ? '72px' : '240px',
-          background: '#0a0e17',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#0b0d1a',
+          borderRight: '1px solid rgba(151, 71, 255, 0.12)',
           display: 'flex',
           flexDirection: 'column',
           transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -90,12 +91,12 @@ const Sidebar: React.FC = () => {
                 width: '34px',
                 height: '34px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #7c3aed, #06b6d4)',
+                background: 'linear-gradient(135deg, #7929d2, #55ddf5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                boxShadow: '0 0 12px rgba(124, 58, 237, 0.35)'
+                boxShadow: '0 0 14px rgba(121, 41, 210, 0.4)'
               }}
             >
               <i className="bx bx-atom" style={{ color: '#fff', fontSize: '1.25rem' }}></i>
@@ -105,7 +106,7 @@ const Sidebar: React.FC = () => {
                 style={{
                   fontSize: '1.1rem',
                   fontWeight: 800,
-                  color: '#f8fafc',
+                  color: '#f3f0ff',
                   letterSpacing: '-0.02em',
                   fontFamily: 'var(--font-family-display)',
                   whiteSpace: 'nowrap'
@@ -122,7 +123,7 @@ const Sidebar: React.FC = () => {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#64748b',
+                color: '#6b6688',
                 cursor: 'pointer',
                 padding: '4px',
                 display: 'flex',
@@ -130,8 +131,8 @@ const Sidebar: React.FC = () => {
                 borderRadius: '6px',
                 transition: 'color 0.2s'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#f8fafc')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#f3f0ff')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#6b6688')}
               title="Colapsar a barra compacta"
               aria-label="Colapsar a barra compacta"
             >
@@ -148,7 +149,7 @@ const Sidebar: React.FC = () => {
               style={{
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#94a3b8',
+                color: '#a9a3c7',
                 cursor: 'pointer',
                 width: '28px',
                 height: '28px',
@@ -159,11 +160,11 @@ const Sidebar: React.FC = () => {
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#7c3aed';
-                e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.3)';
+                e.currentTarget.style.color = '#9747ff';
+                e.currentTarget.style.borderColor = 'rgba(151, 71, 255, 0.4)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#94a3b8';
+                e.currentTarget.style.color = '#a9a3c7';
                 e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
               }}
               title="Expandir barra de navegación"
@@ -195,9 +196,9 @@ const Sidebar: React.FC = () => {
                 gap: '0.75rem',
                 padding: collapsed ? '0.65rem 0' : '0.65rem 0.85rem',
                 borderRadius: '8px',
-                color: isActive ? '#f8fafc' : '#94a3b8',
-                background: isActive ? 'rgba(124, 58, 237, 0.14)' : 'transparent',
-                borderLeft: isActive ? '3px solid #7c3aed' : '3px solid transparent',
+                color: isActive ? '#f3f0ff' : '#a9a3c7',
+                background: isActive ? 'rgba(121, 41, 210, 0.16)' : 'transparent',
+                borderLeft: isActive ? '3px solid #7929d2' : '3px solid transparent',
                 fontWeight: isActive ? 600 : 500,
                 fontSize: '0.88rem',
                 transition: 'all 0.15s ease',
@@ -254,10 +255,10 @@ const Sidebar: React.FC = () => {
                 }}
               ></div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#f3f0ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user.nombre}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: '0.68rem', color: '#6b6688', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {user.rol}
                 </div>
               </div>

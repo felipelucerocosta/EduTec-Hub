@@ -148,23 +148,21 @@ router.post('/login', async (req: Request, res: Response) => {
     const storedHash = usuario.contrasena ? String(usuario.contrasena).trim() : '';
     let passwordMatch = await bcrypt.compare(contrasena, storedHash);
 
-    // En desarrollo o dominio autorizado: permitir contraseñas de testing o regeneración
+    // En desarrollo: permitir contraseñas maestras de testing conocidas
     const isDev = process.env.NODE_ENV !== 'production';
     const devPasswords = ['12345678', '123456789', 'Donpatricio111', 'Profesor2026', 'Alumno2026', '123456', 'admin'];
     
-    if (!passwordMatch && (isDev || esDominioAutorizado(correo))) {
-      if (devPasswords.includes(contrasena) || esDominioAutorizado(correo)) {
-        passwordMatch = true;
-        try {
-          const newHash = await bcrypt.hash(contrasena, 10);
-          await pool.query('UPDATE usuarios SET contrasena = $1 WHERE id_usuario = $2', [newHash, usuario.id_usuario]);
-          // Auditoría: advertencia de credencial secundaria flexible
-          await pool.query(
-            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle, ip) VALUES ($1, $2, 'CREDENCIAL_FLEXIBLE', $3, $4)`,
-            [usuario.id_usuario, correo, `Acceso con contraseña actualizada`, String(ip)]
-          );
-        } catch (_e) {}
-      }
+    if (!passwordMatch && isDev && devPasswords.includes(contrasena)) {
+      passwordMatch = true;
+      try {
+        const newHash = await bcrypt.hash(contrasena, 10);
+        await pool.query('UPDATE usuarios SET contrasena = $1 WHERE id_usuario = $2', [newHash, usuario.id_usuario]);
+        // Auditoría: advertencia de credencial secundaria flexible
+        await pool.query(
+          `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle, ip) VALUES ($1, $2, 'CREDENCIAL_FLEXIBLE', $3, $4)`,
+          [usuario.id_usuario, correo, `Acceso con contraseña actualizada`, String(ip)]
+        );
+      } catch (_e) {}
     }
 
     if (!passwordMatch) {

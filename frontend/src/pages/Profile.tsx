@@ -80,30 +80,30 @@ const Profile: React.FC = () => {
         
         {/* Profile Header Card */}
         <div style={{
-          background: "linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(56, 189, 248, 0.15))",
-          border: "1px solid rgba(124, 58, 237, 0.3)",
+          background: "linear-gradient(135deg, rgba(121, 41, 210, 0.28), rgba(85, 221, 245, 0.12))",
+          border: "1px solid rgba(151, 71, 255, 0.3)",
           borderRadius: "20px", padding: "2rem",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1.5rem"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
             <div style={{
               width: "72px", height: "72px", borderRadius: "50%",
-              background: "linear-gradient(135deg, #7c3aed, #38bdf8)", color: "#fff",
+              background: "linear-gradient(135deg, #7929d2, #55ddf5)", color: "#fff",
               fontWeight: 800, fontSize: "2rem", display: "flex", alignItems: "center",
-              justifyContent: "center", boxShadow: "var(--shadow-glow)"
+              justifyContent: "center", boxShadow: "0 0 20px rgba(121, 41, 210, 0.4)"
             }}>
               {user.nombre ? user.nombre.charAt(0).toUpperCase() : "U"}
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f8fafc", margin: 0 }}>
+                <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#f3f0ff", margin: 0 }}>
                   {user.nombre}
                 </h1>
                 <span className={`badge ${user.rol === 'profesor' ? 'badge-purple' : user.rol === 'admin' ? 'badge-amber' : 'badge-green'}`}>
                   {user.rol}
                 </span>
               </div>
-              <p style={{ color: "#94a3b8", fontSize: "0.9rem", margin: 0 }}>
+              <p style={{ color: "#a9a3c7", fontSize: "0.9rem", margin: 0 }}>
                 {user.correo}
               </p>
             </div>
@@ -119,13 +119,13 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Profile Tabs */}
-        <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.5rem", overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(151, 71, 255, 0.12)", paddingBottom: "0.5rem", overflowX: "auto" }}>
           <button
             onClick={() => setActiveTab("info")}
             style={{
               padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "info" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "info" ? "#f8fafc" : "#94a3b8",
+              background: activeTab === "info" ? "rgba(121, 41, 210, 0.2)" : "transparent",
+              color: activeTab === "info" ? "#f3f0ff" : "#a9a3c7",
               fontWeight: activeTab === "info" ? 600 : 500, fontSize: "0.9rem",
               cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
@@ -136,8 +136,8 @@ const Profile: React.FC = () => {
             onClick={() => setActiveTab("clases")}
             style={{
               padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "clases" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "clases" ? "#f8fafc" : "#94a3b8",
+              background: activeTab === "clases" ? "rgba(121, 41, 210, 0.2)" : "transparent",
+              color: activeTab === "clases" ? "#f3f0ff" : "#a9a3c7",
               fontWeight: activeTab === "clases" ? 600 : 500, fontSize: "0.9rem",
               cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
@@ -148,8 +148,8 @@ const Profile: React.FC = () => {
             onClick={() => setActiveTab("seguridad")}
             style={{
               padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "seguridad" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "seguridad" ? "#f8fafc" : "#94a3b8",
+              background: activeTab === "seguridad" ? "rgba(121, 41, 210, 0.2)" : "transparent",
+              color: activeTab === "seguridad" ? "#f3f0ff" : "#a9a3c7",
               fontWeight: activeTab === "seguridad" ? 600 : 500, fontSize: "0.9rem",
               cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
@@ -160,8 +160,8 @@ const Profile: React.FC = () => {
             onClick={() => setActiveTab("preferencias")}
             style={{
               padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
-              background: activeTab === "preferencias" ? "rgba(124, 58, 237, 0.2)" : "transparent",
-              color: activeTab === "preferencias" ? "#f8fafc" : "#94a3b8",
+              background: activeTab === "preferencias" ? "rgba(121, 41, 210, 0.2)" : "transparent",
+              color: activeTab === "preferencias" ? "#f3f0ff" : "#a9a3c7",
               fontWeight: activeTab === "preferencias" ? 600 : 500, fontSize: "0.9rem",
               cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap"
             }}
@@ -176,7 +176,7 @@ const Profile: React.FC = () => {
             background: "var(--bg-card)", border: "1px solid var(--border-color)",
             borderRadius: "16px", padding: "1.75rem", display: "flex", flexDirection: "column", gap: "1.25rem"
           }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#f8fafc", margin: 0 }}>Datos Académicos</h3>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#f3f0ff", margin: 0 }}>Datos Académicos</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem" }}>
               <InputField label="Nombre Completo" value={user.nombre} disabled icon="bx-user" />
               <InputField label="Correo Electrónico" value={user.correo} disabled icon="bx-envelope" />
@@ -190,7 +190,7 @@ const Profile: React.FC = () => {
         {activeTab === "clases" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: "1.15rem", fontWeight: 700, color: "#f8fafc", margin: 0 }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: 700, color: "#f3f0ff", margin: 0 }}>
                 {user.rol === "alumno" ? "Materias donde estás matriculado" : "Aulas virtuales que dictas"}
               </h3>
               <Button

@@ -114,11 +114,11 @@ const ClasesAlumno: React.FC = () => {
 
           <div style={{
             background: 'var(--bg-card)',
-            border: `1px solid ${isSuspendido ? 'rgba(244,63,94,0.25)' : 'rgba(124,58,237,0.25)'}`,
+            border: `1px solid ${isSuspendido ? 'rgba(244,63,94,0.25)' : 'rgba(151,71,255,0.25)'}`,
             borderRadius: '20px',
             padding: '2.5rem 3rem',
             maxWidth: '560px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            boxShadow: '0 8px 32px rgba(0,0,0,0.45)'
           }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
@@ -134,11 +134,11 @@ const ClasesAlumno: React.FC = () => {
                 : <><i className="bx bx-loader-alt bx-spin"></i> Pendiente de asignación</>}
             </div>
 
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 1rem 0', lineHeight: 1.3 }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f3f0ff', margin: '0 0 1rem 0', lineHeight: 1.3 }}>
               {isSuspendido ? 'Tu acceso ha sido suspendido' : 'Aún no tienes clases asignadas'}
             </h2>
 
-            <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>
+            <p style={{ color: '#a9a3c7', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>
               {isSuspendido
                 ? 'Tu cuenta fue suspendida por el administrador. Por favor, contactate con la institución para más información.'
                 : 'Aún no tienes clases asignadas a tu perfil. Cuando el Administrador te asigne un curso o comisión, aparecerán automáticamente en tu panel.'}
@@ -146,12 +146,12 @@ const ClasesAlumno: React.FC = () => {
 
             <div style={{
               marginTop: '2rem', padding: '1rem 1.25rem',
-              background: isSuspendido ? 'rgba(244,63,94,0.07)' : 'rgba(56,189,248,0.07)',
-              border: isSuspendido ? '1px solid rgba(244,63,94,0.15)' : '1px solid rgba(56,189,248,0.15)',
+              background: isSuspendido ? 'rgba(244,63,94,0.07)' : 'rgba(85,221,245,0.07)',
+              border: isSuspendido ? '1px solid rgba(244,63,94,0.15)' : '1px solid rgba(85,221,245,0.2)',
               borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '0.75rem'
             }}>
-              <i className="bx bx-info-circle" style={{ color: isSuspendido ? '#fb7185' : '#38bdf8', fontSize: '1.2rem', marginTop: '2px', flexShrink: 0 }}></i>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0, lineHeight: 1.6 }}>
+              <i className="bx bx-info-circle" style={{ color: isSuspendido ? '#fb7185' : '#55ddf5', fontSize: '1.2rem', marginTop: '2px', flexShrink: 0 }}></i>
+              <p style={{ color: '#6b6688', fontSize: '0.85rem', margin: 0, lineHeight: 1.6 }}>
                 {isSuspendido
                   ? 'Si crees que esto es un error, comunícate con tu preceptor o con el administrador del sistema.'
                   : 'Tu cuenta está registrada y verificada. El acceso al contenido académico se habilitará automáticamente una vez que el administrador complete tu asignación.'}
@@ -249,7 +249,7 @@ const ClasesAlumno: React.FC = () => {
                 <p><strong>Docente:</strong> {clase.creador}</p>
                 <p><strong>Alumnos inscriptos:</strong> {clase.cantidad_alumnos ?? 0}</p>
                 <div className={styles.claseMeta} style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
-                  <span style={{ fontSize: "0.8rem", color: "#38bdf8", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                  <span style={{ fontSize: "0.8rem", color: "#55ddf5", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
                     Ir a Clase <i className="bx bx-right-arrow-alt" style={{ fontSize: "1.1rem" }}></i>
                   </span>
                 </div>

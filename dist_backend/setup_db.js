@@ -61,6 +61,7 @@ async function upsertUsuario(u, saltRounds = 10) {
     const dniNorm = u.dni.trim();
     const estadoAcceso = u.estado_acceso || 'ACTIVO';
     const cursoVal = u.curso || null;
+    const nivelVal = u.nivel_educativo || null;
     // 1. Comprobación previa obligatoria por DNI y por Correo
     const existByDni = await conexion_pg_1.default.query('SELECT id_usuario, correo, DNI, rol FROM usuarios WHERE DNI = $1', [dniNorm]);
     const existByEmail = await conexion_pg_1.default.query('SELECT id_usuario, correo, DNI, rol FROM usuarios WHERE LOWER(correo) = $1', [emailNorm]);
@@ -72,36 +73,36 @@ async function upsertUsuario(u, saltRounds = 10) {
             // El mismo registro coincide en DNI y Correo: actualizar
             idUsuario = idDni;
             await conexion_pg_1.default.query(`UPDATE usuarios 
-                 SET contrasena = $1, nombre_completo = $2, rol = $3, estado_acceso = $4, curso = $5, correo = $6, DNI = $7 
-                 WHERE id_usuario = $8`, [hashPass, u.nombre, u.rol, estadoAcceso, cursoVal, emailNorm, dniNorm, idUsuario]);
+                 SET contrasena = $1, nombre_completo = $2, rol = $3, estado_acceso = $4, curso = $5, nivel_educativo = $6, correo = $7, DNI = $8 
+                 WHERE id_usuario = $9`, [hashPass, u.nombre, u.rol, estadoAcceso, cursoVal, nivelVal, emailNorm, dniNorm, idUsuario]);
         }
         else {
             // Dos registros distintos en conflicto temporal: liberar DNI previo
             idUsuario = idEmail;
             await conexion_pg_1.default.query(`UPDATE usuarios SET DNI = 'TEMP-' || id_usuario || '-' || hex(randomblob(4)) WHERE id_usuario = $1`, [idDni]);
             await conexion_pg_1.default.query(`UPDATE usuarios 
-                 SET contrasena = $1, nombre_completo = $2, rol = $3, estado_acceso = $4, curso = $5, correo = $6, DNI = $7 
-                 WHERE id_usuario = $8`, [hashPass, u.nombre, u.rol, estadoAcceso, cursoVal, emailNorm, dniNorm, idUsuario]);
+                 SET contrasena = $1, nombre_completo = $2, rol = $3, estado_acceso = $4, curso = $5, nivel_educativo = $6, correo = $7, DNI = $8 
+                 WHERE id_usuario = $9`, [hashPass, u.nombre, u.rol, estadoAcceso, cursoVal, nivelVal, emailNorm, dniNorm, idUsuario]);
         }
     }
     else if (existByDni.rows.length > 0) {
         // Encontrado por DNI -> actualizar correo y datos
         idUsuario = existByDni.rows[0].id_usuario;
         await conexion_pg_1.default.query(`UPDATE usuarios 
-             SET contrasena = $1, nombre_completo = $2, correo = $3, rol = $4, estado_acceso = $5, curso = $6 
-             WHERE id_usuario = $7`, [hashPass, u.nombre, emailNorm, u.rol, estadoAcceso, cursoVal, idUsuario]);
+             SET contrasena = $1, nombre_completo = $2, correo = $3, rol = $4, estado_acceso = $5, curso = $6, nivel_educativo = $7 
+             WHERE id_usuario = $8`, [hashPass, u.nombre, emailNorm, u.rol, estadoAcceso, cursoVal, nivelVal, idUsuario]);
     }
     else if (existByEmail.rows.length > 0) {
         // Encontrado por Correo -> actualizar DNI y datos
         idUsuario = existByEmail.rows[0].id_usuario;
         await conexion_pg_1.default.query(`UPDATE usuarios 
-             SET contrasena = $1, nombre_completo = $2, DNI = $3, rol = $4, estado_acceso = $5, curso = $6 
-             WHERE id_usuario = $7`, [hashPass, u.nombre, dniNorm, u.rol, estadoAcceso, cursoVal, idUsuario]);
+             SET contrasena = $1, nombre_completo = $2, DNI = $3, rol = $4, estado_acceso = $5, curso = $6, nivel_educativo = $7 
+             WHERE id_usuario = $8`, [hashPass, u.nombre, dniNorm, u.rol, estadoAcceso, cursoVal, nivelVal, idUsuario]);
     }
     else {
         // No existe: Insertar nuevo usuario
-        const insertRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, rol, estado_acceso)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_usuario`, [hashPass, u.nombre, emailNorm, dniNorm, cursoVal, u.rol, estadoAcceso]);
+        const insertRes = await conexion_pg_1.default.query(`INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, nivel_educativo, rol, estado_acceso)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_usuario`, [hashPass, u.nombre, emailNorm, dniNorm, cursoVal, nivelVal, u.rol, estadoAcceso]);
         idUsuario = insertRes.rows[0]?.id_usuario || insertRes.insertId;
     }
     return idUsuario;
@@ -113,9 +114,15 @@ const crearTablas = async () => {
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS curso (
                 id_curso INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre_curso TEXT UNIQUE NOT NULL
+                nombre_curso TEXT UNIQUE NOT NULL,
+                nivel_educativo TEXT DEFAULT 'Secundario'
             );
         `);
+        await addColumnIfNotExists('curso', 'nivel_educativo', "TEXT DEFAULT 'Secundario'");
+        try {
+            await conexion_pg_1.default.query(`UPDATE curso SET nivel_educativo = 'Secundario' WHERE nivel_educativo IS NULL OR nivel_educativo = '';`);
+        }
+        catch (_e) { }
         // 2. Tabla USUARIOS (SQLite compatible)
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
@@ -127,11 +134,13 @@ const crearTablas = async () => {
                 curso TEXT,
                 rol TEXT DEFAULT 'alumno',
                 estado_acceso TEXT DEFAULT 'PENDIENTE_DE_ASIGNACION',
+                nivel_educativo TEXT,
                 fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
         // Migración: agregar estado_acceso si la tabla ya existía
         await addColumnIfNotExists('usuarios', 'estado_acceso', "TEXT DEFAULT 'PENDIENTE_DE_ASIGNACION'");
+        await addColumnIfNotExists('usuarios', 'nivel_educativo', "TEXT");
         // Activar admins y profesores existentes
         try {
             await conexion_pg_1.default.query(`UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE rol IN ('admin', 'profesor') AND (estado_acceso IS NULL OR estado_acceso != 'SUSPENDIDO');`);
@@ -160,10 +169,12 @@ const crearTablas = async () => {
                 id_usuario INTEGER,
                 correo TEXT NOT NULL,
                 contrasena TEXT NOT NULL,
+                nivel_educativo TEXT,
                 FOREIGN KEY(id_curso) REFERENCES curso(id_curso),
                 FOREIGN KEY(id_usuario) REFERENCES usuarios(id_usuario)
             );
         `);
+        await addColumnIfNotExists('alumno', 'nivel_educativo', "TEXT");
         // 4. Tabla PROFESOR
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS profesor (
@@ -174,9 +185,11 @@ const crearTablas = async () => {
                 nombre_completo TEXT NOT NULL,
                 materia TEXT,
                 contrasena TEXT NOT NULL,
+                nivel_educativo TEXT,
                 FOREIGN KEY(id_usuario) REFERENCES usuarios(id_usuario)
             );
         `);
+        await addColumnIfNotExists('profesor', 'nivel_educativo', "TEXT");
         // 5. Tabla CLASES
         await conexion_pg_1.default.query(`
             CREATE TABLE IF NOT EXISTS clases (
@@ -412,14 +425,21 @@ const crearTablas = async () => {
         console.log("✅ Estructura de tablas en SQLite verificada/creada correctamente.");
         // 11. Sembrado de Cursos (Idempotente)
         await conexion_pg_1.default.query(`
-            INSERT INTO curso (nombre_curso) VALUES
-            ('1ro 1ra'), ('1ro 2da'), ('1ro 3ra'), ('1ro 4ta'), ('1ro 5ta'), ('1ro 6ta'), ('1ro 7ma'), ('1ro 8va'), ('1ro 9na'), ('1ro 10ma'),
-            ('2do 1ra'), ('2do 2da'), ('2do 3ra'), ('2do 4ta'), ('2do 5ta'), ('2do 6ta'), ('2do 7ma'), ('2do 8va'), ('2do 9na'), ('2do 10ma'),
-            ('3ro 1ra'), ('3ro 2da'), ('3ro 3ra'), ('3ro 4ta'), ('3ro 5ta'), ('3ro 6ta'), ('3ro 7ma'), ('3ro 8va'), ('3ro 9na'), ('3ro 10ma'),
-            ('4to 1ra'), ('4to 2da'), ('4to 3ra'), ('4to 4ta'), ('4to 5ta'), ('4to 6ta'), ('4to 7ma'), ('4to 8va'), ('4to 9na'), ('4to 10ma'),
-            ('5to 1ra'), ('5to 2da'), ('5to 3ra'), ('5to 4ta'), ('5to 5ta'), ('5to 6ta'), ('5to 7ma'), ('5to 8va'), ('5to 9na'), ('5to 10ma'),
-            ('6to 1ra'), ('6to 2da'), ('6to 3ra'), ('6to 4ta'), ('6to 5ta'), ('6to 6ta'), ('6to 7ma'), ('6to 8va'), ('6to 9na'), ('6to 10ma')
-            ON CONFLICT (nombre_curso) DO NOTHING;
+            INSERT INTO curso (nombre_curso, nivel_educativo) VALUES
+            -- Nivel Secundario
+            ('1ro 1ra', 'Secundario'), ('1ro 2da', 'Secundario'), ('1ro 3ra', 'Secundario'), ('1ro 4ta', 'Secundario'), ('1ro 5ta', 'Secundario'), ('1ro 6ta', 'Secundario'), ('1ro 7ma', 'Secundario'), ('1ro 8va', 'Secundario'), ('1ro 9na', 'Secundario'), ('1ro 10ma', 'Secundario'),
+            ('2do 1ra', 'Secundario'), ('2do 2da', 'Secundario'), ('2do 3ra', 'Secundario'), ('2do 4ta', 'Secundario'), ('2do 5ta', 'Secundario'), ('2do 6ta', 'Secundario'), ('2do 7ma', 'Secundario'), ('2do 8va', 'Secundario'), ('2do 9na', 'Secundario'), ('2do 10ma', 'Secundario'),
+            ('3ro 1ra', 'Secundario'), ('3ro 2da', 'Secundario'), ('3ro 3ra', 'Secundario'), ('3ro 4ta', 'Secundario'), ('3ro 5ta', 'Secundario'), ('3ro 6ta', 'Secundario'), ('3ro 7ma', 'Secundario'), ('3ro 8va', 'Secundario'), ('3ro 9na', 'Secundario'), ('3ro 10ma', 'Secundario'),
+            ('4to 1ra', 'Secundario'), ('4to 2da', 'Secundario'), ('4to 3ra', 'Secundario'), ('4to 4ta', 'Secundario'), ('4to 5ta', 'Secundario'), ('4to 6ta', 'Secundario'), ('4to 7ma', 'Secundario'), ('4to 8va', 'Secundario'), ('4to 9na', 'Secundario'), ('4to 10ma', 'Secundario'),
+            ('5to 1ra', 'Secundario'), ('5to 2da', 'Secundario'), ('5to 3ra', 'Secundario'), ('5to 4ta', 'Secundario'), ('5to 5ta', 'Secundario'), ('5to 6ta', 'Secundario'), ('5to 7ma', 'Secundario'), ('5to 8va', 'Secundario'), ('5to 9na', 'Secundario'), ('5to 10ma', 'Secundario'),
+            ('6to 1ra', 'Secundario'), ('6to 2da', 'Secundario'), ('6to 3ra', 'Secundario'), ('6to 4ta', 'Secundario'), ('6to 5ta', 'Secundario'), ('6to 6ta', 'Secundario'), ('6to 7ma', 'Secundario'), ('6to 8va', 'Secundario'), ('6to 9na', 'Secundario'), ('6to 10ma', 'Secundario'),
+            -- Nivel Inicial
+            ('Sala de 3', 'Inicial'), ('Sala de 4', 'Inicial'), ('Sala de 5', 'Inicial'),
+            -- Nivel Primario
+            ('1ro Primaria', 'Primario'), ('2do Primaria', 'Primario'), ('3ro Primaria', 'Primario'), ('4to Primaria', 'Primario'), ('5to Primaria', 'Primario'), ('6to Primaria', 'Primario'), ('7mo Primaria', 'Primario'),
+            -- Nivel Terciario
+            ('1er Año Tecnicatura', 'Terciario'), ('2do Año Tecnicatura', 'Terciario'), ('3er Año Tecnicatura', 'Terciario')
+            ON CONFLICT (nombre_curso) DO UPDATE SET nivel_educativo = excluded.nivel_educativo;
         `);
         console.log("🌱 Sembrado de cursos completado.");
         // Sembrado de Períodos Académicos 2026 (Idempotente)
@@ -436,10 +456,11 @@ const crearTablas = async () => {
             }
             console.log('🌱 Períodos académicos 2026 sembrados.');
         }
-        // 12. Sembrado de datos de prueba (solo en desarrollo)
+        // 12. Sembrado de datos de prueba (solo si se solicita explícitamente vía SEED_TEST_USERS=true)
         const saltRounds = 10;
         const isProduction = process.env.NODE_ENV === 'production';
-        if (!isProduction) {
+        const shouldSeedTestUsers = process.env.SEED_TEST_USERS === 'true';
+        if (!isProduction && shouldSeedTestUsers) {
             // ─── A. Administradores de prueba (Idempotente) ─────────────────
             const adminsTesting = [
                 { correo: 'admin@edutechhub.edu.ar', nombre: 'Administrador General', pass: 'Donpatricio111', dni: 'ADM-001', rol: 'admin' },

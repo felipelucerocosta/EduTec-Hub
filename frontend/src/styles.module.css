@@ -3,16 +3,18 @@
    ============================================ */
 
 :root {
-  --color-primario: #7c3aed;
-  --color-secundario: #06b6d4;
+  --color-primario: var(--purple-electric, #7929d2);
+  --color-secundario: var(--cyan-electric, #55ddf5);
+  --color-violeta-brillante: var(--violet-bright, #9747ff);
   --color-acento: #f59e0b;
-  --color-texto: #f1f5f9;
+  --color-texto: var(--text-main, #f3f0ff);
+  --color-texto-secundario: var(--text-secondary, #a9a3c7);
   --color-borde: rgba(255, 255, 255, 0.08);
-  --color-fondo: #030014;
+  --color-fondo: var(--bg-dark, #070913);
 }
 
 .body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
   background: var(--color-fondo);
   color: var(--color-texto);
   min-height: 100vh;
@@ -23,7 +25,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #030014;
+  background: var(--color-fondo);
   position: relative;
 }
 
@@ -34,7 +36,7 @@
   right: -10%;
   width: 50%;
   height: 50%;
-  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(121, 41, 210, 0.12) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -54,16 +56,17 @@
 
 /* ── Page Title ──────────────────────────── */
 .pageTitle {
+  font-family: var(--font-family-display, 'Outfit', sans-serif);
   font-size: 1.8rem;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--color-texto);
   letter-spacing: -0.03em;
   margin-bottom: 0.25rem;
 }
 
 .pageSubtitle {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--color-texto-secundario);
 }
 
 /* ── Top Action Bar ──────────────────────── */
@@ -175,12 +178,12 @@
 .formInput {
   width: 100%;
   padding: 0.72rem 1rem;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-family-body, 'Sora', sans-serif);
   font-size: 0.9rem;
   border-radius: 10px;
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
-  color: #f1f5f9;
+  color: var(--color-texto);
   transition: all 0.2s ease;
   outline: none;
   margin-bottom: 1rem;

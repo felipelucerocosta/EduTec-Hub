@@ -63,7 +63,7 @@ const Clases: React.FC = () => {
                 <i className="bx bx-chalkboard"></i> {user?.rol === 'admin' ? 'Gestión Institucional de Aulas' : 'Panel Docente'}
               </div>
               <h1 className={styles.headerTitle}>Mis Clases</h1>
-              <p style={{ color: "#94a3b8", fontSize: "0.95rem", margin: "0.25rem 0 0 0" }}>
+              <p style={{ color: "#a9a3c7", fontSize: "0.95rem", margin: "0.25rem 0 0 0" }}>
                 {user?.rol === 'admin'
                   ? 'Aulas y comisiones activas en la institución.'
                   : 'Cursos y materias donde te encuentras asignado como docente.'}
@@ -118,10 +118,10 @@ const Clases: React.FC = () => {
                   <p><strong>Alumnos inscriptos:</strong> {clase.cantidad_alumnos ?? 0}</p>
 
                   <div className={styles.claseMeta} style={{ marginTop: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                    <span style={{ fontSize: "0.8rem", color: "#6b6688" }}>
                       {clase.total_trabajos !== undefined ? `${clase.total_trabajos} trabajos` : ''}
                     </span>
-                    <span style={{ fontSize: "0.85rem", color: "#38bdf8", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "0.25rem", marginLeft: "auto" }}>
+                    <span style={{ fontSize: "0.85rem", color: "#55ddf5", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "0.25rem", marginLeft: "auto" }}>
                       Gestionar Aula <i className="bx bx-right-arrow-alt" style={{ fontSize: "1.1rem" }}></i>
                     </span>
                   </div>

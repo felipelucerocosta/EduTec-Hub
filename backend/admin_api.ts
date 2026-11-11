@@ -38,13 +38,33 @@ router.get('/admin/stats', requireAdmin, async (_req: Request, res: Response) =>
   }
 });
 
+// ─── GET /api/admin/cursos y /api/cursos ──────────────────────────────────
+// Lista de cursos disponibles organizados por nivel educativo
+router.get(['/admin/cursos', '/cursos'], async (req: Request, res: Response) => {
+  try {
+    const { nivel } = req.query;
+    let query = `SELECT id_curso, nombre_curso, nivel_educativo FROM curso`;
+    const params: any[] = [];
+    if (nivel && typeof nivel === 'string') {
+      query += ` WHERE LOWER(nivel_educativo) = LOWER($1)`;
+      params.push(nivel.trim());
+    }
+    query += ` ORDER BY id_curso ASC`;
+    const result = await pool.query(query, params);
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Error en cursos:', error);
+    return res.status(500).json({ error: 'Error al obtener cursos.' });
+  }
+});
+
 // ─── GET /api/admin/usuarios ───────────────────────────────────────────────
-// Lista todos los usuarios con su rol y estado de acceso
+// Lista todos los usuarios con su rol, nivel educativo y estado de acceso
 router.get('/admin/usuarios', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { rol } = req.query;
     let query = `
-      SELECT id_usuario, nombre_completo, correo, rol, DNI, curso, fecha_registro, estado_acceso
+      SELECT id_usuario, nombre_completo, correo, rol, DNI, curso, nivel_educativo, fecha_registro, estado_acceso
       FROM usuarios
     `;
     const params: any[] = [];
@@ -419,6 +439,7 @@ router.get('/admin/profesores', requireAdmin, async (_req: Request, res: Respons
         u.nombre_completo as nombre,
         u.correo,
         u.DNI,
+        COALESCE(u.nivel_educativo, p.nivel_educativo, '') as nivel_educativo,
         p.materia,
         (SELECT COUNT(*) FROM clases c WHERE c.titular_id = u.id_usuario) as clases_asignadas
       FROM usuarios u
@@ -435,7 +456,7 @@ router.get('/admin/profesores', requireAdmin, async (_req: Request, res: Respons
 });
 
 // ─── GET /api/admin/alumnos ────────────────────────────────────────────────
-// Lista alumnos con su curso
+// Lista alumnos con su curso y nivel educativo
 router.get('/admin/alumnos', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const query = `
@@ -445,8 +466,11 @@ router.get('/admin/alumnos', requireAdmin, async (_req: Request, res: Response) 
         u.correo,
         u.DNI,
         u.curso,
+        COALESCE(u.nivel_educativo, a.nivel_educativo, '') as nivel_educativo,
+        a.id_curso,
         (SELECT COUNT(*) FROM alumnos_clases ac WHERE ac.alumno_id = u.id_usuario) as clases_inscriptas
       FROM usuarios u
+      LEFT JOIN alumno a ON a.id_usuario = u.id_usuario
       WHERE u.rol = 'alumno'
       ORDER BY u.nombre_completo ASC
     `;
@@ -459,9 +483,20 @@ router.get('/admin/alumnos', requireAdmin, async (_req: Request, res: Response) 
 });
 
 // ─── POST /api/admin/usuarios ──────────────────────────────────────────────
-// Crear usuario rápido desde el panel admin
+// Crear usuario desde el panel admin con validación académica integral
 router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response) => {
-  const { nombre_completo, correo, contrasena, rol, DNI, curso, materia, estado_acceso } = req.body;
+  const {
+    nombre_completo,
+    correo,
+    contrasena,
+    rol,
+    DNI,
+    curso,
+    nivel_educativo,
+    materia,
+    clases_ids,
+    estado_acceso
+  } = req.body;
 
   if (!nombre_completo || !correo || !contrasena || !rol || !DNI) {
     return res.status(400).json({ error: 'Nombre, correo, contraseña, rol y DNI son obligatorios.' });
@@ -472,56 +507,158 @@ router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response)
     return res.status(400).json({ error: 'Rol inválido.' });
   }
 
+  const nivelesValidos = ['Inicial', 'Primario', 'Secundario', 'Terciario'];
+
+  // Validación obligatoria para alumnos: nivel educativo y curso
+  if (rol === 'alumno') {
+    if (!nivel_educativo || !nivelesValidos.some(n => n.toLowerCase() === String(nivel_educativo).trim().toLowerCase())) {
+      return res.status(400).json({
+        error: 'El nivel educativo es obligatorio para alumnos (Inicial, Primario, Secundario o Terciario).'
+      });
+    }
+    if (!curso || !String(curso).trim()) {
+      return res.status(400).json({
+        error: 'El curso / año / división es obligatorio para los alumnos.'
+      });
+    }
+  }
+
+  // Validación obligatoria para profesores: nivel educativo
+  if (rol === 'profesor') {
+    if (!nivel_educativo || !nivelesValidos.some(n => n.toLowerCase() === String(nivel_educativo).trim().toLowerCase())) {
+      return res.status(400).json({
+        error: 'El nivel educativo es obligatorio para profesores (Inicial, Primario, Secundario o Terciario).'
+      });
+    }
+  }
+
+  // Normalizar nivel_educativo al casing canónico
+  const nivelCanonico = nivel_educativo
+    ? (nivelesValidos.find(n => n.toLowerCase() === String(nivel_educativo).trim().toLowerCase()) || nivel_educativo)
+    : null;
+
   const estadoFinal = estado_acceso || 'ACTIVO';
+  const emailNorm = correo.toLowerCase().trim();
+  const dniNorm = DNI.trim();
+  const cursoNorm = curso ? String(curso).trim() : null;
 
   try {
+    // 1. Verificación de duplicados
     const dup = await pool.query(
-      'SELECT id_usuario FROM usuarios WHERE correo = $1 OR DNI = $2',
-      [correo.toLowerCase().trim(), DNI.trim()]
+      'SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1 OR DNI = $2',
+      [emailNorm, dniNorm]
     );
     if (dup.rows.length > 0) {
       return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
     }
 
-    const hash = await bcrypt.hash(contrasena, 10);
-    const insertRes = await pool.query(
-      `INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI, curso, estado_acceso)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_usuario`,
-      [nombre_completo.trim(), correo.toLowerCase().trim(), hash, rol, DNI.trim(), curso || null, estadoFinal]
-    );
-
-    const userId = insertRes.rows[0]?.id_usuario || insertRes.insertId;
-
-    // Insertar en tabla complementaria según rol
-    if (rol === 'alumno') {
-      await pool.query(
-        `INSERT INTO alumno (DNI, nombre_completo, apellido, id_usuario, correo, contrasena)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [DNI.trim(), nombre_completo.trim(), '', userId, correo.toLowerCase().trim(), hash]
+    // 2. Si es alumno, resolver o validar curso y nivel
+    let resolvedCursoId: number | null = null;
+    if (rol === 'alumno' && cursoNorm && nivelCanonico) {
+      const cursoCheck = await pool.query(
+        'SELECT id_curso, nombre_curso, nivel_educativo FROM curso WHERE LOWER(TRIM(nombre_curso)) = LOWER(TRIM($1))',
+        [cursoNorm]
       );
-    } else if (rol === 'profesor') {
-      await pool.query(
-        `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [userId, correo.toLowerCase().trim(), DNI.trim(), nombre_completo.trim(), materia || '', hash]
-      );
+      if (cursoCheck.rows.length > 0) {
+        const cRow = cursoCheck.rows[0];
+        // Validar que no pertenezca a otro nivel educativo
+        if (cRow.nivel_educativo && cRow.nivel_educativo.toLowerCase() !== nivelCanonico.toLowerCase()) {
+          return res.status(400).json({
+            error: `El curso "${cursoNorm}" pertenece al nivel ${cRow.nivel_educativo}, no puede asignarse a un alumno de nivel ${nivelCanonico}.`
+          });
+        }
+        resolvedCursoId = cRow.id_curso;
+      } else {
+        // Si no existe, crearlo vinculado a este nivel
+        const insCurso = await pool.query(
+          'INSERT INTO curso (nombre_curso, nivel_educativo) VALUES ($1, $2) RETURNING id_curso',
+          [cursoNorm, nivelCanonico]
+        );
+        resolvedCursoId = insCurso.rows[0]?.id_curso || insCurso.insertId;
+      }
     }
 
-    // Registrar en auditoría
-    try {
-      await pool.query(
-        `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'CREACION_USUARIO', $3)`,
-        [userId, correo.toLowerCase().trim(), `Creado por Admin (Rol: ${rol}, Estado: ${estadoFinal})`]
-      );
-    } catch (_e) {}
+    const hash = await bcrypt.hash(contrasena.trim(), 10);
 
-    return res.status(201).json({ success: true, message: 'Usuario creado exitosamente.', id: userId });
+    // Iniciar transacción para integridad atómica
+    await pool.query('BEGIN TRANSACTION');
+
+    try {
+      // Insertar en usuarios
+      const insertRes = await pool.query(
+        `INSERT INTO usuarios (nombre_completo, correo, contrasena, rol, DNI, curso, nivel_educativo, estado_acceso)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_usuario`,
+        [nombre_completo.trim(), emailNorm, hash, rol, dniNorm, cursoNorm, nivelCanonico, estadoFinal]
+      );
+      const userId = insertRes.rows[0]?.id_usuario || insertRes.insertId;
+
+      if (rol === 'alumno') {
+        const partes = nombre_completo.trim().split(' ');
+        const nombre = partes[0] || '';
+        const apellido = partes.slice(1).join(' ') || '';
+
+        await pool.query(
+          `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena, nivel_educativo)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [dniNorm, nombre, apellido, resolvedCursoId, userId, emailNorm, hash, nivelCanonico]
+        );
+      } else if (rol === 'profesor') {
+        await pool.query(
+          `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena, nivel_educativo)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [userId, emailNorm, dniNorm, nombre_completo.trim(), materia ? String(materia).trim() : '', hash, nivelCanonico]
+        );
+
+        // Si se enviaron clases para asignar al docente
+        if (Array.isArray(clases_ids) && clases_ids.length > 0) {
+          for (const cId of clases_ids) {
+            await pool.query(
+              'UPDATE clases SET titular_id = $1, creador = $2 WHERE id = $3',
+              [userId, nombre_completo.trim(), cId]
+            );
+            await pool.query(
+              'INSERT INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2) ON CONFLICT (profesor_id, clase_id) DO NOTHING',
+              [userId, cId]
+            );
+          }
+        }
+      }
+
+      // Auditoría
+      try {
+        await pool.query(
+          `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'CREACION_USUARIO', $3)`,
+          [userId, emailNorm, `Creado por Admin (Rol: ${rol}, Nivel: ${nivelCanonico || 'N/A'}, Estado: ${estadoFinal})`]
+        );
+      } catch (_e) {}
+
+      await pool.query('COMMIT');
+
+      return res.status(201).json({
+        success: true,
+        message: 'Usuario creado exitosamente.',
+        id: userId,
+        usuario: {
+          id: userId,
+          nombre_completo: nombre_completo.trim(),
+          correo: emailNorm,
+          rol,
+          DNI: dniNorm,
+          curso: cursoNorm,
+          nivel_educativo: nivelCanonico,
+          estado_acceso: estadoFinal
+        }
+      });
+    } catch (txErr) {
+      await pool.query('ROLLBACK');
+      throw txErr;
+    }
   } catch (error: any) {
     console.error('Error creando usuario (admin):', error);
     if (error.message?.includes('UNIQUE constraint failed')) {
       return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
     }
-    return res.status(500).json({ error: 'Error al crear el usuario.' });
+    return res.status(500).json({ error: 'Error al crear el usuario: ' + (error.message || 'Error interno') });
   }
 });
 
@@ -529,11 +666,16 @@ router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response)
 // Editar usuario existente
 router.put('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { nombre_completo, correo, rol, DNI, curso, estado_acceso, contrasena } = req.body;
+  const { nombre_completo, correo, rol, DNI, curso, nivel_educativo, materia, estado_acceso, contrasena } = req.body;
 
   if (!nombre_completo || !correo || !DNI || !rol) {
     return res.status(400).json({ error: 'Nombre, correo, DNI y rol son obligatorios.' });
   }
+
+  const nivelesValidos = ['Inicial', 'Primario', 'Secundario', 'Terciario'];
+  const nivelCanonico = nivel_educativo
+    ? (nivelesValidos.find(n => n.toLowerCase() === String(nivel_educativo).trim().toLowerCase()) || nivel_educativo)
+    : null;
 
   try {
     const userQ = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [id]);
@@ -543,36 +685,48 @@ router.put('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Respon
 
     // Verificar duplicados en otros usuarios
     const dup = await pool.query(
-      'SELECT id_usuario FROM usuarios WHERE (correo = $1 OR DNI = $2) AND id_usuario != $3',
+      'SELECT id_usuario FROM usuarios WHERE (LOWER(correo) = $1 OR DNI = $2) AND id_usuario != $3',
       [correo.toLowerCase().trim(), DNI.trim(), id]
     );
     if (dup.rows.length > 0) {
       return res.status(409).json({ error: 'El correo o DNI ya pertenecen a otro usuario.' });
     }
 
+    // Resolver curso si es alumno
+    let resolvedCursoId: number | null = null;
+    if (rol === 'alumno' && curso) {
+      const cQ = await pool.query('SELECT id_curso FROM curso WHERE LOWER(TRIM(nombre_curso)) = LOWER(TRIM($1))', [curso.trim()]);
+      if (cQ.rows.length > 0) {
+        resolvedCursoId = cQ.rows[0].id_curso;
+      }
+    }
+
     if (contrasena && contrasena.trim().length >= 6) {
       const hash = await bcrypt.hash(contrasena.trim(), 10);
       await pool.query(
-        `UPDATE usuarios SET nombre_completo = $1, correo = $2, rol = $3, DNI = $4, curso = $5, estado_acceso = $6, contrasena = $7 WHERE id_usuario = $8`,
-        [nombre_completo.trim(), correo.toLowerCase().trim(), rol, DNI.trim(), curso || null, estado_acceso || 'ACTIVO', hash, id]
+        `UPDATE usuarios SET nombre_completo = $1, correo = $2, rol = $3, DNI = $4, curso = $5, nivel_educativo = $6, estado_acceso = $7, contrasena = $8 WHERE id_usuario = $9`,
+        [nombre_completo.trim(), correo.toLowerCase().trim(), rol, DNI.trim(), curso || null, nivelCanonico, estado_acceso || 'ACTIVO', hash, id]
       );
     } else {
       await pool.query(
-        `UPDATE usuarios SET nombre_completo = $1, correo = $2, rol = $3, DNI = $4, curso = $5, estado_acceso = $6 WHERE id_usuario = $7`,
-        [nombre_completo.trim(), correo.toLowerCase().trim(), rol, DNI.trim(), curso || null, estado_acceso || 'ACTIVO', id]
+        `UPDATE usuarios SET nombre_completo = $1, correo = $2, rol = $3, DNI = $4, curso = $5, nivel_educativo = $6, estado_acceso = $7 WHERE id_usuario = $8`,
+        [nombre_completo.trim(), correo.toLowerCase().trim(), rol, DNI.trim(), curso || null, nivelCanonico, estado_acceso || 'ACTIVO', id]
       );
     }
 
     // Actualizar tabla alumno / profesor si corresponde
     if (rol === 'alumno') {
+      const partes = nombre_completo.trim().split(' ');
+      const nombre = partes[0] || '';
+      const apellido = partes.slice(1).join(' ') || '';
       await pool.query(
-        `UPDATE alumno SET nombre_completo = $1, correo = $2, DNI = $3 WHERE id_usuario = $4`,
-        [nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), id]
+        `UPDATE alumno SET nombre_completo = $1, apellido = $2, correo = $3, DNI = $4, nivel_educativo = $5, id_curso = COALESCE($6, id_curso) WHERE id_usuario = $7`,
+        [nombre, apellido, correo.toLowerCase().trim(), DNI.trim(), nivelCanonico, resolvedCursoId, id]
       );
     } else if (rol === 'profesor') {
       await pool.query(
-        `UPDATE profesor SET nombre_completo = $1, correo = $2, DNI = $3 WHERE id_usuario = $4`,
-        [nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), id]
+        `UPDATE profesor SET nombre_completo = $1, correo = $2, DNI = $3, materia = COALESCE($4, materia), nivel_educativo = $5 WHERE id_usuario = $6`,
+        [nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), materia || null, nivelCanonico, id]
       );
     }
 

@@ -65,6 +65,7 @@ const rendimientoRouter = interop(require('./rendimiento'));
 const boletinRouter = interop(require('./boletin'));
 const simuladoresApiRouter = interop(require('./simuladores_api'));
 const adminApiRouter = interop(require('./admin_api'));
+const pluginRegistry = interop(require('../plugins/index'));
 const setupDb = interop(require('./setup_db'));
 // --- 2. INICIALIZAR LA APP Y SOCKET.IO ---
 const app = (0, express_1.default)();
@@ -131,6 +132,12 @@ app.use('/api', rendimientoRouter);
 app.use('/api', boletinRouter);
 app.use('/api', simuladoresApiRouter);
 app.use('/api', adminApiRouter);
+// --- 4.1. MONTAR PLUGINS DEL SISTEMA ---
+if (pluginRegistry && typeof pluginRegistry.mountAll === 'function') {
+    pluginRegistry.mountAll(app).catch((err) => {
+        console.error('❌ [Plugin Registry] Error al inicializar plugins:', err);
+    });
+}
 // Ruta base — en producción sirve el index.html del frontend (SPA fallback)
 if (IS_PRODUCTION) {
     app.get('*', (_req, res) => {

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components reutilizables/header";
 import KnowledgePlanet from "../components/3d/KnowledgePlanet";
+import techConceptUrl from "../assets/illustrations/tech_education_concept.jpg";
 import styles from "../Home.module.css";
 
 const Home: React.FC = () => {
@@ -14,7 +15,8 @@ const Home: React.FC = () => {
 
   return (
     <div className={styles.homeBody}>
-      {/* ── Entorno Espacial Multicapa ── */}
+      {/* ── Entorno Espacial Multicapa con Nebulosa IA ── */}
+      <div className={styles.spaceNebulaBackdrop} />
       <div className={styles.spaceNebulaTop} />
       <div className={styles.spaceNebulaBottom} />
       <div className={styles.spaceGridLines} />
@@ -265,6 +267,11 @@ const Home: React.FC = () => {
                 <p className={styles.pillarHeroDesc}>
                   Cada comisión y división escolar funciona en un contexto aislado. Los docentes gestionan exclusivamente sus materias asignadas y los estudiantes acceden únicamente a los trabajos, materiales y foros de su cohorte oficial.
                 </p>
+                <img
+                  src={techConceptUrl}
+                  alt="Arquitectura de red académica E.E.S.T. 29"
+                  className={styles.pillarConceptImage}
+                />
               </div>
 
               {/* Esquema visual de la matriz divisional */}

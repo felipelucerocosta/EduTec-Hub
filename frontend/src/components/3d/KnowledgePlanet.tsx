@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import planetSurfaceUrl from '../../assets/textures/planet_surface.jpg';
+import planetCloudsUrl from '../../assets/textures/planet_clouds.jpg';
 
 interface AcademicNode {
   id: string;
@@ -261,29 +263,61 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
 
     const radius = 1.0;
 
-    // ── 1. Planeta Principal con Textura Orgánica Procedural ──────
-    const surfaceTexture = createPlanetTexture();
+    // ── 1. Planeta Principal con Textura de IA de Alta Definición ──────
+    const textureLoader = new THREE.TextureLoader();
+    const fallbackSurface = createPlanetTexture();
     const planetGeometry = new THREE.SphereGeometry(radius, 64, 64);
     const planetMaterial = new THREE.MeshStandardMaterial({
-      map: surfaceTexture,
-      roughness: 0.65,
-      metalness: 0.25,
-      emissive: new THREE.Color(0x0c0824),
-      emissiveIntensity: 0.6,
+      map: fallbackSurface,
+      roughness: 0.58,
+      metalness: 0.32,
+      emissive: new THREE.Color(0x241044), // Violeta profundo
+      emissiveIntensity: 0.55,
     });
+
+    let loadedSurfaceTex: THREE.Texture | null = null;
+    textureLoader.load(
+      planetSurfaceUrl,
+      (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.generateMipmaps = true;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        planetMaterial.map = tex;
+        planetMaterial.needsUpdate = true;
+        loadedSurfaceTex = tex;
+      },
+      undefined,
+      (err) => console.warn('Usando textura procedural de fallback para el planeta:', err)
+    );
     const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
     planetSystem.add(planetMesh);
 
-    // ── 2. Capa Atmosférica y Nubes de Auroras ──────────────────
-    const cloudTexture = createCloudTexture();
-    const cloudGeometry = new THREE.SphereGeometry(radius * 1.025, 48, 48);
+    // ── 2. Capa Atmosférica y Nubes de Auroras con Textura de IA ────────
+    const fallbackClouds = createCloudTexture();
+    const cloudGeometry = new THREE.SphereGeometry(radius * 1.026, 48, 48);
     const cloudMaterial = new THREE.MeshStandardMaterial({
-      map: cloudTexture,
+      map: fallbackClouds,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.72,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
     });
+
+    let loadedCloudTex: THREE.Texture | null = null;
+    textureLoader.load(
+      planetCloudsUrl,
+      (tex) => {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.generateMipmaps = true;
+        cloudMaterial.map = tex;
+        cloudMaterial.needsUpdate = true;
+        loadedCloudTex = tex;
+      },
+      undefined,
+      (err) => console.warn('Usando textura procedural de fallback para nubes:', err)
+    );
     const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
     planetSystem.add(cloudMesh);
 
@@ -304,11 +338,13 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         varying vec3 vPosition;
         void main() {
           vec3 viewDir = normalize(-vPosition);
-          float intensity = pow(1.0 - max(0.0, dot(vNormal, viewDir)), 2.8);
-          vec3 haloViolet = vec3(0.55, 0.25, 0.95);
-          vec3 haloCyan = vec3(0.18, 0.75, 0.98);
-          vec3 glowColor = mix(haloViolet, haloCyan, intensity * 0.7);
-          gl_FragColor = vec4(glowColor, intensity * 0.65);
+          float intensity = pow(1.0 - max(0.0, dot(vNormal, viewDir)), 2.6);
+          // Paleta cromática oficial: Púrpura eléctrico (#7929D2) a Cian (#55DDF5) y Lavanda (#B99AFF)
+          vec3 haloViolet = vec3(0.474, 0.160, 0.823);
+          vec3 haloCyan = vec3(0.333, 0.867, 0.960);
+          vec3 haloLavender = vec3(0.725, 0.604, 1.0);
+          vec3 glowColor = mix(haloViolet, mix(haloLavender, haloCyan, intensity * 0.5), intensity * 0.75);
+          gl_FragColor = vec4(glowColor, intensity * 0.72);
         }
       `,
       side: THREE.BackSide,
@@ -437,22 +473,22 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
       nodeMarkers.push({ mesh: pin, halo, node });
     });
 
-    // ── 7. Iluminación Ambiental y Direccional ───────────────────
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    // ── 7. Iluminación Ambiental y Direccional (Paleta Violeta & Espacial) ───
+    const ambientLight = new THREE.AmbientLight(0x241044, 0.85); // Violeta profundo
     scene.add(ambientLight);
 
-    // Luz principal violeta espacial (clave superior derecha)
-    const keyLight = new THREE.DirectionalLight(0xa855f7, 2.8);
+    // Luz principal violeta brillante (clave superior derecha)
+    const keyLight = new THREE.DirectionalLight(0x9747ff, 3.2);
     keyLight.position.set(4, 3, 3);
     scene.add(keyLight);
 
-    // Luz de relleno cian (inferior izquierda)
-    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
+    // Luz de relleno cian eléctrico (inferior izquierda)
+    const fillLight = new THREE.DirectionalLight(0x55ddf5, 1.6);
     fillLight.position.set(-4, -2, -2);
     scene.add(fillLight);
 
-    // Contraluz de borde índigo
-    const rimLight = new THREE.DirectionalLight(0x4338ca, 1.8);
+    // Contraluz de borde índigo/espacial
+    const rimLight = new THREE.DirectionalLight(0x101c45, 2.4);
     rimLight.position.set(0, -4, 4);
     scene.add(rimLight);
 
@@ -592,8 +628,10 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
       window.removeEventListener('mouseup', onMouseUp);
       dom.removeEventListener('click', onClick);
 
-      surfaceTexture.dispose();
-      cloudTexture.dispose();
+      if (loadedSurfaceTex) (loadedSurfaceTex as THREE.Texture).dispose();
+      if (loadedCloudTex) (loadedCloudTex as THREE.Texture).dispose();
+      fallbackSurface.dispose();
+      fallbackClouds.dispose();
       planetGeometry.dispose();
       planetMaterial.dispose();
       cloudGeometry.dispose();
