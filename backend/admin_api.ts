@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
+import { emitToClass, emitToUser, emitToAdmin, emitGlobal } from './socket_bus';
 
 const router = Router();
 
@@ -156,7 +157,7 @@ router.get('/admin/auditoria', requireAdmin, async (req: Request, res: Response)
 
 
 // ─── DELETE /api/admin/usuarios/:id ───────────────────────────────────────
-// Eliminar usuario (con protección para no auto-eliminarse)
+// Eliminar usuario (con protección para no auto-eliminarse y borrado en cascada para SQLite FK)
 router.delete('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const myId = req.session?.usuario?.id;
@@ -166,8 +167,23 @@ router.delete('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Res
   }
 
   try {
-    await pool.query('DELETE FROM usuarios WHERE id_usuario = $1', [id]);
-    return res.json({ success: true, message: 'Usuario eliminado.' });
+    await pool.query('BEGIN TRANSACTION');
+    try {
+      await pool.query('DELETE FROM alumno WHERE id_usuario = $1', [id]);
+      await pool.query('DELETE FROM profesor WHERE id_usuario = $1', [id]);
+      await pool.query('DELETE FROM alumnos_clases WHERE alumno_id = $1', [id]);
+      await pool.query('DELETE FROM profesores_clases WHERE profesor_id = $1', [id]);
+      await pool.query('DELETE FROM auditoria_acceso WHERE usuario_id = $1', [id]);
+      await pool.query('DELETE FROM password_resets WHERE id_usuario = $1', [id]);
+      await pool.query('DELETE FROM calendario_notas WHERE id_usuario = $1', [id]);
+      await pool.query('DELETE FROM notificaciones WHERE usuario_id = $1', [id]);
+      await pool.query('DELETE FROM usuarios WHERE id_usuario = $1', [id]);
+      await pool.query('COMMIT');
+    } catch (txErr) {
+      await pool.query('ROLLBACK');
+      throw txErr;
+    }
+    return res.json({ success: true, message: 'Usuario eliminado correctamente.' });
   } catch (error) {
     console.error('Error eliminando usuario:', error);
     return res.status(500).json({ error: 'Error al eliminar usuario.' });
@@ -250,6 +266,9 @@ router.post('/admin/clases', requireAdmin, async (req: Request, res: Response) =
       } catch (_e) {}
     }
 
+    emitToAdmin('class.created', { id: newId, nombre, seccion, materia, aula, codigo });
+    emitGlobal('class.created', { id: newId, nombre, seccion, materia, aula, codigo });
+
     return res.status(201).json({ success: true, message: 'Clase creada exitosamente con 0 alumnos.', codigo, id: newId });
   } catch (error) {
     console.error('Error al crear clase (admin):', error);
@@ -263,6 +282,9 @@ router.delete('/admin/clases/:id', requireAdmin, async (req: Request, res: Respo
   const { id } = req.params;
   try {
     await pool.query('DELETE FROM clases WHERE id = $1', [id]);
+    emitToClass(id, 'class.deleted', { id: Number(id) });
+    emitToAdmin('class.deleted', { id: Number(id) });
+    emitGlobal('class.deleted', { id: Number(id) });
     return res.json({ success: true, message: 'Clase eliminada.' });
   } catch (error) {
     console.error('Error eliminando clase:', error);
@@ -304,6 +326,10 @@ router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Requ
         [profesor_id, id]
       );
     } catch (_e) {}
+
+    emitToClass(id, 'teacher.assigned', { clase_id: Number(id), profesor_id: Number(profesor_id), nombre_completo });
+    emitToUser(profesor_id, 'teacher.assigned', { clase_id: Number(id) });
+    emitToAdmin('teacher.assigned', { clase_id: Number(id), profesor_id: Number(profesor_id), nombre_completo });
 
     return res.json({ success: true, message: `Profesor "${nombre_completo}" asignado correctamente a la clase.` });
   } catch (error) {
@@ -400,6 +426,10 @@ router.post('/admin/clases/:id/asignar-alumno', requireAdmin, async (req: Reques
       [alumno_id, materia, codigo]
     );
 
+    emitToClass(id, 'student.assigned', { clase_id: Number(id), alumno_id: Number(alumno_id), nombre_completo: alumQ.rows[0].nombre_completo });
+    emitToUser(alumno_id, 'student.assigned', { clase_id: Number(id) });
+    emitToAdmin('student.assigned', { clase_id: Number(id), alumno_id: Number(alumno_id) });
+
     return res.json({ success: true, message: `Alumno "${alumQ.rows[0].nombre_completo}" inscripto correctamente.` });
   } catch (error) {
     console.error('Error inscribiendo alumno:', error);
@@ -422,6 +452,11 @@ router.delete('/admin/clases/:id/alumnos/:alumnoId', requireAdmin, async (req: R
       `DELETE FROM alumnos_clases WHERE alumno_id = $1 AND LOWER(TRIM(codigo)) = LOWER(TRIM($2))`,
       [alumnoId, codigo]
     );
+
+    emitToClass(id, 'student.removed', { clase_id: Number(id), alumno_id: Number(alumnoId) });
+    emitToUser(alumnoId, 'student.removed', { clase_id: Number(id) });
+    emitToAdmin('student.removed', { clase_id: Number(id), alumno_id: Number(alumnoId) });
+
     return res.json({ success: true, message: 'Alumno desinscripto correctamente.' });
   } catch (error) {
     console.error('Error desinscribiendo alumno:', error);
@@ -594,13 +629,12 @@ router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response)
 
       if (rol === 'alumno') {
         const partes = nombre_completo.trim().split(' ');
-        const nombre = partes[0] || '';
         const apellido = partes.slice(1).join(' ') || '';
 
         await pool.query(
           `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena, nivel_educativo)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [dniNorm, nombre, apellido, resolvedCursoId, userId, emailNorm, hash, nivelCanonico]
+          [dniNorm, nombre_completo.trim(), apellido, resolvedCursoId, userId, emailNorm, hash, nivelCanonico]
         );
       } else if (rol === 'profesor') {
         await pool.query(
@@ -617,7 +651,7 @@ router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response)
               [userId, nombre_completo.trim(), cId]
             );
             await pool.query(
-              'INSERT INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2) ON CONFLICT (profesor_id, clase_id) DO NOTHING',
+              'INSERT OR IGNORE INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2)',
               [userId, cId]
             );
           }
@@ -717,11 +751,10 @@ router.put('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Respon
     // Actualizar tabla alumno / profesor si corresponde
     if (rol === 'alumno') {
       const partes = nombre_completo.trim().split(' ');
-      const nombre = partes[0] || '';
       const apellido = partes.slice(1).join(' ') || '';
       await pool.query(
         `UPDATE alumno SET nombre_completo = $1, apellido = $2, correo = $3, DNI = $4, nivel_educativo = $5, id_curso = COALESCE($6, id_curso) WHERE id_usuario = $7`,
-        [nombre, apellido, correo.toLowerCase().trim(), DNI.trim(), nivelCanonico, resolvedCursoId, id]
+        [nombre_completo.trim(), apellido, correo.toLowerCase().trim(), DNI.trim(), nivelCanonico, resolvedCursoId, id]
       );
     } else if (rol === 'profesor') {
       await pool.query(

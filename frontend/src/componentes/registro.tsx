@@ -21,12 +21,16 @@ interface FormData {
   contrasena: string;
   curso: string;
   materia: string;
+  nivel_educativo: string;
 }
 
 type Role = "alumno" | "profesor";
 
 // ─── Component ────────────────────────────────────────────
 const Registro: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const urlNivel = searchParams.get("nivel") || "Secundario";
+
   const [isRegistering, setIsRegistering] = useState<boolean>(false);
   const [selectedRole, setSelectedRole] = useState<Role>("alumno");
   const [notification, setNotification] = useState<Notification>({ msg: "", type: "" });
@@ -37,6 +41,7 @@ const Registro: React.FC = () => {
     contrasena: "",
     curso: "",
     materia: "",
+    nivel_educativo: urlNivel,
   });
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
   const [adminForm, setAdminForm] = useState({ correo: "", contrasena: "" });
@@ -45,7 +50,6 @@ const Registro: React.FC = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   // ── Helpers ──────────────────────────────────────────────
   const showNotification = (msg: string, type: "success" | "error") => {
@@ -89,7 +93,12 @@ const Registro: React.FC = () => {
       }
       // ✅ Actualizar AuthContext antes de navegar
       if (data.usuario) {
-        login({ ...data.usuario, rol: 'admin' as const });
+        login({
+          ...data.usuario,
+          rol: 'admin' as const,
+          estado_acceso: 'ACTIVO',
+          isAdmin: true
+        });
       }
       navigate("/admin");
     } catch (error: any) {
@@ -115,13 +124,14 @@ const Registro: React.FC = () => {
       });
       const data = await response.json();
       if (response.ok && data.usuario) {
-        // ✅ Actualizar AuthContext con los datos del usuario ANTES de navegar.
-        // Sin esto, ProtectedRoute encuentra user=null y redirige de vuelta al login.
+        // ✅ Actualizar AuthContext con los datos completos del usuario ANTES de navegar.
         login({
           id: data.usuario.id,
           nombre: data.usuario.nombre,
           correo: data.usuario.correo,
           rol: data.usuario.rol as 'alumno' | 'profesor' | 'admin',
+          estado_acceso: data.usuario.estado_acceso || 'ACTIVO',
+          isAdmin: data.usuario.isAdmin || data.usuario.rol === 'admin',
         });
         showNotification("¡Bienvenido de nuevo!", "success");
         // Redirigir según rol
@@ -157,6 +167,7 @@ const Registro: React.FC = () => {
       correo: formData.correo,
       DNI: formData.DNI,
       contrasena: formData.contrasena,
+      nivel_educativo: formData.nivel_educativo,
       ...(isProfesor ? { materia: formData.materia } : { curso: formData.curso }),
     };
 
@@ -180,7 +191,7 @@ const Registro: React.FC = () => {
       if (response.ok) {
         showNotification("¡Cuenta creada exitosamente! Ahora inicia sesión.", "success");
         setIsRegistering(false);
-        setFormData({ nombre_completo: "", DNI: "", correo: "", contrasena: "", curso: "", materia: "" });
+        setFormData({ nombre_completo: "", DNI: "", correo: "", contrasena: "", curso: "", materia: "", nivel_educativo: urlNivel });
       } else {
         throw new Error(data.error || data.message || "Error al crear la cuenta.");
       }
@@ -348,6 +359,40 @@ const Registro: React.FC = () => {
               <Link to="/forgot-password" className={styles.forgotPasswordLink}>
                 ¿Olvidaste tu contraseña?
               </Link>
+            )}
+
+            {/* Nivel Educativo (register only) */}
+            {isRegistering && (
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: "0.4rem" }}>
+                  Nivel Educativo
+                </label>
+                <div style={{ position: "relative" }}>
+                  <select
+                    name="nivel_educativo"
+                    value={formData.nivel_educativo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nivel_educativo: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem 0.75rem 2.5rem",
+                      borderRadius: "12px",
+                      background: "rgba(30, 41, 59, 0.7)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      color: "#f8fafc",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="Inicial">Nivel Inicial (Jardín)</option>
+                    <option value="Primario">Nivel Primario</option>
+                    <option value="Secundario">Nivel Secundario Técnico</option>
+                    <option value="Terciario">Nivel Terciario</option>
+                  </select>
+                  <i className="bx bx-graduation" style={{ position: "absolute", left: "0.85rem", top: "50%", transform: "translateY(-50%)", color: "#a78bfa", fontSize: "1.1rem" }}></i>
+                </div>
+              </div>
             )}
 
             {/* Role-specific fields (register only) */}

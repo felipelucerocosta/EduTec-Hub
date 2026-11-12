@@ -29,6 +29,10 @@ import TrabajoDetallePage from "./pages/TrabajoDetallePage";
 import TrabajoProfesorPage from "./pages/TrabajoProfesorPage";
 // === PLUGIN 1: ASISTENCIA ACADÉMICA ===
 import AsistenciaPage from "../../plugins/asistencia-academica/frontend/pages/AsistenciaPage";
+// === PLUGIN 2: AULA ACTIVA ===
+import AulaActivaPage from "../../plugins/aula-activa/frontend/pages/AulaActivaPage";
+// === PLUGIN 3: OPORTUNIDADES ===
+import OportunidadesPage from "../../plugins/oportunidades/frontend/pages/OportunidadesPage";
 
 
 // Protected route component
@@ -111,8 +115,22 @@ function AppRoutes() {
 
       {/* PLUGIN 1: CONTROL DE ASISTENCIA Y REGULARIDAD */}
       <Route path="/asistencia" element={
-        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin"]}>
+        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin", "preceptor"]}>
           <AsistenciaPage />
+        </ProtectedRoute>
+      } />
+
+      {/* PLUGIN 2: AULA ACTIVA */}
+      <Route path="/aula-activa" element={
+        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin", "preceptor"]}>
+          <AulaActivaPage />
+        </ProtectedRoute>
+      } />
+
+      {/* PLUGIN 3: OPORTUNIDADES */}
+      <Route path="/oportunidades" element={
+        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin", "preceptor"]}>
+          <OportunidadesPage />
         </ProtectedRoute>
       } />
 
@@ -156,6 +174,12 @@ function AppRoutes() {
       <Route path="/boletin" element={
         <ProtectedRoute allowedRoles={["alumno", "admin"]}>
           <Boletin />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/simuladores" element={
+        <ProtectedRoute>
+          <Simuladores />
         </ProtectedRoute>
       } />
 

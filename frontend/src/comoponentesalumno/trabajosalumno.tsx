@@ -6,6 +6,7 @@ import LoadingSkeleton from "../components/ui/LoadingSkeleton";
 import EmptyState from "../components/ui/EmptyState";
 import TareaDetalle from "../componentes/TareaDetalle";
 import { API_URL } from "../config/api";
+import { joinClassRoom, leaveClassRoom, getSocket } from "../services/socket";
 
 interface Tarea {
   id: number;
@@ -82,6 +83,52 @@ const TrabajosAlumno: React.FC = () => {
 
   useEffect(() => {
     fetchClaseData();
+
+    if (claseId) {
+      joinClassRoom(claseId);
+      const s = getSocket();
+
+      const handleAssignmentEvent = () => {
+        fetch(`${API_URL}/clases/${claseId}/trabajos`, { credentials: "include" })
+          .then(res => res.json())
+          .then(dataTrabajos => { if (Array.isArray(dataTrabajos)) setTareas(dataTrabajos); })
+          .catch(() => {});
+      };
+
+      const handleMaterialEvent = () => {
+        fetch(`${API_URL}/materiales/${claseId}`, { credentials: "include" })
+          .then(res => res.json())
+          .then(dataMat => { if (Array.isArray(dataMat)) setMateriales(dataMat); })
+          .catch(() => {});
+      };
+
+      const handleMessageEvent = (msg: any) => {
+        if (msg && (!msg.clase_id || String(msg.clase_id) === String(claseId))) {
+          setAnuncios(prev => [msg, ...prev.filter(a => a.id !== msg.id)]);
+        }
+      };
+
+      s.on('assignment.published', handleAssignmentEvent);
+      s.on('assignment.updated', handleAssignmentEvent);
+      s.on('assignment.deleted', handleAssignmentEvent);
+      s.on('assignment.corrected', handleAssignmentEvent);
+      s.on('grade.updated', handleAssignmentEvent);
+      s.on('material.uploaded', handleMaterialEvent);
+      s.on('material.deleted', handleMaterialEvent);
+      s.on('message.created', handleMessageEvent);
+
+      return () => {
+        leaveClassRoom(claseId);
+        s.off('assignment.published', handleAssignmentEvent);
+        s.off('assignment.updated', handleAssignmentEvent);
+        s.off('assignment.deleted', handleAssignmentEvent);
+        s.off('assignment.corrected', handleAssignmentEvent);
+        s.off('grade.updated', handleAssignmentEvent);
+        s.off('material.uploaded', handleMaterialEvent);
+        s.off('material.deleted', handleMaterialEvent);
+        s.off('message.created', handleMessageEvent);
+      };
+    }
   }, [claseId]);
 
   return (

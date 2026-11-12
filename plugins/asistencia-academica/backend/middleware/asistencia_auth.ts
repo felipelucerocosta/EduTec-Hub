@@ -57,8 +57,8 @@ export async function requireDocenteDeClase(req: Request, res: Response, next: N
       return res.status(404).json({ success: false, error: `La clase con ID ${claseId} no existe en la institución.` });
     }
 
-    // 2. Administradores tienen acceso total
-    if (usuario.rol === 'admin') {
+    // 2. Administradores y Preceptores tienen acceso institucional de supervisión
+    if (usuario.rol === 'admin' || usuario.rol === 'preceptor') {
       return next();
     }
 

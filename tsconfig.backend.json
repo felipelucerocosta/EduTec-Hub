@@ -5,7 +5,7 @@
     "moduleResolution": "node",
     "lib": ["ES2022"],
     "outDir": "./dist_backend",
-    "rootDir": "./backend",
+    "rootDir": ".",
     "skipLibCheck": true,
     "strict": false,
     "esModuleInterop": true,
@@ -16,6 +16,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["backend/**/*.ts", "backend/types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "dist_backend", "frontend", "backend/calendario.ts", "backend/index.ts"]
+  "include": ["backend/**/*.ts", "backend/types/**/*.d.ts", "plugins/**/*.ts"],
+  "exclude": ["node_modules", "dist", "dist_backend", "frontend", "backend/calendario.ts", "backend/index.ts", "plugins/**/frontend/**"]
 }

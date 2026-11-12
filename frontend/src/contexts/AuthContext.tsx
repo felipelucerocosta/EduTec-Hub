@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { API_URL } from '../config/api';
+import { joinUserRoom, joinAdminRoom } from '../services/socket';
 
 export interface User {
   id: number;
   nombre: string;
   correo: string;
-  rol: 'alumno' | 'profesor' | 'admin';
+  rol: 'alumno' | 'profesor' | 'admin' | 'preceptor';
   estado_acceso?: 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO';
   isAdmin?: boolean;
 }
@@ -54,6 +55,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user && user.id) {
+      joinUserRoom(user.id);
+      if (user.rol === 'admin' || user.isAdmin) {
+        joinAdminRoom();
+      }
+    }
+  }, [user]);
 
   const login = (userData: User) => {
     loginCalledRef.current = true;

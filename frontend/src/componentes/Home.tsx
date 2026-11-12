@@ -29,11 +29,11 @@ const Home: React.FC = () => {
           <div className={styles.heroContent}>
             <div className={styles.heroBadge}>
               <span className={styles.pulseDot} />
-              Ecosistema Académico E.E.S.T. 29
+              Ecosistema Académico EduTech
             </div>
 
             <h1 className={styles.heroTitle}>
-              TECH-ROOM 29
+              EduTech
             </h1>
 
             <p className={styles.heroLead}>
@@ -78,7 +78,7 @@ const Home: React.FC = () => {
           <div className={styles.heroPlanetViewport}>
             <div className={styles.heroPlanetHalo} />
             <KnowledgePlanet
-              size={560}
+              size={540}
               interactive={true}
               activeLevel={hoveredLevel || undefined}
               onSelectNode={(nodeName) => {
@@ -185,12 +185,7 @@ const Home: React.FC = () => {
                   >
                     <i className="bx bx-chip"></i>
                   </div>
-                  <span
-                    className={styles.levelTag}
-                    style={{ background: "rgba(124, 58, 237, 0.2)", color: "#c4b5fd" }}
-                  >
-                    E.E.S.T. N° 29 · 1° a 6° Año
-                  </span>
+                
                 </div>
                 <h3 className={styles.levelNodeTitle} style={{ fontSize: "1.5rem" }}>
                   Nivel Secundario Técnico
@@ -337,14 +332,14 @@ const Home: React.FC = () => {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerBrand}>
-            <span className={styles.footerTitle}>TECH-ROOM 29</span>
+            <span className={styles.footerTitle}>EduTech</span>
             <span className={styles.footerDesc}>
               Escuela de Educación Secundaria Técnica N° 29 D.E. 6 "Reconquista de Buenos Aires"
             </span>
           </div>
 
           <span className={styles.footerLegal}>
-            &copy; {new Date().getFullYear()} TECH-ROOM 29 · Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} EduTech · Todos los derechos reservados.
           </span>
         </div>
       </footer>

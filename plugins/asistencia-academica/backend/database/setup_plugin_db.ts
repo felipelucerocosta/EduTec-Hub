@@ -35,6 +35,24 @@ export async function setupAsistenciaDatabase(): Promise<void> {
       );
     `);
 
+    // 2.1. Tabla de Actas e Incidencias (Preceptoría)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS plugin_preceptoria_actas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          clase_id INTEGER NOT NULL,
+          alumno_id INTEGER,
+          tipo TEXT NOT NULL CHECK(tipo IN ('Conducta', 'Médica', 'Pedagógica', 'Notificación a Padres')),
+          descripcion TEXT NOT NULL,
+          estado TEXT NOT NULL DEFAULT 'Abierta' CHECK(estado IN ('Abierta', 'Resuelta')),
+          creado_por INTEGER NOT NULL,
+          fecha TEXT NOT NULL,
+          fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(clase_id) REFERENCES clases(id) ON DELETE CASCADE,
+          FOREIGN KEY(alumno_id) REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+          FOREIGN KEY(creado_por) REFERENCES usuarios(id_usuario)
+      );
+    `);
+
     // 3. Índices de rendimiento
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_asistencias_sesion_fecha 

@@ -1,0 +1,20 @@
+{
+  "name": "@edutech/plugin-oportunidades",
+  "version": "1.0.0",
+  "description": "Portal institucional de pasantías, proyectos tecnológicos, investigaciones y oportunidades profesionales de EduTech",
+  "main": "backend/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "edutech",
+    "plugin",
+    "oportunidades",
+    "pasantias",
+    "proyectos",
+    "investigacion"
+  ],
+  "author": "Equipo EduTech",
+  "license": "ISC"
+}
+

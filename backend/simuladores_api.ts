@@ -45,6 +45,45 @@ function getKeyword(materia: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────
+// GET /api/simuladores
+// Catálogo general de todos los simuladores interactivos
+// ─────────────────────────────────────────────────────────────
+router.get('/simuladores', async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ error: 'No autorizado' });
+
+  try {
+    const categorias = [
+      { id: 'matematica', label: 'Matemática y Álgebra', icon: 'bx-math' },
+      { id: 'redes', label: 'Redes y Telecomunicaciones', icon: 'bx-network-chart' },
+      { id: 'desarrollo', label: 'Desarrollo de Software y Gestión', icon: 'bx-code-alt' },
+      { id: 'lengua', label: 'Lengua y Análisis Textual', icon: 'bx-book-content' },
+      { id: 'ciencia', label: 'Física y Circuitos Electrónicos', icon: 'bx-bulb' },
+    ];
+
+    const todosLosSimuladores: any[] = [];
+    Object.keys(SIMULADORES_CATALOGO).forEach((categoria) => {
+      SIMULADORES_CATALOGO[categoria].forEach((sim) => {
+        todosLosSimuladores.push({
+          ...sim,
+          categoria,
+        });
+      });
+    });
+
+    return res.json({
+      catalogo: SIMULADORES_CATALOGO,
+      simuladores: todosLosSimuladores,
+      categorias,
+      total: todosLosSimuladores.length,
+    });
+  } catch (error) {
+    console.error('Error al obtener catálogo general de simuladores:', error);
+    return res.status(500).json({ error: 'Error al obtener catálogo general de simuladores' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // GET /api/simuladores/:claseId
 // Simuladores disponibles para una clase específica
 // ─────────────────────────────────────────────────────────────

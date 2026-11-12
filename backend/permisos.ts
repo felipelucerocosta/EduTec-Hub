@@ -5,7 +5,7 @@ export interface UsuarioSesion {
   id: number;
   nombre: string;
   correo: string;
-  rol: 'alumno' | 'profesor' | 'admin';
+  rol: 'alumno' | 'profesor' | 'admin' | 'preceptor';
   estado_acceso?: string;
   isAdmin?: boolean;
 }
@@ -38,6 +38,11 @@ export async function verificarAccesoClase(
 
     // 1. Admin siempre tiene acceso
     if (usuario.rol === 'admin' || usuario.isAdmin) {
+      return { permitido: true, clase };
+    }
+
+    // 1.1. Preceptor tiene acceso de supervisión y gestión de asistencias/actas
+    if (usuario.rol === 'preceptor') {
       return { permitido: true, clase };
     }
 

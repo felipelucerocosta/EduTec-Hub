@@ -33,7 +33,7 @@ const pool = {
 
     try {
       const upperText = text.trim().toUpperCase();
-      const isSelect = upperText.startsWith('SELECT');
+      const isSelect = upperText.startsWith('SELECT') || upperText.startsWith('PRAGMA') || upperText.startsWith('EXPLAIN');
       const hasReturning = upperText.includes('RETURNING');
 
       if (isSelect) {
@@ -56,6 +56,7 @@ const pool = {
             usuarios: 'id_usuario',
             alumno: 'id_alumno',
             profesor: 'id_profesor',
+            curso: 'id_curso',
             clases: 'id',
             password_resets: 'id',
             email_verifications: 'id',
@@ -64,7 +65,13 @@ const pool = {
             tablon_mensajes: 'id',
             trabajos: 'id',
             entregas: 'id',
-            actas: 'id'
+            actas: 'id',
+            calendario_notas: 'id_nota',
+            notificaciones: 'id',
+            periodos_academicos: 'id',
+            sesiones_simulador: 'id',
+            alumnos_clases: 'id',
+            profesores_clases: 'id'
           };
           const pk = pkMap[tableName] || 'id';
           try {

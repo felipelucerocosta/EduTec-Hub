@@ -81,7 +81,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
             {sidebarOpen && (
               <div>
                 <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f3f0ff', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>
-                  TECH-ROOM 29
+                  EduTech
                 </div>
                 <div style={{ fontSize: '0.7rem', color: '#fbbf24', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Command Center

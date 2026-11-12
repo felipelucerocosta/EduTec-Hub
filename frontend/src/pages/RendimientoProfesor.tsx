@@ -417,6 +417,30 @@ const RendimientoProfesor: React.FC<RendimientoProfesorProps> = ({ claseId }) =>
       {activeTab === 'general' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
+          {/* Banner informativo de clase asignada sin actividades aún */}
+          {data.total_trabajos === 0 && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(124, 58, 237, 0.08))',
+              border: '1px solid rgba(56, 189, 248, 0.28)',
+              borderRadius: '16px',
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              color: '#cbd5e1'
+            }}>
+              <i className="bx bx-info-circle" style={{ fontSize: '2rem', color: '#38bdf8', flexShrink: 0 }}></i>
+              <div>
+                <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.98rem' }}>
+                  Clase asignada — Sin actividad académica registrada aún
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem', lineHeight: '1.4' }}>
+                  Estás asignado correctamente a esta comisión. Las estadísticas, promedios e indicadores de aprobación se generarán en tiempo real una vez que publiques trabajos prácticos y registres calificaciones.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Contenedor Principal del Gráfico Único General */}
           <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>

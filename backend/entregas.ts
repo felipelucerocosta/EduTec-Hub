@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { verificarAccesoClase } from './permisos';
+import { emitToClass, emitToUser } from './socket_bus';
 
 const router = Router();
 
@@ -77,6 +78,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
         WHERE trabajo_id = $5 AND alumno_id = $6
       `;
       await pool.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, trabajoId, usuario.id]);
+      emitToClass(trabajo.clase_id, 'assignment.submitted', { trabajo_id: Number(trabajoId), alumno_id: usuario.id, estado });
       return res.json({ success: true, message: 'Entrega actualizada correctamente' });
     } else {
       // Insert new submission
@@ -85,6 +87,7 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
         VALUES ($1, $2, $3, $4, $5, $6)
       `;
       await pool.query(insertQ, [trabajoId, usuario.id, archivoNombre, archivoPath, comentario || '', estado]);
+      emitToClass(trabajo.clase_id, 'assignment.submitted', { trabajo_id: Number(trabajoId), alumno_id: usuario.id, estado });
       return res.status(201).json({ success: true, message: 'Trabajo entregado exitosamente' });
     }
   } catch (error) {
@@ -237,6 +240,13 @@ router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
         [alumno_id, `Trabajo calificado: ${titulo}`, `Tu entrega de "${titulo}" fue calificada con ${calificacion}/${maxPts}.`, id]
       );
     } catch (_e) {}
+
+    // Emit real-time events to student and class
+    emitToUser(alumno_id, 'assignment.corrected', { entrega_id: Number(id), calificacion: Number(calificacion), feedback });
+    emitToUser(alumno_id, 'grade.updated', { alumno_id: Number(alumno_id), calificacion: Number(calificacion) });
+    emitToUser(alumno_id, 'performance.updated', { alumno_id: Number(alumno_id) });
+    emitToClass(entregaQ.rows[0].clase_id, 'grade.updated', { entrega_id: Number(id), calificacion: Number(calificacion) });
+    emitToClass(entregaQ.rows[0].clase_id, 'performance.updated', { clase_id: entregaQ.rows[0].clase_id });
 
     return res.json({ success: true, message: 'Calificación guardada exitosamente' });
   } catch (error) {

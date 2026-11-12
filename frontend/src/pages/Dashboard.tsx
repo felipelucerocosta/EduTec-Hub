@@ -8,6 +8,8 @@ import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 import { BACKEND_URL, API_URL } from '../config/api';
 
+const MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -17,13 +19,14 @@ const Dashboard: React.FC = () => {
   const [clases, setClases] = useState<any[]>([]);
   const [notificaciones, setNotificaciones] = useState<any[]>([]);
   const [rendimientoData, setRendimientoData] = useState<any>(null);
+  const [evolucionData, setEvolucionData] = useState<any[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'anual' | '1t' | '2t' | '3t'>('anual');
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
-    // Si es administrador, redirigir al panel de administración real
+    // Si es administrador, redirigir a la consola de administración
     if (user.rol === 'admin') {
       navigate('/admin', { replace: true });
       return;
@@ -35,6 +38,7 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       try {
         if (!esPendiente) {
+          // 1. Clases asignadas
           const endpoint = user.rol === 'alumno' ? '/api/alumno/mis-clases' : '/api/profesor/mis-clases';
           const resClases = await fetch(`${BACKEND_URL}${endpoint}`, { credentials: 'include' });
           if (resClases.ok) {
@@ -42,17 +46,30 @@ const Dashboard: React.FC = () => {
             setClases(Array.isArray(dataClases) ? dataClases : []);
           }
 
-          // Fetch student performance if student
+          // 2. Rendimiento real según rol
           if (user.rol === 'alumno') {
             const resRend = await fetch(`${API_URL}/rendimiento/alumno`, { credentials: 'include' });
             if (resRend.ok) {
               const dataR = await resRend.json();
               setRendimientoData(dataR);
             }
+          } else if (user.rol === 'profesor') {
+            const resRend = await fetch(`${API_URL}/rendimiento/profesor/resumen`, { credentials: 'include' });
+            if (resRend.ok) {
+              const dataR = await resRend.json();
+              setRendimientoData(dataR);
+            }
+          }
+
+          // 3. Evolución histórica real
+          const resEvol = await fetch(`${API_URL}/rendimiento/evolucion`, { credentials: 'include' });
+          if (resEvol.ok) {
+            const dataE = await resEvol.json();
+            setEvolucionData(Array.isArray(dataE) ? dataE : []);
           }
         }
 
-        // Fetch notifications
+        // 4. Notificaciones
         const resNotif = await fetch(`${API_URL}/notificaciones`, { credentials: 'include' });
         if (resNotif.ok) {
           const dataNotif = await resNotif.json();
@@ -71,45 +88,55 @@ const Dashboard: React.FC = () => {
 
   if (!user || user.rol === 'admin') return null;
 
-  // Calculados
+  // Métricas calculadas honestas (0 o S/D si no existen)
   const totalClases = clases.length;
-  const totalTrabajos = rendimientoData?.resumen?.total_trabajos ?? (clases.reduce((acc, c) => acc + (c.total_trabajos || 0), 0) || 12);
-  const totalEntregados = rendimientoData?.resumen?.total_entregados ?? Math.round(totalTrabajos * 0.75);
-  const totalPendientes = rendimientoData?.resumen?.total_pendientes ?? Math.max(0, totalTrabajos - totalEntregados);
-  const promedioGeneral = rendimientoData?.resumen?.promedio_general ?? (user.rol === 'alumno' ? 8.4 : 7.9);
+  const totalTrabajos = Number(rendimientoData?.resumen?.total_trabajos ?? 0);
+  const totalEntregados = Number(rendimientoData?.resumen?.total_entregados ?? 0);
+  const totalPendientes = Number(rendimientoData?.resumen?.total_pendientes ?? 0);
+  const totalCalificados = Number(rendimientoData?.resumen?.total_calificados ?? 0);
+  const promedioGeneral: number | null = rendimientoData?.resumen?.promedio_general !== undefined
+    ? rendimientoData.resumen.promedio_general
+    : null;
   const porcentajeAvance = totalTrabajos > 0 ? Math.round((totalEntregados / totalTrabajos) * 100) : 0;
 
-  // Datos para el gráfico analítico temporal (Meses del ciclo lectivo)
-  const chartTimeline = [
-    { label: 'Mar', valor: 7.2, target: 7.0 },
-    { label: 'Abr', valor: 7.8, target: 7.2 },
-    { label: 'May', valor: 8.5, target: 7.5 },
-    { label: 'Jun', valor: 8.1, target: 7.5 },
-    { label: 'Jul', valor: 8.9, target: 7.8 },
-    { label: 'Ago', valor: 8.4, target: 8.0 },
-    { label: 'Sep', valor: 9.1, target: 8.0 },
-    { label: 'Oct', valor: 8.8, target: 8.2 },
-    { label: 'Nov', valor: 9.3, target: 8.5 }
-  ];
+  // Formatear línea de tiempo real
+  const chartTimeline = evolucionData.map((d: any) => {
+    let mesLabel = d.periodo || '';
+    if (d.periodo && d.periodo.includes('-')) {
+      const parts = d.periodo.split('-');
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      if (monthIdx >= 0 && monthIdx < 12) {
+        mesLabel = MESES_ES[monthIdx];
+      }
+    }
+    return {
+      label: mesLabel,
+      valor: Number(d.promedio || 0),
+      target: 7.0,
+      cantidad: Number(d.cantidad || 0)
+    };
+  });
 
-  // Coordenadas SVG para la curva spline suave
+  // Coordenadas SVG
   const chartWidth = 620;
   const chartHeight = 180;
   const paddingX = 40;
   const paddingY = 25;
   const maxY = 10;
-  const minY = 5;
+  const minY = 1;
 
   const points = chartTimeline.map((d, i) => {
-    const x = paddingX + (i / (chartTimeline.length - 1)) * (chartWidth - paddingX * 2);
-    const y = chartHeight - paddingY - ((d.valor - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
+    const divisor = chartTimeline.length > 1 ? chartTimeline.length - 1 : 1;
+    const x = paddingX + (i / divisor) * (chartWidth - paddingX * 2);
+    const clampedVal = Math.max(minY, Math.min(maxY, d.valor));
+    const y = chartHeight - paddingY - ((clampedVal - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
     const yTarget = chartHeight - paddingY - ((d.target - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
     return { ...d, x, y, yTarget, index: i };
   });
 
-  // Generador de curva Bézier cúbica suave
   const createSmoothPath = (pts: { x: number; y: number }[]) => {
     if (pts.length === 0) return '';
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
     return pts.reduce((acc, point, i, arr) => {
       if (i === 0) return `M ${point.x} ${point.y}`;
       const prev = arr[i - 1];
@@ -123,15 +150,20 @@ const Dashboard: React.FC = () => {
 
   const linePath = createSmoothPath(points.map((p) => ({ x: p.x, y: p.y })));
   const targetPath = createSmoothPath(points.map((p) => ({ x: p.x, y: p.yTarget })));
-  const areaPath = points.length > 0
+  const areaPath = points.length > 1
     ? `${linePath} L ${points[points.length - 1].x} ${chartHeight - paddingY} L ${points[0].x} ${chartHeight - paddingY} Z`
     : '';
 
-  // Datos para el gráfico circular (Donut Ring)
+  // Donut Ring Data basado en datos reales
+  const enRevision = Math.max(0, totalEntregados - totalCalificados);
+  const pctCalificados = totalTrabajos > 0 ? Math.round((totalCalificados / totalTrabajos) * 100) : 0;
+  const pctRevision = totalTrabajos > 0 ? Math.round((enRevision / totalTrabajos) * 100) : 0;
+  const pctPendientes = totalTrabajos > 0 ? Math.max(0, 100 - pctCalificados - pctRevision) : 0;
+
   const donutData = [
-    { label: 'Calificados', count: totalEntregados, color: '#7929d2', pct: porcentajeAvance },
-    { label: 'En Revisión', count: Math.round(totalTrabajos * 0.15), color: '#55ddf5', pct: 15 },
-    { label: 'Pendientes', count: totalPendientes, color: '#f59e0b', pct: Math.max(5, 100 - porcentajeAvance - 15) }
+    { label: 'Calificados', count: totalCalificados, color: '#7929d2', pct: pctCalificados },
+    { label: user.rol === 'alumno' ? 'En Corrección' : 'Pendiente Revisión', count: enRevision, color: '#55ddf5', pct: pctRevision },
+    { label: 'Sin Entregar', count: totalPendientes, color: '#f59e0b', pct: pctPendientes }
   ];
 
   return (
@@ -150,7 +182,7 @@ const Dashboard: React.FC = () => {
                 fontFamily: 'var(--font-family-display)'
               }}
             >
-              Consola Académica
+              Consola Académica EduTech
             </h1>
             <p style={{ color: '#a9a3c7', fontSize: '0.9rem', marginTop: '0.25rem', margin: 0 }}>
               {user.rol === 'alumno'
@@ -172,7 +204,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Fila 1: KPI Cards con Micro-Sparklines ── */}
+        {/* ── Fila 1: KPI Cards con Métricas Reales ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
           {/* KPI 1: Promedio General */}
           <div
@@ -194,29 +226,29 @@ const Dashboard: React.FC = () => {
                   Promedio Ponderado
                 </span>
                 <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f3f0ff', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
-                  {promedioGeneral.toFixed(1)}
+                  {promedioGeneral !== null && promedioGeneral !== undefined ? promedioGeneral.toFixed(1) : 'S/D'}
                 </div>
               </div>
               <span
                 style={{
                   padding: '2px 8px',
                   borderRadius: '50px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#34d399',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: promedioGeneral !== null && promedioGeneral >= 7
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : 'rgba(121, 41, 210, 0.15)',
+                  color: promedioGeneral !== null && promedioGeneral >= 7 ? '#34d399' : '#c4b5fd',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                   fontSize: '0.72rem',
                   fontWeight: 600
                 }}
               >
-                +0.6 pts
+                {promedioGeneral !== null
+                  ? (promedioGeneral >= 7 ? 'Regularizado' : 'En Seguimiento')
+                  : 'Sin Notas'}
               </span>
             </div>
-            {/* Sparkline SVG */}
-            <div style={{ height: '32px', marginTop: '0.75rem' }}>
-              <svg width="100%" height="32" viewBox="0 0 160 32" fill="none">
-                <path d="M 0 24 Q 40 28, 80 14 T 160 6" stroke="#7929d2" strokeWidth="2" fill="none" />
-                <path d="M 0 24 Q 40 28, 80 14 T 160 6 L 160 32 L 0 32 Z" fill="rgba(121, 41, 210, 0.18)" />
-              </svg>
+            <div style={{ fontSize: '0.82rem', color: '#6b6688', marginTop: '0.75rem' }}>
+              {promedioGeneral !== null ? 'Calculado sobre evaluaciones oficiales' : 'Pendiente de cierre evaluativo'}
             </div>
           </div>
 
@@ -236,7 +268,7 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{ fontSize: '0.78rem', color: '#a9a3c7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {user.rol === 'alumno' ? 'Entregas Realizadas' : 'Correcciones'}
+                  {user.rol === 'alumno' ? 'Entregas Realizadas' : 'Trabajos Recibidos'}
                 </span>
                 <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f3f0ff', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
                   {porcentajeAvance}%
@@ -285,7 +317,7 @@ const Dashboard: React.FC = () => {
                   fontWeight: 600
                 }}
               >
-                Cursado Regular
+                Cursado Activo
               </span>
             </div>
             <div style={{ fontSize: '0.82rem', color: '#6b6688', marginTop: '0.75rem' }}>
@@ -309,21 +341,21 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{ fontSize: '0.78rem', color: '#a9a3c7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Pendientes de Entrega
+                  {user.rol === 'alumno' ? 'Pendientes de Entrega' : 'Pendientes de Corrección'}
                 </span>
                 <div style={{ fontSize: '2.1rem', fontWeight: 800, color: totalPendientes > 0 ? '#fbbf24' : '#34d399', marginTop: '0.25rem', fontFamily: 'var(--font-family-display)' }}>
                   {totalPendientes}
                 </div>
               </div>
-              <i className="bx bx-time" style={{ fontSize: '1.5rem', color: '#f59e0b' }}></i>
+              <i className="bx bx-time" style={{ fontSize: '1.5rem', color: totalPendientes > 0 ? '#f59e0b' : '#34d399' }}></i>
             </div>
             <div style={{ fontSize: '0.82rem', color: '#a9a3c7', marginTop: '0.75rem' }}>
-              {totalPendientes > 0 ? 'Requiere atención esta semana' : 'Al día con todas las consignas'}
+              {totalPendientes > 0 ? 'Requiere atención' : 'Al día con todas las consignas'}
             </div>
           </div>
         </div>
 
-        {/* ── Fila 2: Main Analytics Overview (Gráfico Dual-Curve + Donut Ring) ── */}
+        {/* ── Fila 2: Main Analytics Overview (Gráfico Dinámico + Donut Ring) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
           {/* Panel Izquierdo: Evolución Académica Multicurva */}
           <div
@@ -373,78 +405,101 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* SVG Interactive Chart */}
-            <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-              <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" style={{ minWidth: '500px' }}>
-                <defs>
-                  <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7929d2" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#7929d2" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
+            {/* SVG Interactive Chart o Estado Limpio */}
+            {points.length === 0 ? (
+              <div style={{
+                height: chartHeight,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderRadius: '12px',
+                border: '1px dashed rgba(255, 255, 255, 0.08)',
+                padding: '1.5rem',
+                textAlign: 'center'
+              }}>
+                <i className="bx bx-line-chart" style={{ fontSize: '2.5rem', color: '#6b6688', marginBottom: '0.5rem' }}></i>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f3f0ff' }}>
+                  Sin registro de calificaciones en el período
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#a9a3c7', marginTop: '0.25rem', maxWidth: '420px' }}>
+                  La curva de evolución se traza automáticamente a medida que los profesores corrigen entregas y publican calificaciones.
+                </div>
+              </div>
+            ) : (
+              <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+                <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" style={{ minWidth: '500px' }}>
+                  <defs>
+                    <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7929d2" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#7929d2" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
 
-                {/* Grid Lines Horizontales */}
-                {[6, 8, 10].map((val) => {
-                  const y = chartHeight - paddingY - ((val - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
-                  return (
-                    <g key={val}>
-                      <line x1={paddingX} y1={y} x2={chartWidth - paddingX} y2={y} stroke="rgba(255, 255, 255, 0.06)" strokeDasharray="3 3" />
-                      <text x={paddingX - 10} y={y + 4} fill="#6b6688" fontSize="10" textAnchor="end">
-                        {val}
+                  {/* Grid Lines Horizontales */}
+                  {[4, 7, 10].map((val) => {
+                    const y = chartHeight - paddingY - ((val - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
+                    return (
+                      <g key={val}>
+                        <line x1={paddingX} y1={y} x2={chartWidth - paddingX} y2={y} stroke="rgba(255, 255, 255, 0.06)" strokeDasharray="3 3" />
+                        <text x={paddingX - 10} y={y + 4} fill="#6b6688" fontSize="10" textAnchor="end">
+                          {val}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Curva de Área y Línea Principal */}
+                  {areaPath && <path d={areaPath} fill="url(#curveGradient)" />}
+                  {targetPath && <path d={targetPath} stroke="#55ddf5" strokeWidth="1.5" strokeDasharray="4 4" fill="none" opacity="0.6" />}
+                  {linePath && <path d={linePath} stroke="#7929d2" strokeWidth="2.5" fill="none" strokeLinecap="round" />}
+
+                  {/* Puntos Interactivos */}
+                  {points.map((p, idx) => (
+                    <g key={idx}>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={hoveredPoint === idx ? 6 : 4}
+                        fill="#7929d2"
+                        stroke="#f3f0ff"
+                        strokeWidth={hoveredPoint === idx ? 2 : 1}
+                        style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
+                        onMouseEnter={() => setHoveredPoint(idx)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      />
+                      <text x={p.x} y={chartHeight - 6} fill="#a9a3c7" fontSize="11" textAnchor="middle">
+                        {p.label}
                       </text>
                     </g>
-                  );
-                })}
+                  ))}
+                </svg>
 
-                {/* Curva de Área y Línea Principal */}
-                <path d={areaPath} fill="url(#curveGradient)" />
-                <path d={targetPath} stroke="#55ddf5" strokeWidth="1.5" strokeDasharray="4 4" fill="none" opacity="0.6" />
-                <path d={linePath} stroke="#7929d2" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-
-                {/* Puntos Interactivos */}
-                {points.map((p, idx) => (
-                  <g key={idx}>
-                    <circle
-                      cx={p.x}
-                      cy={p.y}
-                      r={hoveredPoint === idx ? 6 : 4}
-                      fill="#7929d2"
-                      stroke="#f3f0ff"
-                      strokeWidth={hoveredPoint === idx ? 2 : 1}
-                      style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
-                      onMouseEnter={() => setHoveredPoint(idx)}
-                      onMouseLeave={() => setHoveredPoint(null)}
-                    />
-                    <text x={p.x} y={chartHeight - 6} fill="#a9a3c7" fontSize="11" textAnchor="middle">
-                      {p.label}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-
-              {/* Tooltip Dinámico */}
-              {hoveredPoint !== null && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: `${(hoveredPoint / (chartTimeline.length - 1)) * 80 + 10}%`,
-                    background: '#16142a',
-                    border: '1px solid rgba(151, 71, 255, 0.4)',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    boxShadow: 'var(--shadow-md)',
-                    pointerEvents: 'none',
-                    fontSize: '0.78rem',
-                    color: '#f3f0ff',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  <div style={{ fontWeight: 700 }}>{chartTimeline[hoveredPoint].label}: Nota {chartTimeline[hoveredPoint].valor}</div>
-                  <div style={{ color: '#55ddf5', fontSize: '0.72rem' }}>Meta: {chartTimeline[hoveredPoint].target}</div>
-                </div>
-              )}
-            </div>
+                {/* Tooltip Dinámico */}
+                {hoveredPoint !== null && points[hoveredPoint] && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      left: `${Math.min(80, Math.max(10, (hoveredPoint / Math.max(1, points.length - 1)) * 80 + 10))}%`,
+                      background: '#16142a',
+                      border: '1px solid rgba(151, 71, 255, 0.4)',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-md)',
+                      pointerEvents: 'none',
+                      fontSize: '0.78rem',
+                      color: '#f3f0ff',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700 }}>{points[hoveredPoint].label}: Promedio {points[hoveredPoint].valor.toFixed(1)}</div>
+                    <div style={{ color: '#55ddf5', fontSize: '0.72rem' }}>Meta: {points[hoveredPoint].target.toFixed(1)} · {points[hoveredPoint].cantidad} evaluaciones</div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Leyenda Inferior */}
             <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.75rem' }}>
@@ -454,12 +509,12 @@ const Dashboard: React.FC = () => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#a9a3c7' }}>
                 <span style={{ width: '12px', height: '3px', background: '#55ddf5', borderRadius: '2px' }}></span>
-                Objetivo Institucional
+                Objetivo Institucional (7.0)
               </div>
             </div>
           </div>
 
-          {/* Panel Derecho: Donut Ring Chart de Tareas */}
+          {/* Panel Derecho: Estado de Cumplimiento (Donut) */}
           <div
             style={{
               background: '#0d1222',
@@ -474,44 +529,47 @@ const Dashboard: React.FC = () => {
           >
             <div>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#f3f0ff', margin: 0, letterSpacing: '-0.01em' }}>
-                Distribución de Trabajos
+                Estado de Actividades
               </h2>
               <span style={{ fontSize: '0.82rem', color: '#a9a3c7' }}>
-                Estado global de entregas y evaluaciones
+                Distribución de entregas y correcciones
               </span>
             </div>
 
-            {/* Donut SVG */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', margin: '1.5rem 0' }}>
+            {/* Donut Chart Visual */}
+            <div style={{ position: 'relative', width: '150px', height: '150px', margin: '1.25rem auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="150" height="150" viewBox="0 0 100 100">
                 {/* Background Ring */}
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-                {/* Segment 1: Violet Calificados */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="transparent"
-                  stroke="#7929d2"
-                  strokeWidth="10"
-                  strokeDasharray={`${porcentajeAvance * 2.38} 238`}
-                  strokeDashoffset="0"
-                  transform="rotate(-90 50 50)"
-                  strokeLinecap="round"
-                />
-                {/* Segment 2: Blue En Revisión */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="transparent"
-                  stroke="#55ddf5"
-                  strokeWidth="10"
-                  strokeDasharray="35 238"
-                  strokeDashoffset={`-${porcentajeAvance * 2.38}`}
-                  transform="rotate(-90 50 50)"
-                  strokeLinecap="round"
-                />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="10" />
+                {/* Segment Calificados */}
+                {totalTrabajos > 0 && (
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="transparent"
+                    stroke="#7929d2"
+                    strokeWidth="10"
+                    strokeDasharray={`${pctCalificados * 2.38} 238`}
+                    transform="rotate(-90 50 50)"
+                    strokeLinecap="round"
+                  />
+                )}
+                {/* Segment En Revisión */}
+                {totalTrabajos > 0 && (
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="transparent"
+                    stroke="#55ddf5"
+                    strokeWidth="10"
+                    strokeDasharray={`${pctRevision * 2.38} 238`}
+                    strokeDashoffset={`-${pctCalificados * 2.38}`}
+                    transform="rotate(-90 50 50)"
+                    strokeLinecap="round"
+                  />
+                )}
               </svg>
               <div style={{ position: 'absolute', textAlign: 'center' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f3f0ff', fontFamily: 'var(--font-family-display)' }}>
@@ -579,7 +637,7 @@ const Dashboard: React.FC = () => {
                 {clases.slice(0, 4).map((clase, idx) => (
                   <div
                     key={idx}
-                    onClick={() => navigate(user.rol === 'alumno' ? `/alumno/clase/${clase.id}` : `/gestionClase/${clase.id}`)}
+                    onClick={() => navigate(user.rol === 'alumno' ? `/alumno/gestion/${clase.id}` : `/gestionClase/${clase.id}`)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

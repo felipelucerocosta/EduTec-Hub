@@ -8,6 +8,7 @@ import LoadingSkeleton from "../components/ui/LoadingSkeleton";
 import EmptyState from "../components/ui/EmptyState";
 import { useToast } from "../contexts/ToastContext";
 import { API_URL, BACKEND_URL } from "../config/api";
+import { joinClassRoom, leaveClassRoom, getSocket } from "../services/socket";
 
 interface Trabajo {
   id: number;
@@ -120,6 +121,61 @@ const GestionClase: React.FC = () => {
 
   useEffect(() => {
     fetchClassAllData();
+
+    if (claseId) {
+      joinClassRoom(claseId);
+      const s = getSocket();
+
+      const handleAssignmentEvent = () => {
+        fetch(`${API_URL}/clases/${claseId}/trabajos`, { credentials: "include" })
+          .then(res => res.json())
+          .then(dataT => { if (Array.isArray(dataT)) setTrabajos(dataT); })
+          .catch(() => {});
+      };
+
+      const handleMaterialEvent = () => {
+        fetch(`${API_URL}/materiales/${claseId}`, { credentials: "include" })
+          .then(res => res.json())
+          .then(dataM => { if (Array.isArray(dataM)) setMateriales(dataM); })
+          .catch(() => {});
+      };
+
+      const handleStudentEvent = () => {
+        fetch(`${API_URL}/clases/${claseId}/alumnos`, { credentials: "include" })
+          .then(res => res.json())
+          .then(dataA => { if (Array.isArray(dataA)) setAlumnos(dataA); })
+          .catch(() => {});
+      };
+
+      const handleMessageEvent = (msg: any) => {
+        if (msg && (!msg.clase_id || String(msg.clase_id) === String(claseId))) {
+          setAnuncios(prev => [msg, ...prev.filter(a => a.id !== msg.id)]);
+        }
+      };
+
+      s.on('assignment.published', handleAssignmentEvent);
+      s.on('assignment.updated', handleAssignmentEvent);
+      s.on('assignment.deleted', handleAssignmentEvent);
+      s.on('assignment.submitted', handleAssignmentEvent);
+      s.on('material.uploaded', handleMaterialEvent);
+      s.on('material.deleted', handleMaterialEvent);
+      s.on('student.assigned', handleStudentEvent);
+      s.on('student.removed', handleStudentEvent);
+      s.on('message.created', handleMessageEvent);
+
+      return () => {
+        leaveClassRoom(claseId);
+        s.off('assignment.published', handleAssignmentEvent);
+        s.off('assignment.updated', handleAssignmentEvent);
+        s.off('assignment.deleted', handleAssignmentEvent);
+        s.off('assignment.submitted', handleAssignmentEvent);
+        s.off('material.uploaded', handleMaterialEvent);
+        s.off('material.deleted', handleMaterialEvent);
+        s.off('student.assigned', handleStudentEvent);
+        s.off('student.removed', handleStudentEvent);
+        s.off('message.created', handleMessageEvent);
+      };
+    }
   }, [claseId]);
 
   // Create Assignment handler
@@ -262,31 +318,36 @@ const GestionClase: React.FC = () => {
 
   return (
     <AppLayout>
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "2rem", padding: "0.5rem 0 2.5rem" }}>
         
         {/* Class Banner Header */}
         <div style={{
-          background: "linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(56, 189, 248, 0.15))",
-          border: "1px solid rgba(124, 58, 237, 0.3)",
-          borderRadius: "20px", padding: "1.75rem",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          flexWrap: "wrap", gap: "1rem"
+          background: "linear-gradient(135deg, rgba(124, 58, 237, 0.22), rgba(56, 189, 248, 0.12))",
+          border: "1px solid rgba(124, 58, 237, 0.35)",
+          borderRadius: "20px",
+          padding: "2rem 2.25rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1.5rem",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.28)"
         }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
               <span className="badge badge-purple">{claseInfo?.materia || "Materia"}</span>
               {claseInfo?.codigo && <span className="badge badge-blue">Código: {claseInfo.codigo}</span>}
               <span className="badge badge-amber">Docente</span>
             </div>
-            <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#f8fafc", margin: 0 }}>
+            <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#f8fafc", margin: "0 0 0.4rem 0" }}>
               {claseInfo?.nombre || "Gestión de Clase"}
             </h1>
-            <p style={{ color: "#94a3b8", fontSize: "0.88rem", marginTop: "0.35rem" }}>
-              Aula: {claseInfo?.aula || "S/D"} · {claseInfo?.seccion || ""} · Alumnos: {alumnos.length}
+            <p style={{ color: "#94a3b8", fontSize: "0.92rem", margin: 0 }}>
+              Aula: {claseInfo?.aula || "S/D"} · {claseInfo?.seccion ? `División: ${claseInfo.seccion}` : ""} · Alumnos: {alumnos.length}
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "0.75rem" }}>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
             <Button variant="outline" onClick={() => navigate("/clases")} icon="bx-arrow-back">
               Mis Clases
             </Button>
@@ -294,7 +355,14 @@ const GestionClase: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div style={{ display: "flex", gap: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0.5rem", overflowX: "auto" }}>
+        <div style={{
+          display: "flex",
+          gap: "0.65rem",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          paddingBottom: "0.85rem",
+          paddingTop: "0.25rem",
+          overflowX: "auto"
+        }}>
           <button
             onClick={() => setActiveTab("trabajos")}
             style={{
@@ -355,7 +423,7 @@ const GestionClase: React.FC = () => {
             <i className="bx bx-atom"></i> Simuladores
           </button>
           <button
-            onClick={() => navigate(`/rendimiento`)}
+            onClick={() => navigate(`/rendimiento?claseId=${claseId}`)}
             style={{
               padding: "0.6rem 1.25rem", borderRadius: "10px", border: "none",
               background: "rgba(16, 185, 129, 0.1)", color: "#34d399",

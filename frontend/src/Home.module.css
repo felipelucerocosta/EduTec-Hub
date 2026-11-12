@@ -84,11 +84,12 @@
 /* ── Hero Stage (Cinematic Asymmetric Horizon) ────────────── */
 .heroStage {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   align-items: center;
-  gap: 2rem;
+  gap: 2.5rem;
   min-height: calc(90vh - 80px);
   position: relative;
+  overflow: visible;
 }
 
 .heroContent {
@@ -239,17 +240,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 540px;
+  width: 100%;
+  max-width: 540px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: visible;
+  z-index: 1;
 }
 
 .heroPlanetHalo {
   position: absolute;
-  width: 500px;
-  height: 500px;
+  width: 95%;
+  height: 95%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.16) 0%, rgba(56, 189, 248, 0.06) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(121, 41, 210, 0.24) 0%, rgba(56, 189, 248, 0.08) 45%, transparent 72%);
   pointer-events: none;
-  filter: blur(40px);
+  filter: blur(52px);
+  z-index: 0;
 }
 
 /* ── Academic Progression Matrix (Asymmetric Level Rail) ──── */
@@ -615,6 +622,10 @@
     text-align: center;
     padding-top: 2rem;
   }
+  .heroPlanetViewport {
+    max-width: 420px;
+    margin: 1.5rem auto 0;
+  }
   .heroContent {
     align-items: center;
   }
@@ -642,6 +653,9 @@
 }
 
 @media (max-width: 640px) {
+  .heroPlanetViewport {
+    max-width: 310px;
+  }
   .homeContent {
     padding: 1rem 1.25rem 4rem;
     gap: 3.5rem;

@@ -58,26 +58,33 @@ router.post(
         throw new Error('No se pudo obtener el ID del usuario creado.');
       }
 
-      // 4. Obtener ID del curso (si existe)
+      // 4. Obtener o crear ID del curso (si se proporcionó)
       let ID_Curso: number | null = null;
-      if (curso) {
+      if (curso && curso.trim()) {
         const cursoResult = await pool.query(
-          `SELECT id_curso FROM curso WHERE nombre_curso = ?`,
-          [curso]
+          `SELECT id_curso FROM curso WHERE LOWER(TRIM(nombre_curso)) = LOWER(TRIM(?))`,
+          [curso.trim()]
         );
-        ID_Curso = cursoResult.rows.length > 0 ? cursoResult.rows[0].id_curso : null;
+        if (cursoResult.rows.length > 0) {
+          ID_Curso = cursoResult.rows[0].id_curso;
+        } else {
+          const insCurso = await pool.query(
+            `INSERT INTO curso (nombre_curso, nivel_educativo) VALUES (?, ?)`,
+            [curso.trim(), nivel_educativo || 'Secundario']
+          );
+          ID_Curso = insCurso.insertId;
+        }
       }
 
       // 5. Separar nombre y apellido
       const partes = nombre_completo.trim().split(' ');
-      const nombre = partes[0];
       const apellido = partes.slice(1).join(' ') || '';
 
       // 6. Insertar en tabla alumno
       await pool.query(
         `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena, nivel_educativo)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [DNI.trim(), nombre, apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword, nivel_educativo || null]
+        [DNI.trim(), nombre_completo.trim(), apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword, nivel_educativo || null]
       );
 
       // 7. Registrar auditoría de registro

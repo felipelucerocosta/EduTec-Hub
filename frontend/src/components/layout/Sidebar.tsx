@@ -10,17 +10,29 @@ const Sidebar: React.FC = () => {
 
   if (!user) return null;
 
-  const navItems = [
-    { label: 'Dashboard Analítico', to: '/dashboard', icon: 'bx-grid-alt' },
-    { label: 'Mis Clases', to: user.rol === 'alumno' ? '/alumno' : '/clases', icon: 'bx-book-open' },
-    { label: user.rol === 'alumno' ? 'Mi Rendimiento' : 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
-    ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín Oficial', to: '/boletin', icon: 'bx-receipt' }] : []),
-    { label: 'Asistencias', to: '/asistencia', icon: 'bx-calendar-check' },
-    { label: 'Calendario Académico', to: '/calendario', icon: 'bx-calendar' },
-    ...(user.rol !== 'profesor' ? [{ label: 'Foro Técnico', to: '/foro', icon: 'bx-conversation' }] : []),
-    { label: 'Simuladores', to: '/simuladores', icon: 'bx-chip' },
-    { label: 'Mi Perfil', to: '/perfil', icon: 'bx-user-circle' },
-  ];
+  const navItems = user.rol === 'preceptor'
+    ? [
+        { label: 'Panel Preceptoría', to: '/asistencia', icon: 'bx-calendar-check' },
+        { label: 'Cursos y Clases', to: '/clases', icon: 'bx-book-open' },
+        { label: 'Aula Activa', to: '/aula-activa', icon: 'bx-task' },
+        { label: 'Oportunidades', to: '/oportunidades', icon: 'bx-briefcase-alt-2' },
+        { label: 'Calendario Académico', to: '/calendario', icon: 'bx-calendar' },
+        { label: 'Simuladores', to: '/simuladores', icon: 'bx-chip' },
+        { label: 'Mi Perfil', to: '/perfil', icon: 'bx-user-circle' },
+      ]
+    : [
+        { label: 'Dashboard Analítico', to: '/dashboard', icon: 'bx-grid-alt' },
+        { label: 'Mis Clases', to: user.rol === 'alumno' ? '/alumno' : '/clases', icon: 'bx-book-open' },
+        { label: 'Aula Activa', to: '/aula-activa', icon: 'bx-task' },
+        { label: 'Oportunidades', to: '/oportunidades', icon: 'bx-briefcase-alt-2' },
+        { label: user.rol === 'alumno' ? 'Mi Rendimiento' : 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
+        ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín Oficial', to: '/boletin', icon: 'bx-receipt' }] : []),
+        { label: 'Asistencias', to: '/asistencia', icon: 'bx-calendar-check' },
+        { label: 'Calendario Académico', to: '/calendario', icon: 'bx-calendar' },
+        ...(user.rol !== 'profesor' ? [{ label: 'Foro Técnico', to: '/foro', icon: 'bx-conversation' }] : []),
+        { label: 'Simuladores', to: '/simuladores', icon: 'bx-chip' },
+        { label: 'Mi Perfil', to: '/perfil', icon: 'bx-user-circle' },
+      ];
 
   if (user.rol === 'admin') {
     navItems.push({ label: 'Consola Admin', to: '/admin', icon: 'bx-shield-quarter' });
@@ -112,7 +124,7 @@ const Sidebar: React.FC = () => {
                   whiteSpace: 'nowrap'
                 }}
               >
-                TECH-ROOM 29
+                EduTech
               </span>
             )}
           </div>

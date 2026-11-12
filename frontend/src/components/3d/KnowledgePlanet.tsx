@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import planetSurfaceUrl from '../../assets/textures/planet_surface.jpg';
-import planetCloudsUrl from '../../assets/textures/planet_clouds.jpg';
 
 interface AcademicNode {
   id: string;
@@ -48,7 +47,7 @@ const ACADEMIC_NODES: AcademicNode[] = [
     name: 'Talleres Técnicos & Sistemas E.E.S.T. 29',
     code: 'LVL-03',
     category: 'Secundaria Técnica',
-    color: '#a855f7',
+    color: '#c084fc',
     lat: 40.7,
     lon: -74.0,
     description: 'Electrónica, redes, programación aplicada y arquitectura de microprocesadores',
@@ -68,7 +67,7 @@ const ACADEMIC_NODES: AcademicNode[] = [
     name: 'Centro de Datos & Telemetría Escolar',
     code: 'SYS-OPS',
     category: 'Secundaria Técnica',
-    color: '#c084fc',
+    color: '#a855f7',
     lat: 35.6,
     lon: 139.7,
     description: 'Matriz de aislamiento divisional, actas digitales y boletines oficiales',
@@ -87,9 +86,10 @@ const ACADEMIC_NODES: AcademicNode[] = [
 
 /**
  * Genera procedimentalmente una textura de superficie planetaria hiperdetallada:
- * - Océanos de abismo índigo/espacial
- * - Masas continentales orgánicas con textura de relieve digital
- * - Red de sinapsis de datos (rutas de fibra y ciudades nocturnas en violeta/cian)
+ * - Océanos de abismo cósmico violeta/índigo (#080417 -> #16092e)
+ * - Masas continentales orgánicas con textura de relieve digital en violeta profundo (#241044 / #32105E)
+ * - Red de sinapsis de datos: rutas de fibra óptica luminiscente en púrpura eléctrico (#7929D2, #9747FF) y cian neón (#55DDF5, #38bdf8)
+ * - Cuadrícula de coordenadas tecnológicas y nodos de telemetría
  */
 function createPlanetTexture(): THREE.CanvasTexture {
   const width = 2048;
@@ -101,34 +101,62 @@ function createPlanetTexture(): THREE.CanvasTexture {
 
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
-  // 1. Fondo base oceánico profundo
+  // 1. Océanos de abismo cósmico en gradiente violeta espacial profundo
   const oceanGrad = ctx.createLinearGradient(0, 0, 0, height);
-  oceanGrad.addColorStop(0, '#060a16');
-  oceanGrad.addColorStop(0.5, '#080d21');
-  oceanGrad.addColorStop(1, '#050713');
+  oceanGrad.addColorStop(0, '#060312');
+  oceanGrad.addColorStop(0.3, '#100624');
+  oceanGrad.addColorStop(0.5, '#190a36');
+  oceanGrad.addColorStop(0.7, '#0f0722');
+  oceanGrad.addColorStop(1, '#05020f');
   ctx.fillStyle = oceanGrad;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Ruido continental pseudo-fractal
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-  for (let i = 0; i < 40; i++) {
-    const cx = (Math.sin(i * 1.7) * 0.5 + 0.5) * width;
-    const cy = (Math.cos(i * 2.3) * 0.4 + 0.5) * height;
-    const rad = 60 + Math.sin(i * 3.1) * 45;
-
-    const radial = ctx.createRadialGradient(cx, cy, 10, cx, cy, rad * 1.8);
-    radial.addColorStop(0, '#1a2238');
-    radial.addColorStop(0.6, '#111827');
-    radial.addColorStop(1, 'transparent');
-    ctx.fillStyle = radial;
-
+  // 2. Corrientes abisales y luminiscencia oceánica
+  for (let b = 0; b < 24; b++) {
+    const ox = ((b * 137.5) % width);
+    const oy = (Math.sin(b * 1.8) * 0.4 + 0.5) * height;
+    const orad = 120 + (b % 5) * 45;
+    const oGrad = ctx.createRadialGradient(ox, oy, 10, ox, oy, orad);
+    oGrad.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
+    oGrad.addColorStop(0.5, 'rgba(121, 41, 210, 0.09)');
+    oGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = oGrad;
     ctx.beginPath();
-    ctx.arc(cx, cy, rad * 1.8, 0, Math.PI * 2);
+    ctx.arc(ox, oy, orad, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 3. Cuadrícula de coordenadas y meridianos digitales sutiles
-  ctx.strokeStyle = 'rgba(124, 58, 237, 0.08)';
+  // 3. Masas continentales orgánicas (violeta espacial y púrpura oscuro)
+  for (let i = 0; i < 48; i++) {
+    const cx = (Math.sin(i * 1.73) * 0.48 + 0.5) * width;
+    const cy = (Math.cos(i * 2.41) * 0.38 + 0.5) * height;
+    const rad = 70 + Math.sin(i * 2.8) * 55;
+
+    // Capa base continental
+    const cGrad = ctx.createRadialGradient(cx, cy, 15, cx, cy, rad * 1.6);
+    cGrad.addColorStop(0, '#2e1254'); // Púrpura medio
+    cGrad.addColorStop(0.5, '#200b3b'); // Violeta profundo
+    cGrad.addColorStop(0.85, '#140726'); // Borde continental
+    cGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = cGrad;
+
+    ctx.beginPath();
+    // Silueta semi-orgánica con curvatura
+    const points = 8;
+    for (let p = 0; p < points; p++) {
+      const angle = (p / points) * Math.PI * 2;
+      const rMod = rad * (1 + 0.35 * Math.sin(p * 3 + i));
+      const px = cx + Math.cos(angle) * rMod;
+      const py = cy + Math.sin(angle) * rMod * 0.75;
+      if (p === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 4. Cuadrícula de coordenadas y meridianos digitales sutiles
+  ctx.strokeStyle = 'rgba(151, 71, 255, 0.07)';
   ctx.lineWidth = 1;
   const gridStepX = width / 24;
   const gridStepY = height / 12;
@@ -146,33 +174,42 @@ function createPlanetTexture(): THREE.CanvasTexture {
     ctx.stroke();
   }
 
-  // 4. Red neuronal de conocimiento: filamentos de luz violeta y cian
-  ctx.lineWidth = 1.5;
-  for (let k = 0; k < 60; k++) {
-    const x1 = (Math.sin(k * 4.3) * 0.45 + 0.5) * width;
-    const y1 = (Math.cos(k * 3.7) * 0.4 + 0.5) * height;
-    const x2 = x1 + Math.sin(k * 2.1) * 140;
-    const y2 = y1 + Math.cos(k * 1.9) * 90;
+  // 5. Red de sinapsis de datos: rutas de fibra óptica luminiscente en púrpura y cian
+  for (let k = 0; k < 75; k++) {
+    const x1 = (Math.sin(k * 4.31) * 0.46 + 0.5) * width;
+    const y1 = (Math.cos(k * 3.79) * 0.38 + 0.5) * height;
+    const x2 = x1 + Math.sin(k * 2.15) * 160;
+    const y2 = y1 + Math.cos(k * 1.93) * 110;
 
     const strokeGrad = ctx.createLinearGradient(x1, y1, x2, y2);
-    strokeGrad.addColorStop(0, 'rgba(168, 85, 247, 0.65)');
-    strokeGrad.addColorStop(1, 'rgba(56, 189, 248, 0.5)');
+    strokeGrad.addColorStop(0, 'rgba(168, 85, 247, 0.85)'); // Púrpura eléctrico
+    strokeGrad.addColorStop(0.5, 'rgba(121, 41, 210, 0.65)');
+    strokeGrad.addColorStop(1, 'rgba(56, 189, 248, 0.75)'); // Cian neón
+
     ctx.strokeStyle = strokeGrad;
+    ctx.lineWidth = k % 4 === 0 ? 2 : 1.2;
 
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.quadraticCurveTo(
-      (x1 + x2) / 2 + Math.sin(k) * 30,
-      (y1 + y2) / 2 + Math.cos(k) * 30,
+      (x1 + x2) / 2 + Math.sin(k * 1.5) * 35,
+      (y1 + y2) / 2 + Math.cos(k * 1.5) * 25,
       x2,
       y2
     );
     ctx.stroke();
 
     // Nodos metropolitanos brillantes en los extremos
-    ctx.fillStyle = k % 2 === 0 ? '#c084fc' : '#38bdf8';
+    const isCyan = k % 3 === 0;
+    ctx.fillStyle = isCyan ? '#38bdf8' : '#c084fc';
     ctx.beginPath();
-    ctx.arc(x1, y1, 2.5, 0, Math.PI * 2);
+    ctx.arc(x1, y1, isCyan ? 3.0 : 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Halo microscópico del nodo
+    ctx.fillStyle = isCyan ? 'rgba(56, 189, 248, 0.25)' : 'rgba(192, 132, 252, 0.25)';
+    ctx.beginPath();
+    ctx.arc(x1, y1, 6.0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -183,11 +220,12 @@ function createPlanetTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Textura procedural para la capa de nubes/aurora atmosférica
+ * Textura procedural para la capa de auroras y nubes atmosféricas:
+ * CRÍTICO: Fondo 100% transparente sin color residual (evita el artefacto de velo gris o caja).
  */
 function createCloudTexture(): THREE.CanvasTexture {
-  const width = 1024;
-  const height = 512;
+  const width = 2048;
+  const height = 1024;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -195,23 +233,25 @@ function createCloudTexture(): THREE.CanvasTexture {
 
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
+  // Fondo estrictamente transparente (RGBA 0,0,0,0)
   ctx.clearRect(0, 0, width, height);
 
-  // Bandas sutiles de nubes y auroras atmosféricas
-  for (let j = 0; j < 35; j++) {
-    const cx = (Math.sin(j * 5.7) * 0.5 + 0.5) * width;
-    const cy = (Math.cos(j * 1.4) * 0.35 + 0.5) * height;
-    const rx = 120 + Math.sin(j) * 60;
-    const ry = 40 + Math.cos(j) * 20;
+  // Vórtices y bandas de auroras luminiscentes en violeta, lavanda y cian
+  for (let j = 0; j < 40; j++) {
+    const cx = (Math.sin(j * 5.73) * 0.48 + 0.5) * width;
+    const cy = (Math.cos(j * 1.47) * 0.36 + 0.5) * height;
+    const rx = 160 + Math.sin(j * 1.9) * 80;
+    const ry = 45 + Math.cos(j * 2.3) * 22;
 
-    const cloudGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, rx);
-    cloudGrad.addColorStop(0, 'rgba(192, 132, 252, 0.18)');
-    cloudGrad.addColorStop(0.5, 'rgba(56, 189, 248, 0.09)');
-    cloudGrad.addColorStop(1, 'transparent');
+    const cloudGrad = ctx.createRadialGradient(cx, cy, 8, cx, cy, rx);
+    cloudGrad.addColorStop(0, 'rgba(192, 132, 252, 0.28)'); // Lavanda brillante
+    cloudGrad.addColorStop(0.4, 'rgba(121, 41, 210, 0.16)'); // Púrpura eléctrico
+    cloudGrad.addColorStop(0.7, 'rgba(56, 189, 248, 0.10)'); // Cian etéreo
+    cloudGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     ctx.fillStyle = cloudGrad;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0.15 * Math.sin(j), 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, rx, ry, 0.22 * Math.sin(j), 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -222,7 +262,7 @@ function createCloudTexture(): THREE.CanvasTexture {
 }
 
 export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
-  size = 540,
+  size = 480,
   interactive = true,
   onSelectNode,
   className = '',
@@ -244,9 +284,13 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // ── Setup Scene, Camera, Renderer ─────────────────────────────
+    // Configuración óptica calibrada:
+    // FOV 38° y Z = 3.8 aseguran que el planeta (R = 0.82), su atmósfera (R = 0.86)
+    // y los anillos orbitales (R = 1.08) queden 100% contenidos dentro del frustum visible
+    // visible_half_span = 3.8 * tan(19°) = 1.308 > 1.15 -> CERO RECORTES NI BORDES TRUNCADOS
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
-    camera.position.z = 2.95;
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1000);
+    camera.position.set(0, 0, 3.8);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -255,26 +299,30 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(size, size);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
     // Grupo maestro de rotación planetaria
     const planetSystem = new THREE.Group();
     scene.add(planetSystem);
 
-    const radius = 1.0;
+    // Radio calibrado para máxima armonía visual y proporción elegante en el Hero
+    const radius = 0.82;
 
-    // ── 1. Planeta Principal con Textura de IA de Alta Definición ──────
-    const textureLoader = new THREE.TextureLoader();
+    // ── 1. Planeta Principal: Esfera 3D Perfecta y Continua ───────────
+    // Subdivisión 96x96: curvatura perfectamente lisa, sin ángulos ni facetas
     const fallbackSurface = createPlanetTexture();
-    const planetGeometry = new THREE.SphereGeometry(radius, 64, 64);
+    const planetGeometry = new THREE.SphereGeometry(radius, 96, 96);
     const planetMaterial = new THREE.MeshStandardMaterial({
       map: fallbackSurface,
-      roughness: 0.58,
-      metalness: 0.32,
-      emissive: new THREE.Color(0x241044), // Violeta profundo
-      emissiveIntensity: 0.55,
+      roughness: 0.52,
+      metalness: 0.28,
+      emissive: new THREE.Color(0x241044), // Violeta profundo oficial
+      emissiveIntensity: 0.65,
     });
 
+    const textureLoader = new THREE.TextureLoader();
     let loadedSurfaceTex: THREE.Texture | null = null;
     textureLoader.load(
       planetSurfaceUrl,
@@ -288,81 +336,80 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         loadedSurfaceTex = tex;
       },
       undefined,
-      (err) => console.warn('Usando textura procedural de fallback para el planeta:', err)
+      () => {
+        // Fallback procedural de alta resolución ya activo
+      }
     );
+
     const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
     planetSystem.add(planetMesh);
 
-    // ── 2. Capa Atmosférica y Nubes de Auroras con Textura de IA ────────
+    // ── 2. Capa Atmosférica y Auroras con Transparencia Pura ──────────
+    // Subdivisión 96x96, radio apenas superior (+1.4%) para abrazar la esfera orgánicamente
     const fallbackClouds = createCloudTexture();
-    const cloudGeometry = new THREE.SphereGeometry(radius * 1.026, 48, 48);
+    const cloudGeometry = new THREE.SphereGeometry(radius * 1.014, 96, 96);
     const cloudMaterial = new THREE.MeshStandardMaterial({
       map: fallbackClouds,
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
+      depthWrite: false,
+      side: THREE.FrontSide, // FrontSide elimina artefactos de caja o polígono trasero
     });
 
-    let loadedCloudTex: THREE.Texture | null = null;
-    textureLoader.load(
-      planetCloudsUrl,
-      (tex) => {
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.ClampToEdgeWrapping;
-        tex.generateMipmaps = true;
-        cloudMaterial.map = tex;
-        cloudMaterial.needsUpdate = true;
-        loadedCloudTex = tex;
-      },
-      undefined,
-      (err) => console.warn('Usando textura procedural de fallback para nubes:', err)
-    );
     const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
     planetSystem.add(cloudMesh);
 
-    // ── 3. Halo Atmosférico Volumétrico Fresnel (Shader) ─────────
-    const atmosphereGeometry = new THREE.SphereGeometry(radius * 1.22, 40, 40);
+    // ── 3. Halo Atmosférico Volumétrico Fresnel (Shader Suave Frontal) ─
+    // Este shader reemplaza cualquier contenedor poligonal anterior:
+    // Se proyecta sobre FrontSide con R = 1.052, produciendo un resplandor
+    // etéreo en el limbo de la esfera que decae suavemente a 0.0 sin cortes.
+    const atmosphereGeometry = new THREE.SphereGeometry(radius * 1.052, 96, 96);
     const atmosphereMaterial = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vNormal;
-        varying vec3 vPosition;
+        varying vec3 vViewDir;
         void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           vNormal = normalize(normalMatrix * normal);
-          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vViewDir = normalize(-mvPosition.xyz);
+          gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         varying vec3 vNormal;
-        varying vec3 vPosition;
+        varying vec3 vViewDir;
         void main() {
-          vec3 viewDir = normalize(-vPosition);
-          float intensity = pow(1.0 - max(0.0, dot(vNormal, viewDir)), 2.6);
-          // Paleta cromática oficial: Púrpura eléctrico (#7929D2) a Cian (#55DDF5) y Lavanda (#B99AFF)
+          float rim = 1.0 - clamp(dot(vNormal, vViewDir), 0.0, 1.0);
+          // Curva suave exponencial: concentración luminosa en el borde exterior
+          float intensity = pow(rim, 3.2) * 0.92;
+          intensity *= smoothstep(0.0, 0.22, rim);
+
+          // Paleta oficial: Púrpura eléctrico (#7929D2) a Cian neón (#55DDF5)
           vec3 haloViolet = vec3(0.474, 0.160, 0.823);
           vec3 haloCyan = vec3(0.333, 0.867, 0.960);
           vec3 haloLavender = vec3(0.725, 0.604, 1.0);
-          vec3 glowColor = mix(haloViolet, mix(haloLavender, haloCyan, intensity * 0.5), intensity * 0.75);
-          gl_FragColor = vec4(glowColor, intensity * 0.72);
+
+          vec3 glowColor = mix(haloViolet, mix(haloLavender, haloCyan, rim * 0.7), pow(rim, 1.8));
+          gl_FragColor = vec4(glowColor, intensity);
         }
       `,
-      side: THREE.BackSide,
+      side: THREE.FrontSide,
       blending: THREE.AdditiveBlending,
       transparent: true,
+      depthWrite: false,
     });
     const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
-    scene.add(atmosphereMesh);
+    planetSystem.add(atmosphereMesh);
 
-    // ── 4. Polvo Estelar y Partículas de Conexión Ambiental ───────
-    // Partículas que se desvanecen orgánicamente en el fondo del canvas
-    const particleCount = 420;
+    // ── 4. Polvo Estelar y Partículas de Conexión Espacial ─────────
+    // Confinadas suavemente entre R*1.08 y R*1.38 para quedar 100% dentro del viewport
+    const particleCount = 280;
     const particlePositions = new Float32Array(particleCount * 3);
     const particleColors = new Float32Array(particleCount * 3);
 
     for (let p = 0; p < particleCount; p++) {
-      // Distribución esférica expansiva que conecta el planeta con el espacio
-      const dist = radius * 1.15 + Math.random() * 1.6;
+      const dist = radius * 1.08 + Math.random() * (radius * 0.32);
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
@@ -372,10 +419,10 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
       particlePositions[p * 3 + 1] = dist * Math.sin(phi) * Math.sin(theta);
       particlePositions[p * 3 + 2] = dist * Math.cos(phi);
 
-      const isCyan = Math.random() > 0.6;
-      particleColors[p * 3] = isCyan ? 0.22 : 0.68;
-      particleColors[p * 3 + 1] = isCyan ? 0.75 : 0.35;
-      particleColors[p * 3 + 2] = isCyan ? 0.98 : 0.96;
+      const isCyan = Math.random() > 0.55;
+      particleColors[p * 3] = isCyan ? 0.22 : 0.75;
+      particleColors[p * 3 + 1] = isCyan ? 0.78 : 0.42;
+      particleColors[p * 3 + 2] = isCyan ? 0.98 : 0.98;
     }
 
     const particleGeometry = new THREE.BufferGeometry();
@@ -383,67 +430,88 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
     particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
 
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.022,
+      size: 0.024,
       vertexColors: true,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.65,
       blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
     const cosmicDust = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(cosmicDust);
 
     // ── 5. Anillos Orbitales de Datos Tecnológicos ───────────────
+    // Radios calibrados (R * 1.25 y R * 1.34) para garantizar espacio holgado
     const orbitRingGroup = new THREE.Group();
-    const ringRadius = radius * 1.55;
-    const ringSegments = 160;
-    const ringGeo = new THREE.BufferGeometry();
-    const ringPos = new Float32Array(ringSegments * 3);
+    const ringRadius1 = radius * 1.25;
+    const ringRadius2 = radius * 1.34;
+    const ringSegments = 240;
 
+    // Anillo 1: Órbita de datos en violeta eléctrico
+    const ringGeo1 = new THREE.BufferGeometry();
+    const ringPos1 = new Float32Array(ringSegments * 3);
     for (let r = 0; r < ringSegments; r++) {
       const angle = (r / ringSegments) * Math.PI * 2;
-      ringPos[r * 3] = Math.cos(angle) * ringRadius;
-      ringPos[r * 3 + 1] = Math.sin(angle) * ringRadius;
-      ringPos[r * 3 + 2] = Math.sin(angle * 3) * 0.12;
+      ringPos1[r * 3] = Math.cos(angle) * ringRadius1;
+      ringPos1[r * 3 + 1] = Math.sin(angle) * ringRadius1;
+      ringPos1[r * 3 + 2] = Math.sin(angle * 2) * 0.06;
     }
-    ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos, 3));
+    ringGeo1.setAttribute('position', new THREE.BufferAttribute(ringPos1, 3));
 
     const ringMat1 = new THREE.LineBasicMaterial({
-      color: 0x7c3aed,
+      color: 0x9333ea,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
     });
-    const orbitLine1 = new THREE.LineLoop(ringGeo, ringMat1);
-    orbitLine1.rotation.x = Math.PI * 0.35;
-    orbitLine1.rotation.y = Math.PI * 0.18;
+    const orbitLine1 = new THREE.LineLoop(ringGeo1, ringMat1);
+    orbitLine1.rotation.x = Math.PI * 0.36;
+    orbitLine1.rotation.y = Math.PI * 0.16;
     orbitRingGroup.add(orbitLine1);
+
+    // Anillo 2: Órbita de telemetría en cian neón
+    const ringGeo2 = new THREE.BufferGeometry();
+    const ringPos2 = new Float32Array(ringSegments * 3);
+    for (let r = 0; r < ringSegments; r++) {
+      const angle = (r / ringSegments) * Math.PI * 2;
+      ringPos2[r * 3] = Math.cos(angle) * ringRadius2;
+      ringPos2[r * 3 + 1] = Math.sin(angle) * ringRadius2;
+      ringPos2[r * 3 + 2] = -Math.sin(angle * 2) * 0.05;
+    }
+    ringGeo2.setAttribute('position', new THREE.BufferAttribute(ringPos2, 3));
 
     const ringMat2 = new THREE.LineBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.42,
+      blending: THREE.AdditiveBlending,
     });
-    const orbitLine2 = new THREE.LineLoop(ringGeo, ringMat2);
+    const orbitLine2 = new THREE.LineLoop(ringGeo2, ringMat2);
     orbitLine2.rotation.x = -Math.PI * 0.38;
     orbitLine2.rotation.y = -Math.PI * 0.22;
     orbitRingGroup.add(orbitLine2);
 
     planetSystem.add(orbitRingGroup);
 
-    // Satélite/baliza que viaja por la órbita
-    const beaconGeometry = new THREE.SphereGeometry(0.035, 16, 16);
-    const beaconMaterial = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-    const orbitBeacon = new THREE.Mesh(beaconGeometry, beaconMaterial);
-    orbitRingGroup.add(orbitBeacon);
+    // Micro-balizas/satélites orbitales
+    const beaconGeo = new THREE.SphereGeometry(0.026, 16, 16);
+    const beaconMat1 = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const orbitBeacon1 = new THREE.Mesh(beaconGeo, beaconMat1);
+    orbitRingGroup.add(orbitBeacon1);
+
+    const beaconMat2 = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+    const orbitBeacon2 = new THREE.Mesh(beaconGeo, beaconMat2);
+    orbitRingGroup.add(orbitBeacon2);
 
     // ── 6. Nodos Académicos Interactivos (Pins) ─────────────────
     const nodeMarkers: { mesh: THREE.Mesh; halo: THREE.Mesh; node: AcademicNode }[] = [];
-    const pinGeo = new THREE.SphereGeometry(0.042, 16, 16);
-    const haloGeo = new THREE.RingGeometry(0.05, 0.08, 24);
+    const pinGeo = new THREE.SphereGeometry(0.034, 16, 16);
+    const haloGeo = new THREE.RingGeometry(0.042, 0.068, 32);
 
     ACADEMIC_NODES.forEach((node) => {
       const latRad = (node.lat * Math.PI) / 180;
       const lonRad = (node.lon * Math.PI) / 180;
-      const r = radius + 0.025;
+      const r = radius + 0.016;
 
       const x = -r * Math.cos(latRad) * Math.cos(lonRad);
       const y = r * Math.sin(latRad);
@@ -461,7 +529,8 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         color: colorHex,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending,
       });
       const halo = new THREE.Mesh(haloGeo, haloMat);
       halo.position.set(x, y, z);
@@ -473,30 +542,31 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
       nodeMarkers.push({ mesh: pin, halo, node });
     });
 
-    // ── 7. Iluminación Ambiental y Direccional (Paleta Violeta & Espacial) ───
-    const ambientLight = new THREE.AmbientLight(0x241044, 0.85); // Violeta profundo
+    // ── 7. Iluminación Cinematográfica (Violeta & Espacial) ────────
+    const ambientLight = new THREE.AmbientLight(0x1f1035, 1.2); // Violeta espacial profundo
     scene.add(ambientLight);
 
     // Luz principal violeta brillante (clave superior derecha)
-    const keyLight = new THREE.DirectionalLight(0x9747ff, 3.2);
-    keyLight.position.set(4, 3, 3);
+    const keyLight = new THREE.DirectionalLight(0xa855f7, 3.2);
+    keyLight.position.set(4.5, 3.5, 3.0);
     scene.add(keyLight);
 
     // Luz de relleno cian eléctrico (inferior izquierda)
-    const fillLight = new THREE.DirectionalLight(0x55ddf5, 1.6);
-    fillLight.position.set(-4, -2, -2);
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.6);
+    fillLight.position.set(-4.0, -2.5, 1.5);
     scene.add(fillLight);
 
-    // Contraluz de borde índigo/espacial
-    const rimLight = new THREE.DirectionalLight(0x101c45, 2.4);
-    rimLight.position.set(0, -4, 4);
+    // Contraluz de borde en índigo/espacial (profundidad en el limbo posterior)
+    const rimLight = new THREE.DirectionalLight(0x7929d2, 2.2);
+    rimLight.position.set(0.0, 4.0, -3.5);
     scene.add(rimLight);
 
     // ── 8. Física Interactiva, Arrastre e Inercia ────────────────
     let isDragging = false;
     let prevMouse = { x: 0, y: 0 };
     let velocity = { x: 0.0018, y: 0.0014 };
-    let beaconAngle = 0;
+    let beaconAngle1 = 0;
+    let beaconAngle2 = Math.PI;
 
     const onMouseDown = (e: MouseEvent) => {
       if (!interactive) return;
@@ -572,7 +642,22 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
     window.addEventListener('mouseup', onMouseUp);
     dom.addEventListener('click', onClick);
 
-    // ── 9. Loop de Renderizado con Amortiguación Dinámica ─────────
+    // ── 9. Manejo Responsivo de Dimensiones ───────────────────────
+    const handleResize = () => {
+      if (!container) return;
+      const currentWidth = container.clientWidth || size;
+      const currentHeight = container.clientHeight || size;
+      const targetSize = Math.min(currentWidth, currentHeight, size);
+      
+      renderer.setSize(targetSize, targetSize);
+      camera.aspect = 1;
+      camera.updateProjectionMatrix();
+    };
+
+    const resizeObserver = new ResizeObserver(() => handleResize());
+    resizeObserver.observe(container);
+
+    // ── 10. Loop de Renderizado con Amortiguación Dinámica ────────
     let animId: number;
 
     const renderLoop = () => {
@@ -582,27 +667,35 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         planetSystem.rotation.y += velocity.y;
         planetSystem.rotation.x += velocity.x * 0.4;
 
-        // Amortiguación inercial hacia la velocidad de crucero
-        velocity.y = THREE.MathUtils.lerp(velocity.y, 0.0016, 0.035);
+        // Amortiguación inercial suave hacia la velocidad de crucero
+        velocity.y = THREE.MathUtils.lerp(velocity.y, 0.0015, 0.035);
         velocity.x = THREE.MathUtils.lerp(velocity.x, 0.0, 0.035);
       }
 
-      // Rotación diferencial de nubes y auroras
-      cloudMesh.rotation.y += 0.0006;
-      cloudMesh.rotation.x -= 0.0003;
+      // Rotación diferencial de auroras y nubes
+      cloudMesh.rotation.y += 0.0005;
+      cloudMesh.rotation.x -= 0.0002;
 
-      // Movimiento orbital de anillos y baliza
-      orbitLine1.rotation.z += 0.002;
-      orbitLine2.rotation.z -= 0.0016;
+      // Movimiento orbital de anillos y balizas
+      orbitLine1.rotation.z += 0.0018;
+      orbitLine2.rotation.z -= 0.0014;
 
-      beaconAngle += 0.018;
-      orbitBeacon.position.set(
-        Math.cos(beaconAngle) * ringRadius,
-        Math.sin(beaconAngle) * ringRadius,
-        Math.sin(beaconAngle * 3) * 0.12
+      beaconAngle1 += 0.016;
+      beaconAngle2 -= 0.012;
+
+      orbitBeacon1.position.set(
+        Math.cos(beaconAngle1) * ringRadius1,
+        Math.sin(beaconAngle1) * ringRadius1,
+        Math.sin(beaconAngle1 * 2) * 0.06
       );
 
-      // Pulsación de halos de nodos
+      orbitBeacon2.position.set(
+        Math.cos(beaconAngle2) * ringRadius2,
+        Math.sin(beaconAngle2) * ringRadius2,
+        -Math.sin(beaconAngle2 * 2) * 0.05
+      );
+
+      // Pulsación armónica de halos de nodos
       const time = performance.now() * 0.003;
       nodeMarkers.forEach(({ halo, node }, idx) => {
         const pulse = 1 + Math.sin(time + idx * 1.2) * 0.22;
@@ -612,24 +705,24 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         }
       });
 
-      // Rotación suave del polvo estelar espacial
-      cosmicDust.rotation.y += 0.0004;
+      // Rotación suave del polvo cósmico ambiental
+      cosmicDust.rotation.y += 0.0003;
 
       renderer.render(scene, camera);
     };
 
     renderLoop();
 
-    // ── 10. Limpieza en Desmontaje ───────────────────────────────
+    // ── 11. Limpieza Completa en Desmontaje ───────────────────────
     return () => {
       cancelAnimationFrame(animId);
+      resizeObserver.disconnect();
       dom.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       dom.removeEventListener('click', onClick);
 
       if (loadedSurfaceTex) (loadedSurfaceTex as THREE.Texture).dispose();
-      if (loadedCloudTex) (loadedCloudTex as THREE.Texture).dispose();
       fallbackSurface.dispose();
       fallbackClouds.dispose();
       planetGeometry.dispose();
@@ -640,13 +733,15 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
       atmosphereMaterial.dispose();
       particleGeometry.dispose();
       particleMaterial.dispose();
-      ringGeo.dispose();
+      ringGeo1.dispose();
       ringMat1.dispose();
+      ringGeo2.dispose();
       ringMat2.dispose();
+      beaconGeo.dispose();
+      beaconMat1.dispose();
+      beaconMat2.dispose();
       pinGeo.dispose();
       haloGeo.dispose();
-      beaconGeometry.dispose();
-      beaconMaterial.dispose();
 
       renderer.dispose();
       if (container.contains(dom)) {
@@ -661,13 +756,14 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
       className={`knowledge-planet-container ${className}`}
       style={{
         position: 'relative',
-        width: size,
-        height: size,
+        width: '100%',
+        maxWidth: size,
+        aspectRatio: '1 / 1',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         userSelect: 'none',
-        maxWidth: '100%',
+        overflow: 'visible',
       }}
     >
       {/* Tooltip contextual cinematográfico */}
@@ -675,14 +771,14 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         <div
           style={{
             position: 'absolute',
-            left: activeTooltip.x + 14,
-            top: activeTooltip.y - 14,
+            left: Math.min(Math.max(activeTooltip.x + 14, 10), (size || 480) - 270),
+            top: Math.max(activeTooltip.y - 14, 10),
             background: 'rgba(10, 14, 28, 0.94)',
             border: `1px solid ${activeTooltip.node.color}`,
             borderRadius: '12px',
             padding: '0.75rem 1rem',
             color: '#f8fafc',
-            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.65)',
+            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.75), 0 0 16px rgba(121, 41, 210, 0.25)',
             pointerEvents: 'none',
             zIndex: 20,
             backdropFilter: 'blur(12px)',
@@ -712,14 +808,16 @@ export const KnowledgePlanet: React.FC<KnowledgePlanetProps> = ({
         <div
           style={{
             position: 'absolute',
-            bottom: '8px',
-            padding: '4px 12px',
+            bottom: '12px',
+            padding: '4px 14px',
             borderRadius: '99px',
-            background: 'rgba(15, 23, 42, 0.85)',
-            border: '1px solid rgba(168, 85, 247, 0.4)',
+            background: 'rgba(15, 23, 42, 0.9)',
+            border: '1px solid rgba(168, 85, 247, 0.45)',
             fontSize: '0.75rem',
+            fontWeight: 600,
             color: '#c084fc',
             backdropFilter: 'blur(8px)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
             pointerEvents: 'none',
           }}
         >

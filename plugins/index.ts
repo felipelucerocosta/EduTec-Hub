@@ -1,6 +1,8 @@
 import { Express, Router } from 'express';
 import { BackendPlugin } from './plugin_types';
 import asistenciaPlugin from './asistencia-academica/backend/index';
+import aulaActivaPlugin from './aula-activa/backend/index';
+import oportunidadesPlugin from './oportunidades/backend/index';
 
 /**
  * Registro Central de Plugins de EduTech-Hub
@@ -58,6 +60,12 @@ export const pluginRegistry = new PluginRegistry();
 
 // Registro por defecto del Plugin 1: Asistencia Académica
 pluginRegistry.register(asistenciaPlugin);
+
+// Registro del Plugin 2: Aula Activa
+pluginRegistry.register(aulaActivaPlugin);
+
+// Registro del Plugin 3: Oportunidades
+pluginRegistry.register(oportunidadesPlugin);
 
 export default pluginRegistry;
 

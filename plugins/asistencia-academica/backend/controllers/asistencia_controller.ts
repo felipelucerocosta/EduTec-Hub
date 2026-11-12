@@ -27,7 +27,8 @@ export class AsistenciaController {
     const usuario = (req.session as any)?.usuario;
 
     try {
-      const clases = await AsistenciaModel.getClasesDocente(usuario.id, usuario.rol === 'admin');
+      const esAdminOPreceptor = usuario.rol === 'admin' || usuario.rol === 'preceptor';
+      const clases = await AsistenciaModel.getClasesDocente(usuario.id, esAdminOPreceptor);
       return res.json({ success: true, data: clases });
     } catch (error) {
       console.error('Error al obtener clases del docente:', error);
@@ -134,6 +135,81 @@ export class AsistenciaController {
     } catch (error) {
       console.error('Error al obtener estadísticas de asistencia institucional:', error);
       return res.status(500).json({ success: false, error: 'Error al obtener estadísticas' });
+    }
+  }
+
+  /**
+   * GET /actas/clase/:claseId - Lista de actas e incidencias de una clase
+   */
+  public static async getActasClase(req: Request, res: Response) {
+    const claseId = Number(req.params.claseId);
+    try {
+      const actas = await AsistenciaModel.getActasClase(claseId);
+      return res.json({ success: true, data: actas });
+    } catch (error) {
+      console.error('Error al obtener actas de clase:', error);
+      return res.status(500).json({ success: false, error: 'Error al obtener actas' });
+    }
+  }
+
+  /**
+   * POST /actas - Crear nueva acta de novedad o incidencia
+   */
+  public static async crearActa(req: Request, res: Response) {
+    const usuario = (req.session as any)?.usuario;
+    const { clase_id, alumno_id, tipo, descripcion, fecha } = req.body;
+
+    if (!clase_id || !tipo || !descripcion || !fecha) {
+      return res.status(400).json({ success: false, error: 'Clase, tipo, descripción y fecha son obligatorios.' });
+    }
+
+    try {
+      const newId = await AsistenciaModel.crearActa({
+        claseId: Number(clase_id),
+        alumnoId: alumno_id ? Number(alumno_id) : null,
+        tipo,
+        descripcion: descripcion.trim(),
+        fecha,
+        creadoPor: usuario.id
+      });
+      return res.status(201).json({ success: true, message: 'Acta registrada con éxito', id: newId });
+    } catch (error) {
+      console.error('Error al crear acta:', error);
+      return res.status(500).json({ success: false, error: 'Error al registrar acta' });
+    }
+  }
+
+  /**
+   * PUT /actas/:id/estado - Actualizar estado de acta (Abierta / Resuelta)
+   */
+  public static async actualizarEstadoActa(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    const { estado } = req.body;
+
+    if (!estado || (estado !== 'Abierta' && estado !== 'Resuelta')) {
+      return res.status(400).json({ success: false, error: 'Estado debe ser Abierta o Resuelta.' });
+    }
+
+    try {
+      await AsistenciaModel.actualizarEstadoActa(id, estado);
+      return res.json({ success: true, message: 'Estado del acta actualizado' });
+    } catch (error) {
+      console.error('Error al actualizar estado del acta:', error);
+      return res.status(500).json({ success: false, error: 'Error al actualizar acta' });
+    }
+  }
+
+  /**
+   * DELETE /actas/:id - Eliminar acta
+   */
+  public static async eliminarActa(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    try {
+      await AsistenciaModel.eliminarActa(id);
+      return res.json({ success: true, message: 'Acta eliminada correctamente' });
+    } catch (error) {
+      console.error('Error al eliminar acta:', error);
+      return res.status(500).json({ success: false, error: 'Error al eliminar acta' });
     }
   }
 }

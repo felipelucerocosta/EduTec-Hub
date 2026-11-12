@@ -132,29 +132,160 @@ router.get('/rendimiento/alumno', async (req: Request, res: Response) => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// GET /api/rendimiento/profesor/resumen
+// Resumen métrico agregado para profesores
+// ─────────────────────────────────────────────────────────────
+router.get('/rendimiento/profesor/resumen', async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  const rol = getUserRol(req);
+  if (!userId) return res.status(401).json({ error: 'No autorizado' });
+  if (rol !== 'profesor' && rol !== 'admin') {
+    return res.status(403).json({ error: 'Acceso reservado a profesores y administradores.' });
+  }
+
+  try {
+    // 1. Clases asignadas al profesor
+    const clasesRes = await pool.query(
+      `SELECT c.id, c.nombre, c.materia, c.codigo 
+       FROM clases c
+       JOIN profesores_clases pc ON pc.clase_id = c.id
+       WHERE pc.profesor_id = $1`,
+      [userId]
+    );
+    const clases = clasesRes.rows;
+    const claseIds = clases.map((c: any) => c.id);
+
+    if (claseIds.length === 0) {
+      return res.json({
+        resumen: {
+          total_clases: 0,
+          total_alumnos: 0,
+          total_trabajos: 0,
+          total_entregados: 0,
+          total_pendientes: 0,
+          total_calificados: 0,
+          promedio_general: null,
+        },
+        clases: [],
+      });
+    }
+
+    // 2. Alumnos únicos en las clases del profesor
+    const codigos = clases.map((c: any) => String(c.codigo || '').toLowerCase().trim());
+    const placeholders = codigos.map((_, i) => `$${i + 1}`).join(',');
+    const alumnosRes = await pool.query(
+      `SELECT COUNT(DISTINCT ac.alumno_id) as total_alumnos 
+       FROM alumnos_clases ac
+       WHERE LOWER(TRIM(ac.codigo)) IN (${placeholders})`,
+      codigos
+    );
+    const totalAlumnos = Number(alumnosRes.rows[0]?.total_alumnos || 0);
+
+    // 3. Trabajos creados en las clases del profesor
+    const tPlaceholders = claseIds.map((_, i) => `$${i + 1}`).join(',');
+    const trabajosRes = await pool.query(
+      `SELECT id, clase_id, titulo, puntos_max, fecha_creacion 
+       FROM trabajos 
+       WHERE clase_id IN (${tPlaceholders})`,
+      claseIds
+    );
+    const trabajos = trabajosRes.rows;
+    const totalTrabajos = trabajos.length;
+    const trabajoIds = trabajos.map((t: any) => t.id);
+
+    let totalEntregados = 0;
+    let totalPendientes = 0;
+    let totalCalificados = 0;
+    let promedioGeneral: number | null = null;
+
+    if (trabajoIds.length > 0) {
+      const ePlaceholders = trabajoIds.map((_, i) => `$${i + 1}`).join(',');
+      const entregasRes = await pool.query(
+        `SELECT id, estado, calificacion 
+         FROM entregas 
+         WHERE trabajo_id IN (${ePlaceholders})`,
+        trabajoIds
+      );
+      const entregas = entregasRes.rows;
+      totalEntregados = entregas.length;
+      totalPendientes = entregas.filter((e: any) => e.estado === 'entregado' || e.estado === 'entrega_tardia').length;
+
+      const calificaciones = entregas
+        .filter((e: any) => e.estado === 'corregido' && e.calificacion !== null && e.calificacion !== undefined)
+        .map((e: any) => Number(e.calificacion));
+
+      totalCalificados = calificaciones.length;
+      if (totalCalificados > 0) {
+        promedioGeneral = Math.round((calificaciones.reduce((a, b) => a + b, 0) / totalCalificados) * 10) / 10;
+      }
+    }
+
+    return res.json({
+      resumen: {
+        total_clases: clases.length,
+        total_alumnos: totalAlumnos,
+        total_trabajos: totalTrabajos,
+        total_entregados: totalEntregados,
+        total_pendientes: totalPendientes,
+        total_calificados: totalCalificados,
+        promedio_general: promedioGeneral,
+      },
+      clases,
+    });
+  } catch (error) {
+    console.error('Error al obtener resumen de profesor:', error);
+    return res.status(500).json({ error: 'Error al obtener métricas del profesor' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // GET /api/rendimiento/evolucion
 // ─────────────────────────────────────────────────────────────
 router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
   const userId = getUserId(req);
+  const rol = getUserRol(req);
   if (!userId) return res.status(401).json({ error: 'No autorizado' });
 
   try {
-    const query = `
-      SELECT 
-        strftime('%Y-%m', e.fecha_calificacion) as periodo,
-        AVG(e.calificacion) as promedio,
-        COUNT(*) as cantidad
-      FROM entregas e
-      JOIN trabajos t ON t.id = e.trabajo_id
-      JOIN alumnos_clases ac ON LOWER(TRIM(ac.codigo)) = LOWER(TRIM((SELECT codigo FROM clases WHERE id = t.clase_id)))
-      WHERE e.alumno_id = $1 
-        AND e.estado = 'corregido' 
-        AND e.calificacion IS NOT NULL
-        AND e.fecha_calificacion IS NOT NULL
-      GROUP BY strftime('%Y-%m', e.fecha_calificacion)
-      ORDER BY periodo ASC
-    `;
-    const result = await pool.query(query, [userId]);
+    let query: string;
+    let params: any[];
+
+    if (rol === 'profesor') {
+      query = `
+        SELECT 
+          strftime('%Y-%m', e.fecha_calificacion) as periodo,
+          AVG(e.calificacion) as promedio,
+          COUNT(*) as cantidad
+        FROM entregas e
+        JOIN trabajos t ON t.id = e.trabajo_id
+        JOIN profesores_clases pc ON pc.clase_id = t.clase_id
+        WHERE pc.profesor_id = $1 
+          AND e.estado = 'corregido' 
+          AND e.calificacion IS NOT NULL
+          AND e.fecha_calificacion IS NOT NULL
+        GROUP BY strftime('%Y-%m', e.fecha_calificacion)
+        ORDER BY periodo ASC
+      `;
+      params = [userId];
+    } else {
+      query = `
+        SELECT 
+          strftime('%Y-%m', e.fecha_calificacion) as periodo,
+          AVG(e.calificacion) as promedio,
+          COUNT(*) as cantidad
+        FROM entregas e
+        JOIN trabajos t ON t.id = e.trabajo_id
+        WHERE e.alumno_id = $1 
+          AND e.estado = 'corregido' 
+          AND e.calificacion IS NOT NULL
+          AND e.fecha_calificacion IS NOT NULL
+        GROUP BY strftime('%Y-%m', e.fecha_calificacion)
+        ORDER BY periodo ASC
+      `;
+      params = [userId];
+    }
+
+    const result = await pool.query(query, params);
     const evolucion = result.rows.map((r: any) => ({
       periodo: r.periodo,
       promedio: Math.round(Number(r.promedio) * 10) / 10,

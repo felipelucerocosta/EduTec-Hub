@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { verificarAccesoClase } from './permisos';
+import { emitToClass } from './socket_bus';
 
 const router = Router();
 
@@ -96,6 +97,8 @@ router.post('/materiales', upload.single('archivo'), async (req: Request, res: R
       usuario.id
     ]);
 
+    emitToClass(clase_id, 'material.uploaded', { clase_id: Number(clase_id), titulo: titulo.trim(), tipo });
+
     return res.status(201).json({ success: true, message: 'Material publicado correctamente' });
   } catch (error) {
     console.error('Error al crear material:', error);
@@ -128,6 +131,7 @@ router.delete('/materiales/:id', async (req: Request, res: Response) => {
     }
 
     await pool.query('DELETE FROM materiales WHERE id = $1', [id]);
+    emitToClass(matQ.rows[0].clase_id, 'material.deleted', { id: Number(id), clase_id: matQ.rows[0].clase_id });
     return res.json({ success: true, message: 'Material eliminado correctamente' });
   } catch (error) {
     console.error('Error al eliminar material:', error);

@@ -1,0 +1,19 @@
+{
+  "name": "@edutech/plugin-aula-activa",
+  "version": "1.0.0",
+  "description": "Plugin modular de Aula Activa: gestión de tareas, entregas, correcciones pedagógicas y consultas interactivas",
+  "main": "backend/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "edutech",
+    "plugin",
+    "aula-activa",
+    "tareas",
+    "entregas"
+  ],
+  "author": "Equipo EduTech",
+  "license": "ISC"
+}
+

@@ -24,13 +24,17 @@ export const AsistenciaPage: React.FC = () => {
                 <i className="bx bx-calendar-check"></i>
               </div>
               <h1 className={styles.headerTitle}>
-                {user.rol === 'alumno' ? 'Mi Asistencia y Regularidad' : 'Control de Asistencia Escolar'}
+                {user.rol === 'alumno'
+                  ? 'Mi Asistencia y Regularidad'
+                  : user.rol === 'preceptor'
+                  ? 'Preceptoría — Asistencias y Actas'
+                  : 'Control de Asistencia Escolar'}
               </h1>
             </div>
             <p className={styles.headerSubtitle}>
               {user.rol === 'alumno'
                 ? 'Monitorea tu porcentaje de presentismo oficial y el estado de regularidad por materia'
-                : 'Registro ágil de presentismo, cómputo de inasistencias y seguimiento pedagógico oficial'}
+                : 'Registro ágil de presentismo, actas de novedades y seguimiento pedagógico oficial'}
             </p>
           </div>
 
@@ -78,7 +82,7 @@ export const AsistenciaPage: React.FC = () => {
         </div>
 
         {/* ── Renderizado Dinámico por Rol ── */}
-        {user.rol === 'profesor' && <AsistenciaDocenteView />}
+        {(user.rol === 'profesor' || user.rol === 'preceptor') && <AsistenciaDocenteView />}
         {user.rol === 'alumno' && <AsistenciaAlumnoView />}
         {user.rol === 'admin' && (
           adminTab === 'docente' ? <AsistenciaDocenteView /> : <AsistenciaAdminView />

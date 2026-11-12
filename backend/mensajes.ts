@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import { verificarAccesoClase } from './permisos';
+import { emitToClass, emitGlobal } from './socket_bus';
 
 const router = Router();
 
@@ -86,6 +87,8 @@ router.post('/guardar-mensaje', async (req: Request, res: Response) => {
       if (io) {
         io.emit('nuevo_mensaje', nuevoMensaje);
       }
+      emitToClass(targetClaseId, 'message.created', nuevoMensaje);
+      emitGlobal('message.created', nuevoMensaje);
 
       return res.status(201).json({ success: true, message: 'Mensaje publicado', nuevoMensaje });
     } else {
@@ -109,6 +112,7 @@ router.post('/guardar-mensaje', async (req: Request, res: Response) => {
       if (io) {
         io.emit('nuevo_mensaje', nuevoMensaje);
       }
+      emitGlobal('message.created', nuevoMensaje);
 
       return res.status(201).json({ success: true, message: 'Mensaje publicado', nuevoMensaje });
     }

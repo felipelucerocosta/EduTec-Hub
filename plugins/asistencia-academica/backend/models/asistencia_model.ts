@@ -31,8 +31,8 @@ export const AsistenciaModel = {
   /**
    * Obtiene las clases disponibles para el docente (o todas si es administrador).
    */
-  async getClasesDocente(docenteId: number, esAdmin: boolean = false) {
-    if (esAdmin) {
+  async getClasesDocente(docenteId: number, esAdminOPreceptor: boolean = false) {
+    if (esAdminOPreceptor) {
       const sql = `
         SELECT c.id, c.nombre, c.materia, c.seccion, c.aula, c.codigo,
                COUNT(DISTINCT ac.alumno_id) as total_alumnos
@@ -346,6 +346,60 @@ export const AsistenciaModel = {
       totalRegistros: Number(totalRegistros),
       divisiones,
     };
+  },
+
+  /**
+   * Obtiene actas e incidencias de una clase
+   */
+  async getActasClase(claseId: number) {
+    const sql = `
+      SELECT a.*,
+             u.nombre_completo as alumno_nombre,
+             c.nombre_completo as creador_nombre
+      FROM plugin_preceptoria_actas a
+      LEFT JOIN usuarios u ON a.alumno_id = u.id_usuario
+      LEFT JOIN usuarios c ON a.creado_por = c.id_usuario
+      WHERE a.clase_id = $1
+      ORDER BY a.fecha DESC, a.id DESC
+    `;
+    const res = await pool.query(sql, [claseId]);
+    return res.rows;
+  },
+
+  /**
+   * Crea una nueva acta
+   */
+  async crearActa(data: { claseId: number; alumnoId?: number | null; tipo: string; descripcion: string; fecha: string; creadoPor: number }) {
+    const sql = `
+      INSERT INTO plugin_preceptoria_actas (clase_id, alumno_id, tipo, descripcion, fecha, creado_por, estado)
+      VALUES ($1, $2, $3, $4, $5, $6, 'Abierta')
+      RETURNING id
+    `;
+    const res = await pool.query(sql, [
+      data.claseId,
+      data.alumnoId || null,
+      data.tipo,
+      data.descripcion,
+      data.fecha,
+      data.creadoPor
+    ]);
+    return res.rows?.[0]?.id || res.insertId;
+  },
+
+  /**
+   * Actualiza el estado de un acta (Abierta / Resuelta)
+   */
+  async actualizarEstadoActa(actaId: number, estado: 'Abierta' | 'Resuelta') {
+    const sql = `UPDATE plugin_preceptoria_actas SET estado = $1 WHERE id = $2`;
+    await pool.query(sql, [estado, actaId]);
+  },
+
+  /**
+   * Elimina un acta
+   */
+  async eliminarActa(actaId: number) {
+    const sql = `DELETE FROM plugin_preceptoria_actas WHERE id = $1`;
+    await pool.query(sql, [actaId]);
   },
 };
 

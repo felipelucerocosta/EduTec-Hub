@@ -166,6 +166,50 @@ export const AsistenciaAPI = {
     if (!res.ok) throw new Error(json.error || 'Error al obtener telemetría institucional');
     return json.data;
   },
+
+  /**
+   * Actas e Incidencias (Preceptoría)
+   */
+  async getActasClase(claseId: number) {
+    const res = await fetch(`${PLUGIN_BASE}/actas/clase/${claseId}`, { credentials: 'include' });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error al obtener actas');
+    return json.data;
+  },
+
+  async crearActa(payload: { clase_id: number; alumno_id?: number | null; tipo: string; descripcion: string; fecha: string }) {
+    const res = await fetch(`${PLUGIN_BASE}/actas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error al crear acta');
+    return json;
+  },
+
+  async actualizarEstadoActa(id: number, estado: 'Abierta' | 'Resuelta') {
+    const res = await fetch(`${PLUGIN_BASE}/actas/${id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ estado }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error al actualizar acta');
+    return json;
+  },
+
+  async eliminarActa(id: number) {
+    const res = await fetch(`${PLUGIN_BASE}/actas/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error al eliminar acta');
+    return json;
+  },
 };
 
 export default AsistenciaAPI;

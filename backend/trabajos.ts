@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import { verificarAccesoClase } from './permisos';
+import { emitToClass } from './socket_bus';
 
 const router = Router();
 
@@ -236,6 +237,8 @@ router.post('/clases/:claseId/trabajos', async (req: Request, res: Response) => 
       } catch (_e) {}
     }
 
+    emitToClass(claseId, 'assignment.published', { id: newTrabajoId, clase_id: Number(claseId), titulo: titulo.trim(), fecha_limite });
+
     return res.status(201).json({ success: true, message: 'Trabajo publicado exitosamente', id: newTrabajoId });
   } catch (error) {
     console.error('Error al crear trabajo:', error);
@@ -289,6 +292,8 @@ router.put('/trabajos/:id', async (req: Request, res: Response) => {
       id
     ]);
 
+    emitToClass(trabajoQ.rows[0].clase_id, 'assignment.updated', { id: Number(id), clase_id: trabajoQ.rows[0].clase_id, titulo: titulo.trim(), fecha_limite });
+
     return res.json({ success: true, message: 'Trabajo actualizado exitosamente' });
   } catch (error) {
     console.error('Error al actualizar trabajo:', error);
@@ -317,6 +322,7 @@ router.delete('/trabajos/:id', async (req: Request, res: Response) => {
     }
 
     await pool.query('DELETE FROM trabajos WHERE id = $1', [id]);
+    emitToClass(trabajoQ.rows[0].clase_id, 'assignment.deleted', { id: Number(id), clase_id: trabajoQ.rows[0].clase_id });
     return res.json({ success: true, message: 'Trabajo eliminado correctamente' });
   } catch (error) {
     console.error('Error al eliminar trabajo:', error);

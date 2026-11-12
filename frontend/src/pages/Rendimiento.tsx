@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -22,6 +23,8 @@ const cardStyle: React.CSSProperties = {
 const Rendimiento: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const queryClaseId = searchParams.get('claseId');
 
   const [loading, setLoading] = useState(true);
   const [rendimientoData, setRendimientoData] = useState<any>(null);
@@ -36,13 +39,16 @@ const Rendimiento: React.FC = () => {
       setLoading(true);
       try {
         if (user.rol === 'profesor' || user.rol === 'admin') {
-          const endpoint = user.rol === 'admin' ? '/api/admin/clases' : '/api/profesor/mis-clases';
+          // Solución BUG 2: Endpoint relativo limpio para no duplicar /api/api
+          const endpoint = user.rol === 'admin' ? '/admin/clases' : '/profesor/mis-clases';
           const res = await fetch(`${API_URL}${endpoint}`, { credentials: 'include' });
           if (res.ok) {
             const clases = await res.json();
-            setClasesProfesor(Array.isArray(clases) ? clases : []);
-            if (clases.length > 0) {
-              setSelectedClaseProfesor(clases[0].id);
+            const list = Array.isArray(clases) ? clases : [];
+            setClasesProfesor(list);
+            if (list.length > 0) {
+              const matched = queryClaseId ? list.find((c: any) => String(c.id) === String(queryClaseId)) : null;
+              setSelectedClaseProfesor(matched ? matched.id : list[0].id);
             } else {
               setSelectedClaseProfesor(null);
             }

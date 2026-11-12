@@ -5,6 +5,9 @@
   "main": "backend/index.ts",
   "author": "Equipo de Prácticas Profesionalizantes - E.E.S.T. N° 29 D.E. 6",
   "license": "MIT",
+  "peerDependencies": {
+    "express": "^4.18.2"
+  },
   "edutechhub": {
     "pluginId": "asistencia-academica",
     "displayName": "Asistencia y Regularidad Académica",

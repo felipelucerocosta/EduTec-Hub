@@ -1,7 +1,30 @@
+import Module from 'module';
+import path from 'path';
+
+// Asegurar que plugins y módulos externos (ej. /plugins) compartan y resuelvan las dependencias
+// del backend principal (Express, etc.) sin necesidad de duplicar paquetes en cada plugin.
+const backendNodeModules = path.join(__dirname, 'node_modules');
+const origResolveFilename = (Module as any)._resolveFilename;
+(Module as any)._resolveFilename = function (request: string, parent: any, isMain: boolean, options: any) {
+  try {
+    return origResolveFilename.call(this, request, parent, isMain, options);
+  } catch (err: any) {
+    if (err && err.code === 'MODULE_NOT_FOUND' && !request.startsWith('.') && !request.startsWith('/') && !request.includes(':')) {
+      try {
+        const fallbackPath = path.join(backendNodeModules, request);
+        return origResolveFilename.call(this, fallbackPath, parent, isMain, options);
+      } catch (_) {}
+    }
+    throw err;
+  }
+};
+if (!(Module as any).globalPaths.includes(backendNodeModules)) {
+  (Module as any).globalPaths.push(backendNodeModules);
+}
+
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import session from 'express-session';
-import path from 'path';
 import * as dotenv from 'dotenv';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -42,15 +65,60 @@ const httpServer = http.createServer(app);
 const PORT: number = Number(process.env.PORT) || 3001;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
+// Función helper de validación de origen CORS para desarrollo
+const isOriginAllowed = (origin: string | undefined): boolean => {
+  if (!origin) return true;
+  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+  if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return true;
+  return false;
+};
+
+import { setSocketIO } from './socket_bus';
+
 export const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) callback(null, true);
+      else callback(null, false);
+    },
     credentials: true
   }
 });
 
+setSocketIO(io);
+
 io.on('connection', (socket) => {
   console.log(`🔌 Cliente Socket.IO conectado: ${socket.id}`);
+
+  socket.on('join_class', (claseId: string | number) => {
+    if (claseId) {
+      const room = `clase_${claseId}`;
+      socket.join(room);
+      console.log(`📡 Socket ${socket.id} unido a ${room}`);
+    }
+  });
+
+  socket.on('leave_class', (claseId: string | number) => {
+    if (claseId) {
+      const room = `clase_${claseId}`;
+      socket.leave(room);
+      console.log(`📡 Socket ${socket.id} abandonó ${room}`);
+    }
+  });
+
+  socket.on('join_user', (userId: string | number) => {
+    if (userId) {
+      const room = `user_${userId}`;
+      socket.join(room);
+      console.log(`📡 Socket ${socket.id} suscrito a canal de usuario ${room}`);
+    }
+  });
+
+  socket.on('join_admin', () => {
+    socket.join('admin_channel');
+    console.log(`📡 Socket ${socket.id} suscrito a admin_channel`);
+  });
+
   socket.on('disconnect', () => {
     console.log(`❌ Cliente Socket.IO desconectado: ${socket.id}`);
   });
@@ -60,7 +128,10 @@ io.on('connection', (socket) => {
 // En producción el frontend se sirve desde este mismo servidor (sin CORS cross-origin)
 if (!IS_PRODUCTION) {
   app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) callback(null, true);
+      else callback(new Error('Bloqueado por CORS: origen no permitido.'));
+    },
     credentials: true
   }));
 }
