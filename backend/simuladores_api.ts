@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
+import { verificarAccesoClase } from './permisos';
+import { emitToClass, emitToUser } from './socket_bus';
 
 const router = Router();
 
@@ -92,6 +94,11 @@ router.get('/simuladores/:claseId', async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ error: 'No autorizado' });
 
+  const { permitido, motivo } = await verificarAccesoClase(req.session?.usuario, claseId);
+  if (!permitido) {
+    return res.status(403).json({ error: motivo || 'No tienes acceso a esta clase.' });
+  }
+
   try {
     const claseRes = await pool.query('SELECT materia, nombre FROM clases WHERE id = $1', [claseId]);
     if (claseRes.rows.length === 0) return res.status(404).json({ error: 'Clase no encontrada' });
@@ -157,6 +164,21 @@ router.post('/simuladores/sesion', async (req: Request, res: Response) => {
       `INSERT INTO sesiones_simulador (simulador_id, usuario_id, datos_sesion, completado, duracion_segundos) VALUES ($1, $2, $3, 1, $4)`,
       [simId, userId, datos_sesion ? JSON.stringify(datos_sesion) : null, duracion_segundos || null]
     );
+
+    emitToUser(userId, 'simulation.completed', {
+      simulador_id: simId,
+      simulador_tipo,
+      clase_id: clase_id || null,
+    });
+    if (clase_id) {
+      emitToClass(clase_id, 'simulation.completed', {
+        simulador_id: simId,
+        simulador_tipo,
+        alumno_id: userId,
+        clase_id: Number(clase_id),
+      });
+      emitToClass(clase_id, 'performance.updated', { clase_id: Number(clase_id) });
+    }
 
     return res.status(201).json({ success: true, message: 'Sesión registrada' });
   } catch (error) {

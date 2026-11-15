@@ -1,0 +1,19 @@
+{
+  "name": "@edutech/plugin-edutech-preceptoria",
+  "version": "1.0.0",
+  "description": "Plugin oficial de EduTech para la gestión exclusiva de toma de asistencia por preceptores",
+  "main": "backend/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "edutech",
+    "plugin",
+    "preceptoria",
+    "asistencia",
+    "presentismo"
+  ],
+  "author": "Equipo EduTech",
+  "license": "ISC"
+}
+

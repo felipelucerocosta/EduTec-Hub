@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
-import { emitToClass, emitToUser, emitToAdmin, emitGlobal } from './socket_bus';
+import { emitToClass, emitToUser, emitToAdmin } from './socket_bus';
+import { syncUserClassRooms } from './realtime_rooms';
 
 const router = Router();
 
@@ -69,7 +70,7 @@ router.get('/admin/usuarios', requireAdmin, async (req: Request, res: Response) 
       FROM usuarios
     `;
     const params: any[] = [];
-    if (rol && ['alumno', 'profesor', 'admin'].includes(String(rol))) {
+    if (rol && ['alumno', 'profesor', 'admin', 'preceptor'].includes(String(rol))) {
       query += ` WHERE rol = $1`;
       params.push(rol);
     }
@@ -266,8 +267,12 @@ router.post('/admin/clases', requireAdmin, async (req: Request, res: Response) =
       } catch (_e) {}
     }
 
+    if (titular_id && newId) {
+      await syncUserClassRooms(titular_id);
+      emitToUser(titular_id, 'class.created', { id: newId, nombre, seccion, materia, aula, codigo });
+      emitToUser(titular_id, 'teacher.assigned', { clase_id: Number(newId) });
+    }
     emitToAdmin('class.created', { id: newId, nombre, seccion, materia, aula, codigo });
-    emitGlobal('class.created', { id: newId, nombre, seccion, materia, aula, codigo });
 
     return res.status(201).json({ success: true, message: 'Clase creada exitosamente con 0 alumnos.', codigo, id: newId });
   } catch (error) {
@@ -284,7 +289,6 @@ router.delete('/admin/clases/:id', requireAdmin, async (req: Request, res: Respo
     await pool.query('DELETE FROM clases WHERE id = $1', [id]);
     emitToClass(id, 'class.deleted', { id: Number(id) });
     emitToAdmin('class.deleted', { id: Number(id) });
-    emitGlobal('class.deleted', { id: Number(id) });
     return res.json({ success: true, message: 'Clase eliminada.' });
   } catch (error) {
     console.error('Error eliminando clase:', error);
@@ -327,8 +331,10 @@ router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Requ
       );
     } catch (_e) {}
 
+    await syncUserClassRooms(profesor_id);
     emitToClass(id, 'teacher.assigned', { clase_id: Number(id), profesor_id: Number(profesor_id), nombre_completo });
     emitToUser(profesor_id, 'teacher.assigned', { clase_id: Number(id) });
+    emitToUser(profesor_id, 'class.created', { id: Number(id) });
     emitToAdmin('teacher.assigned', { clase_id: Number(id), profesor_id: Number(profesor_id), nombre_completo });
 
     return res.json({ success: true, message: `Profesor "${nombre_completo}" asignado correctamente a la clase.` });
@@ -343,10 +349,19 @@ router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Requ
 router.delete('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
+    const prevQ = await pool.query('SELECT titular_id FROM clases WHERE id = $1', [id]);
+    const prevTitular = prevQ.rows[0]?.titular_id;
     await pool.query(`UPDATE clases SET titular_id = NULL, creador = 'Sin Asignar' WHERE id = $1`, [id]);
     try {
       await pool.query('DELETE FROM profesores_clases WHERE clase_id = $1', [id]);
     } catch (_e) {}
+    if (prevTitular) {
+      await syncUserClassRooms(prevTitular);
+      emitToUser(prevTitular, 'teacher.removed', { clase_id: Number(id) });
+      emitToUser(prevTitular, 'class.deleted', { id: Number(id) });
+    }
+    emitToClass(id, 'teacher.removed', { clase_id: Number(id) });
+    emitToAdmin('teacher.removed', { clase_id: Number(id) });
     return res.json({ success: true, message: 'Titular removido de la clase.' });
   } catch (error) {
     console.error('Error removiendo titular:', error);
@@ -426,8 +441,10 @@ router.post('/admin/clases/:id/asignar-alumno', requireAdmin, async (req: Reques
       [alumno_id, materia, codigo]
     );
 
+    await syncUserClassRooms(alumno_id);
     emitToClass(id, 'student.assigned', { clase_id: Number(id), alumno_id: Number(alumno_id), nombre_completo: alumQ.rows[0].nombre_completo });
     emitToUser(alumno_id, 'student.assigned', { clase_id: Number(id) });
+    emitToUser(alumno_id, 'class.created', { id: Number(id), nombre: materia });
     emitToAdmin('student.assigned', { clase_id: Number(id), alumno_id: Number(alumno_id) });
 
     return res.json({ success: true, message: `Alumno "${alumQ.rows[0].nombre_completo}" inscripto correctamente.` });
@@ -453,8 +470,10 @@ router.delete('/admin/clases/:id/alumnos/:alumnoId', requireAdmin, async (req: R
       [alumnoId, codigo]
     );
 
+    await syncUserClassRooms(alumnoId);
     emitToClass(id, 'student.removed', { clase_id: Number(id), alumno_id: Number(alumnoId) });
     emitToUser(alumnoId, 'student.removed', { clase_id: Number(id) });
+    emitToUser(alumnoId, 'class.deleted', { id: Number(id) });
     emitToAdmin('student.removed', { clase_id: Number(id), alumno_id: Number(alumnoId) });
 
     return res.json({ success: true, message: 'Alumno desinscripto correctamente.' });
@@ -537,7 +556,7 @@ router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response)
     return res.status(400).json({ error: 'Nombre, correo, contraseña, rol y DNI son obligatorios.' });
   }
 
-  const rolesValidos = ['alumno', 'profesor', 'admin'];
+  const rolesValidos = ['alumno', 'profesor', 'admin', 'preceptor'];
   if (!rolesValidos.includes(rol)) {
     return res.status(400).json({ error: 'Rol inválido.' });
   }

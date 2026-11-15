@@ -27,12 +27,12 @@ import Boletin from "./pages/Boletin";
 import Simuladores from "./pages/Simuladores";
 import TrabajoDetallePage from "./pages/TrabajoDetallePage";
 import TrabajoProfesorPage from "./pages/TrabajoProfesorPage";
-// === PLUGIN 1: ASISTENCIA ACADÉMICA ===
-import AsistenciaPage from "../../plugins/asistencia-academica/frontend/pages/AsistenciaPage";
-// === PLUGIN 2: AULA ACTIVA ===
-import AulaActivaPage from "../../plugins/aula-activa/frontend/pages/AulaActivaPage";
+// === AULA ACTIVA (FUNCIONALIDAD NATIVA) ===
+import AulaActiva from "./pages/AulaActiva";
+// === PLUGIN 1: PRECEPTORÍA (EXCLUSIVO ASISTENCIA) ===
+import PreceptoriaPage from "../../plugins/edutech-preceptoria/frontend/pages/PreceptoriaPage";
 // === PLUGIN 3: OPORTUNIDADES ===
-import OportunidadesPage from "../../plugins/oportunidades/frontend/pages/OportunidadesPage";
+import OportunidadesPage from "../../plugins/edutech-oportunidades/frontend/pages/OportunidadesPage";
 
 
 // Protected route component
@@ -113,17 +113,22 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* PLUGIN 1: CONTROL DE ASISTENCIA Y REGULARIDAD */}
+      {/* PLUGIN 1: PRECEPTORÍA — EXCLUSIVO TOMA DE ASISTENCIA */}
       <Route path="/asistencia" element={
-        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin", "preceptor"]}>
-          <AsistenciaPage />
+        <ProtectedRoute allowedRoles={["preceptor", "admin", "alumno", "profesor"]}>
+          <PreceptoriaPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/preceptoria" element={
+        <ProtectedRoute allowedRoles={["preceptor", "admin"]}>
+          <PreceptoriaPage />
         </ProtectedRoute>
       } />
 
-      {/* PLUGIN 2: AULA ACTIVA */}
+      {/* FUNCIONALIDAD NATIVA: AULA ACTIVA */}
       <Route path="/aula-activa" element={
         <ProtectedRoute allowedRoles={["alumno", "profesor", "admin", "preceptor"]}>
-          <AulaActivaPage />
+          <AulaActiva />
         </ProtectedRoute>
       } />
 

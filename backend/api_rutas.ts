@@ -3,6 +3,7 @@ import 'express-session';
 import pool from './conexion_pg';
 import multer from 'multer';
 import path from 'path';
+import { emitToUser, emitToAdmin } from './socket_bus';
 
 // Configuración de Multer
 const storage = multer.diskStorage({
@@ -104,7 +105,8 @@ router.post('/calendario/notas', async (req: Request, res: Response) => {
       VALUES ($1, $2, $3, $4)
     `;
     await pool.query(query, [id_usuario, titulo.trim(), descripcion ? descripcion.trim() : '', fecha_evento]);
-    
+    emitToUser(id_usuario, 'calendar.updated', { id_usuario, titulo, fecha_evento });
+
     res.status(201).json({ 
         id_usuario, titulo, descripcion, fecha_evento, success: true 
     });
@@ -127,6 +129,7 @@ router.delete('/calendario/notas/:id', async (req: Request, res: Response) => {
   try {
     const query = `DELETE FROM calendario_notas WHERE id_nota = $1 AND id_usuario = $2`;
     await pool.query(query, [id, id_usuario]);
+    emitToUser(id_usuario, 'calendar.updated', { id_usuario, deleted: Number(id) });
 
     res.status(200).json({ message: 'Nota eliminada' });
   } catch (error) {
@@ -157,6 +160,7 @@ router.post('/subir-acta', upload.single('acta'), async (req: Request, res: Resp
     // En el pool simulado de SQLite, result.insertId tiene el ID generado
     const insertedId = result.insertId; 
 
+    emitToAdmin('bulletin.updated', { id: insertedId, tipo: 'acta' });
     return res.status(201).json({ success: true, message: 'Acta subida e info guardada.', id: insertedId });
   } catch (error) {
       console.error("Error subiendo acta:", error);

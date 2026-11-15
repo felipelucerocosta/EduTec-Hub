@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
+import { emitToUser, emitToAdmin } from './socket_bus';
+import { syncUserClassRooms } from './realtime_rooms';
 
 const router = Router();
 
@@ -75,6 +77,13 @@ router.post('/crear-clase', async (req: Request, res: Response) => {
       cantidad_alumnos: 0,
       total_trabajos: 0
     };
+
+    if (titular_id && nuevaClaseId) {
+      await syncUserClassRooms(titular_id);
+      emitToUser(titular_id, 'class.created', nuevaClase);
+      emitToUser(titular_id, 'teacher.assigned', { clase_id: Number(nuevaClaseId) });
+    }
+    emitToAdmin('class.created', nuevaClase);
 
     res.status(201).json({ 
       success: true, 

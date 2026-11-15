@@ -1,0 +1,10 @@
+{
+  "id": "edutech-preceptoria",
+  "name": "EduTech Preceptoría — Control Exclusivo de Asistencia",
+  "version": "1.0.0",
+  "description": "Gestión exclusiva de presentismo escolar para preceptores asignados a comisiones.",
+  "author": "Equipo EduTech",
+  "enabled": true,
+  "baseRoute": "/api/plugins/edutech-preceptoria"
+}
+

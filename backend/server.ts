@@ -74,6 +74,7 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
 };
 
 import { setSocketIO } from './socket_bus';
+import { attachRealtime } from './realtime';
 
 export const io = new SocketIOServer(httpServer, {
   cors: {
@@ -86,43 +87,6 @@ export const io = new SocketIOServer(httpServer, {
 });
 
 setSocketIO(io);
-
-io.on('connection', (socket) => {
-  console.log(`🔌 Cliente Socket.IO conectado: ${socket.id}`);
-
-  socket.on('join_class', (claseId: string | number) => {
-    if (claseId) {
-      const room = `clase_${claseId}`;
-      socket.join(room);
-      console.log(`📡 Socket ${socket.id} unido a ${room}`);
-    }
-  });
-
-  socket.on('leave_class', (claseId: string | number) => {
-    if (claseId) {
-      const room = `clase_${claseId}`;
-      socket.leave(room);
-      console.log(`📡 Socket ${socket.id} abandonó ${room}`);
-    }
-  });
-
-  socket.on('join_user', (userId: string | number) => {
-    if (userId) {
-      const room = `user_${userId}`;
-      socket.join(room);
-      console.log(`📡 Socket ${socket.id} suscrito a canal de usuario ${room}`);
-    }
-  });
-
-  socket.on('join_admin', () => {
-    socket.join('admin_channel');
-    console.log(`📡 Socket ${socket.id} suscrito a admin_channel`);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`❌ Cliente Socket.IO desconectado: ${socket.id}`);
-  });
-});
 
 // --- 3. CONFIGURAR MIDDLEWARE ---
 // En producción el frontend se sirve desde este mismo servidor (sin CORS cross-origin)
@@ -149,7 +113,7 @@ if (IS_PRODUCTION) {
   app.use(express.static(distPath));
 }
 
-app.use(session({
+const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'una-clave-muy-secreta-y-larga',
   resave: false,
   saveUninitialized: false,
@@ -159,7 +123,10 @@ app.use(session({
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000  // 7 días
   }
-}));
+});
+
+app.use(sessionMiddleware);
+attachRealtime(io, sessionMiddleware);
 
 // --- 4. RUTAS DE LA API ---
 app.use('/api', mensajesRouter);

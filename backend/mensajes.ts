@@ -1,18 +1,9 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import { verificarAccesoClase } from './permisos';
-import { emitToClass, emitGlobal } from './socket_bus';
+import { emitToClass, emitToAuthenticated, emitToUser } from './socket_bus';
 
 const router = Router();
-
-function getIo() {
-  try {
-    const serverModule = require('./server');
-    return serverModule.io;
-  } catch (err) {
-    return null;
-  }
-}
 
 // POST /api/guardar-mensaje - Post message/announcement to a class
 router.post('/guardar-mensaje', async (req: Request, res: Response) => {
@@ -83,12 +74,8 @@ router.post('/guardar-mensaje', async (req: Request, res: Response) => {
         clase_id: targetClaseId
       };
 
-      const io = getIo();
-      if (io) {
-        io.emit('nuevo_mensaje', nuevoMensaje);
-      }
       emitToClass(targetClaseId, 'message.created', nuevoMensaje);
-      emitGlobal('message.created', nuevoMensaje);
+      emitToUser(userId, 'message.created', nuevoMensaje);
 
       return res.status(201).json({ success: true, message: 'Mensaje publicado', nuevoMensaje });
     } else {
@@ -108,11 +95,7 @@ router.post('/guardar-mensaje', async (req: Request, res: Response) => {
         rol: userRol
       };
 
-      const io = getIo();
-      if (io) {
-        io.emit('nuevo_mensaje', nuevoMensaje);
-      }
-      emitGlobal('message.created', nuevoMensaje);
+      emitToAuthenticated('message.created', nuevoMensaje);
 
       return res.status(201).json({ success: true, message: 'Mensaje publicado', nuevoMensaje });
     }

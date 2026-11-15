@@ -245,6 +245,7 @@ router.post('/entregas/:id/calificar', async (req: Request, res: Response) => {
     emitToUser(alumno_id, 'assignment.corrected', { entrega_id: Number(id), calificacion: Number(calificacion), feedback });
     emitToUser(alumno_id, 'grade.updated', { alumno_id: Number(alumno_id), calificacion: Number(calificacion) });
     emitToUser(alumno_id, 'performance.updated', { alumno_id: Number(alumno_id) });
+    emitToUser(alumno_id, 'notification.created', { tipo: 'calificacion', titulo: `Trabajo calificado: ${titulo}` });
     emitToClass(entregaQ.rows[0].clase_id, 'grade.updated', { entrega_id: Number(id), calificacion: Number(calificacion) });
     emitToClass(entregaQ.rows[0].clase_id, 'performance.updated', { clase_id: entregaQ.rows[0].clase_id });
 
@@ -310,6 +311,13 @@ router.post('/trabajos/:trabajoId/alumnos/:alumnoId/calificar', async (req: Requ
         [alumnoId, `Trabajo calificado: ${titulo}`, `Has recibido la nota ${calificacion}/${maxPts} en "${titulo}".`, trabajoId]
       );
     } catch (_e) {}
+
+    emitToUser(alumnoId, 'assignment.corrected', { trabajo_id: Number(trabajoId), calificacion: Number(calificacion), feedback });
+    emitToUser(alumnoId, 'grade.updated', { alumno_id: Number(alumnoId), calificacion: Number(calificacion) });
+    emitToUser(alumnoId, 'performance.updated', { alumno_id: Number(alumnoId) });
+    emitToUser(alumnoId, 'notification.created', { tipo: 'calificacion', titulo: `Trabajo calificado: ${titulo}` });
+    emitToClass(tQ.rows[0].clase_id, 'grade.updated', { trabajo_id: Number(trabajoId), calificacion: Number(calificacion) });
+    emitToClass(tQ.rows[0].clase_id, 'performance.updated', { clase_id: tQ.rows[0].clase_id });
 
     return res.json({ success: true, message: 'Calificación guardada exitosamente' });
   } catch (error) {

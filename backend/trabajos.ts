@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import { verificarAccesoClase } from './permisos';
-import { emitToClass } from './socket_bus';
+import { emitToClass, emitToUser } from './socket_bus';
 
 const router = Router();
 
@@ -234,10 +234,15 @@ router.post('/clases/:claseId/trabajos', async (req: Request, res: Response) => 
            VALUES ($1, 'trabajo_nuevo', $2, $3, 'trabajo', $4)`,
           [alumno.alumno_id, `Nuevo trabajo: ${titulo}`, `Se ha publicado un nuevo trabajo en tu clase.`, newTrabajoId]
         );
+        emitToUser(alumno.alumno_id, 'notification.created', {
+          tipo: 'trabajo_nuevo',
+          titulo: `Nuevo trabajo: ${titulo}`,
+        });
       } catch (_e) {}
     }
 
     emitToClass(claseId, 'assignment.published', { id: newTrabajoId, clase_id: Number(claseId), titulo: titulo.trim(), fecha_limite });
+    emitToClass(claseId, 'calendar.updated', { clase_id: Number(claseId) });
 
     return res.status(201).json({ success: true, message: 'Trabajo publicado exitosamente', id: newTrabajoId });
   } catch (error) {

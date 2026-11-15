@@ -1,0 +1,10 @@
+{
+  "id": "edutech-oportunidades",
+  "name": "EduTech Oportunidades — Portal de Pasantías y Proyectos",
+  "version": "1.0.0",
+  "description": "Portal institucional de pasantías formativas, proyectos tecnológicos, investigaciones y becas profesionales.",
+  "author": "Equipo EduTech",
+  "enabled": true,
+  "baseRoute": "/api/plugins/edutech-oportunidades"
+}
+

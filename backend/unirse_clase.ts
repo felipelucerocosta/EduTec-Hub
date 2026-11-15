@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
+import { emitToClass, emitToUser, emitToAdmin } from './socket_bus';
+import { syncUserClassRooms } from './realtime_rooms';
 
 const router = Router();
 
@@ -59,7 +61,12 @@ router.post('/unirse-clase', async (req: Request, res: Response) => {
       VALUES ($1, $2, $3)
     `;
     await pool.query(insertSql, [alumno_id, clase.materia, clase.codigo]);
-    
+    await syncUserClassRooms(alumno_id);
+    emitToUser(alumno_id, 'student.assigned', { clase_id: Number(clase.id) });
+    emitToUser(alumno_id, 'class.created', { id: Number(clase.id), nombre: clase.nombre });
+    emitToClass(clase.id, 'student.assigned', { clase_id: Number(clase.id), alumno_id });
+    emitToAdmin('student.assigned', { clase_id: Number(clase.id), alumno_id });
+
     return res.status(200).send('Te has unido a la clase exitosamente.');
 
   } catch (err) {
