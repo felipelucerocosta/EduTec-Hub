@@ -1,9 +1,35 @@
+/**
+ * ============================================================================
+ * ARCHIVO: preceptoria_controller.ts
+ * PLUGIN: EduTech Preceptoría — Control Exclusivo de Asistencia
+ * ROL ARQUITECTURAL: Controlador HTTP (Capa de Presentación / API Backend)
+ * ============================================================================
+ * 
+ * RESPONSABILIDAD:
+ * Gestiona el ciclo de peticiones y respuestas HTTP vinculadas a la gestión
+ * escolar de preceptoría:
+ * 1. Toma y actualización de asistencia diaria por comisión (exclusivo preceptor).
+ * 2. Consulta personalizada de presentismo y condición de regularidad del alumno.
+ * 3. Tramitación, aprobación y emisión de constancias de alumno regular.
+ * 4. Analíticas de rendimiento por curso para preceptoría y directivos.
+ * 5. Registro y fiscalización de asistencia laboral del cuerpo docente.
+ * 
+ * SEGURIDAD Y CONTEXTO:
+ * Las rutas han sido previamente filtradas por los middlewares de autorización
+ * (`requireAuth`, `requireExclusivoPreceptor`, `requirePreceptorAsignadoAClase`
+ * y `requirePreceptorOAdmin`). Los controladores garantizan respuestas siempre
+ * en formato JSON bien estructurado.
+ */
+
 import { Request, Response } from 'express';
 import { PreceptoriaService } from '../services/preceptoria_service';
 
 export const PreceptoriaController = {
   /**
-   * Diagnóstico del plugin
+   * --------------------------------------------------------------------------
+   * 1. GET /health — Diagnóstico del Plugin
+   * --------------------------------------------------------------------------
+   * Comprueba que el microservicio de preceptoría responda y esté operativo.
    */
   async getHealth(_req: Request, res: Response) {
     return res.json({
@@ -15,7 +41,11 @@ export const PreceptoriaController = {
   },
 
   /**
-   * GET /clases - Lista las comisiones asignadas al preceptor en sesión, o todas si es administrador
+   * --------------------------------------------------------------------------
+   * 2. GET /clases — Comisiones Autorizadas para el Preceptor o Admin
+   * --------------------------------------------------------------------------
+   * Si el usuario es Administrador, devuelve todas las clases del colegio.
+   * Si es Preceptor, devuelve estrictamente las comisiones asignadas a su cargo.
    */
   async getClasesPreceptor(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -32,7 +62,14 @@ export const PreceptoriaController = {
   },
 
   /**
-   * GET /clases/:claseId/planilla - Carga la lista de alumnos y el estado de asistencia para una fecha
+   * --------------------------------------------------------------------------
+   * 3. GET /clases/:claseId/planilla — Carga de Planilla de Toma de Asistencia
+   * --------------------------------------------------------------------------
+   * Obtiene la nómina de alumnos matriculados y el estado de asistencia guardado
+   * para una fecha específica (por defecto, la fecha actual YYYY-MM-DD).
+   * 
+   * Si no se tomó asistencia aún ese día, el servicio inicializa la lista con
+   * 'PRESENTE' por defecto para que el preceptor solo marque las novedades.
    */
   async getPlanillaFecha(req: Request, res: Response) {
     const claseId = Number(req.params.claseId);
@@ -47,7 +84,16 @@ export const PreceptoriaController = {
   },
 
   /**
-   * POST /clases/:claseId/asistencia - Registra o modifica la asistencia (EXCLUSIVO PRECEPTOR)
+   * --------------------------------------------------------------------------
+   * 4. POST /clases/:claseId/asistencia — Guardar/Modificar Toma de Asistencia
+   * --------------------------------------------------------------------------
+   * ACCESO: EXCLUSIVO PRECEPTOR ASIGNADO A LA COMISIÓN.
+   * Guarda de forma transaccional la planilla completa de la jornada escolar y
+   * notifica a alumnos y preceptores en tiempo real por WebSockets.
+   * 
+   * @param req.body.fecha Fecha de la jornada escolar (YYYY-MM-DD)
+   * @param req.body.observaciones Comentarios generales de la jornada
+   * @param req.body.registros Array de { alumnoId, estado, observacion }
    */
   async guardarAsistencia(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -82,7 +128,11 @@ export const PreceptoriaController = {
   },
 
   /**
-   * GET /clases/:claseId/historial - Historial de tomas de asistencia
+   * --------------------------------------------------------------------------
+   * 5. GET /clases/:claseId/historial — Historial de Asistencias Tomadas
+   * --------------------------------------------------------------------------
+   * Devuelve un desglose cronológico de todas las jornadas de asistencia
+   * asentadas en una comisión (totales de presentes, ausentes, tardes, justificados).
    */
   async getHistorial(req: Request, res: Response) {
     const claseId = Number(req.params.claseId);
@@ -95,7 +145,10 @@ export const PreceptoriaController = {
   },
 
   /**
-   * GET /clases/:claseId/estadisticas - Estadísticas de asistencia
+   * --------------------------------------------------------------------------
+   * 6. GET /clases/:claseId/estadisticas — Indicadores Cuantitativos de Presentismo
+   * --------------------------------------------------------------------------
+   * Calcula el porcentaje global de asistencia de la comisión y los totales acumulados.
    */
   async getEstadisticas(req: Request, res: Response) {
     const claseId = Number(req.params.claseId);
@@ -107,8 +160,13 @@ export const PreceptoriaController = {
     }
   },
 
-  // ─── Controladores Administrativos (Gestión de Asignaciones) ───
+  // ==========================================================================
+  // GESTIÓN DE ASIGNACIONES (SUPERVISIÓN ADMINISTRATIVA)
+  // ==========================================================================
 
+  /**
+   * 7. GET /preceptores — Lista todos los preceptores registrados y cuántas clases tienen
+   */
   async listarPreceptores(_req: Request, res: Response) {
     try {
       const preceptores = await PreceptoriaService.listarPreceptores();
@@ -118,6 +176,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 8. POST /asignar — Asigna un preceptor a una comisión escolar
+   */
   async asignarClase(req: Request, res: Response) {
     const { preceptorId, claseId } = req.body;
     if (!preceptorId || !claseId) {
@@ -132,6 +193,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 9. POST /revocar — Revoca la asignación de un preceptor sobre una comisión
+   */
   async revocarAsignacion(req: Request, res: Response) {
     const { preceptorId, claseId } = req.body;
     try {
@@ -142,8 +206,18 @@ export const PreceptoriaController = {
     }
   },
 
-  // ─── Controladores Informativos para Alumnos ───
+  // ==========================================================================
+  // VISTA INFORMATIVA PARA ALUMNOS (CONSULTA Y CONSTANCIAS)
+  // ==========================================================================
 
+  /**
+   * 10. GET /mi-asistencia — Consulta Exclusiva del Estudiante
+   * 
+   * Devuelve las asistencias del alumno en sesión, porcentaje global,
+   * desglose de inasistencias y condición de regularidad oficial.
+   * Si no tiene asistencias aún, devuelve totalSesiones: 0 y porcentaje 100%
+   * de forma limpia sin generar errores 404 ni excepciones técnicas.
+   */
   async getMiAsistencia(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     if (!usuario || usuario.rol !== 'alumno') {
@@ -158,6 +232,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 11. POST /solicitar-constancia — Solicitud de Constancia de Alumno Regular
+   */
   async solicitarConstancia(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     if (!usuario || usuario.rol !== 'alumno') {
@@ -177,8 +254,13 @@ export const PreceptoriaController = {
     }
   },
 
-  // ─── Controladores del Panel de Preceptoría ───
+  // ==========================================================================
+  // PANEL DE CONTROL DE PRECEPTORÍA (ALUMNOS, RENDIMIENTO Y CONSTANCIAS)
+  // ==========================================================================
 
+  /**
+   * 12. GET /panel/alumnos — Nómina de Alumnos con Rendimiento
+   */
   async getAlumnosRendimiento(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const esAdmin = usuario.rol === 'admin';
@@ -196,6 +278,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 13. GET /panel/rendimiento-clases — Rendimiento Promedio por Comisión
+   */
   async getRendimientoClases(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const esAdmin = usuario.rol === 'admin';
@@ -209,6 +294,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 14. GET /constancias — Listado de Solicitudes de Constancias
+   */
   async listarConstancias(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const esAdmin = usuario.rol === 'admin';
@@ -222,6 +310,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 15. PUT /constancias/:id — Resolver (Aprobar/Rechazar) Constancia
+   */
   async resolverConstancia(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const constanciaId = Number(req.params.id);
@@ -243,6 +334,9 @@ export const PreceptoriaController = {
     }
   },
 
+  /**
+   * 16. POST /constancias/emitir-directa — Emisión Directa por Preceptoría
+   */
   async emitirConstanciaDirecta(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const { alumnoId, motivo, observaciones } = req.body;
@@ -263,8 +357,12 @@ export const PreceptoriaController = {
     }
   },
 
+  // ==========================================================================
+  // ASISTENCIA LABORAL DEL PERSONAL DOCENTE
+  // ==========================================================================
+
   /**
-   * GET /mi-asistencia-docente - Consulta personal de asistencia laboral para profesores
+   * 17. GET /mi-asistencia-docente — Consulta Personal para Profesores
    */
   async getMiAsistenciaDocente(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -281,7 +379,7 @@ export const PreceptoriaController = {
   },
 
   /**
-   * GET /docentes/asistencias - Lista asistencia docente para Administradores y Preceptores
+   * 18. GET /docentes/asistencias — Listado de Presentismo Docente (Admin/Preceptor)
    */
   async listarAsistenciasDocentes(req: Request, res: Response) {
     const fecha = req.query.fecha ? String(req.query.fecha) : undefined;
@@ -296,7 +394,7 @@ export const PreceptoriaController = {
   },
 
   /**
-   * POST /docentes/asistencias - Registrar o actualizar asistencia docente (Admin/Preceptor)
+   * 19. POST /docentes/asistencias — Asentar Asistencia de un Profesor
    */
   async guardarAsistenciaDocente(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -329,7 +427,7 @@ export const PreceptoriaController = {
   },
 
   /**
-   * DELETE /docentes/asistencias/:id - Eliminar registro de asistencia docente
+   * 20. DELETE /docentes/asistencias/:id — Eliminar Registro de Asistencia Docente
    */
   async eliminarAsistenciaDocente(req: Request, res: Response) {
     const id = Number(req.params.id);
@@ -343,4 +441,3 @@ export const PreceptoriaController = {
 };
 
 export default PreceptoriaController;
-

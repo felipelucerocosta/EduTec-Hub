@@ -69,7 +69,7 @@ export async function getMemberUserIdsForClass(claseId: number): Promise<number[
   );
   for (const row of alumnos.rows) ids.add(Number(row.alumno_id));
 
-  return [...ids].filter((id) => !isNaN(id) && id > 0);
+  return Array.from(ids).filter((id) => !isNaN(id) && id > 0);
 }
 
 export async function syncUserClassRooms(userId: number | string) {
@@ -94,7 +94,7 @@ export async function syncUserClassRooms(userId: number | string) {
   const sockets = await io.in(`user_${numericId}`).fetchSockets();
 
   for (const socket of sockets) {
-    for (const room of [...socket.rooms]) {
+    for (const room of Array.from(socket.rooms)) {
       if (typeof room === 'string' && room.startsWith('clase_')) {
         const id = Number(room.slice(6));
         if (!allowed.has(id)) {
@@ -102,7 +102,7 @@ export async function syncUserClassRooms(userId: number | string) {
         }
       }
     }
-    for (const id of allowed) {
+    for (const id of Array.from(allowed)) {
       socket.join(classRoom(id));
     }
   }

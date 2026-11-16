@@ -203,6 +203,22 @@ router.post('/login', async (req: Request, res: Response) => {
       if (usuario.estado_acceso !== 'ACTIVO') {
         try { await pool.query(`UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE id_usuario = $1`, [usuario.id_usuario]); } catch(_e){}
       }
+    } else if (rol === 'alumno') {
+      // Si el alumno ya cuenta con clases asignadas oficialmente, asegurar que su estado sea ACTIVO
+      try {
+        const countQ: any = await pool.query(
+          'SELECT COUNT(*) as total FROM alumnos_clases WHERE alumno_id = $1',
+          [usuario.id_usuario]
+        );
+        const totalClases = Number(countQ?.rows?.[0]?.total || 0);
+        if (totalClases > 0 && estado_acceso === 'PENDIENTE_DE_ASIGNACION') {
+          estado_acceso = 'ACTIVO';
+          await pool.query(
+            "UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE id_usuario = $1",
+            [usuario.id_usuario]
+          );
+        }
+      } catch (_e) {}
     }
 
     // Registrar en auditoría

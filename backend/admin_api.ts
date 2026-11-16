@@ -456,6 +456,27 @@ router.post(['/admin/clases/:id/asignar-alumno', '/admin/clases/:id/alumnos'], r
       [alumno_id, materia, codigo]
     );
 
+    // Activación automática: al asignar oficialmente una clase a un alumno pendiente, pasa a ACTIVO
+    await pool.query(
+      `UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE id_usuario = $1 AND (estado_acceso = 'PENDIENTE_DE_ASIGNACION' OR estado_acceso IS NULL)`,
+      [alumno_id]
+    );
+
+    // Sincronizar el campo 'curso' del usuario si aún no lo tiene definido
+    try {
+      const claseInfo = await pool.query('SELECT nombre, seccion FROM clases WHERE id = $1', [id]);
+      if (claseInfo.rows.length > 0) {
+        const cRow = claseInfo.rows[0];
+        const cursoNombre = cRow.seccion || cRow.nombre;
+        if (cursoNombre) {
+          await pool.query(
+            `UPDATE usuarios SET curso = COALESCE(curso, $1) WHERE id_usuario = $2`,
+            [cursoNombre, alumno_id]
+          );
+        }
+      }
+    } catch (_e) {}
+
     await syncUserClassRooms(alumno_id);
     emitToClass(id, 'student.assigned', { clase_id: Number(id), alumno_id: Number(alumno_id), nombre_completo: alumQ.rows[0].nombre_completo });
     emitToUser(alumno_id, 'student.assigned', { clase_id: Number(id) });

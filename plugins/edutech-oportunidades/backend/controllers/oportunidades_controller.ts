@@ -1,9 +1,38 @@
+/**
+ * ============================================================================
+ * ARCHIVO: oportunidades_controller.ts
+ * PLUGIN: EduTech Oportunidades — Portal de Pasantías y Proyectos
+ * ROL ARQUITECTURAL: Controlador HTTP (Capa de Presentación / API Backend)
+ * ============================================================================
+ * 
+ * RESPONSABILIDAD:
+ * Este archivo define los controladores que reciben las peticiones HTTP (Request)
+ * provenientes del frontend, extraen y validan los parámetros de entrada
+ * (headers, cookies de sesión, parámetros de ruta, query strings y cuerpo JSON),
+ * delegan la lógica de negocio al servicio correspondiente (OportunidadesService)
+ * y formatean la respuesta HTTP (Response) con los códigos de estado apropiados
+ * (200 OK, 201 Created, 400 Bad Request, 403 Forbidden, 404 Not Found, 500 Error).
+ * 
+ * SEGURIDAD Y CONTEXTO:
+ * Las solicitudes que llegan a este controlador ya han pasado por los middlewares
+ * de autenticación (requireAuth) y de control de roles (requireRoles) definidos
+ * en `oportunidades_routes.ts`. La información del usuario autenticado se extrae
+ * de forma confiable de `req.session.usuario`.
+ */
+
 import { Request, Response } from 'express';
 import { OportunidadesService } from '../services/oportunidades_service';
 
 export const OportunidadesController = {
   /**
-   * GET /health - Estado del plugin
+   * --------------------------------------------------------------------------
+   * 1. GET /health — Diagnóstico del Plugin
+   * --------------------------------------------------------------------------
+   * Permite verificar que el plugin esté activo, respondiendo y montado
+   * correctamente en Express sin requerir autenticación previa.
+   * 
+   * @param _req Solicitud Express (no requiere parámetros)
+   * @param res  Respuesta Express en formato JSON con metadatos del plugin
    */
   async getHealth(_req: Request, res: Response) {
     return res.json({
@@ -15,11 +44,22 @@ export const OportunidadesController = {
   },
 
   /**
-   * GET /oportunidades - Listado con filtros
+   * --------------------------------------------------------------------------
+   * 2. GET /oportunidades — Listado Filtrado de Convocatorias
+   * --------------------------------------------------------------------------
+   * Obtiene la nómina de oportunidades institucionales activas (pasantías,
+   * proyectos, becas), aplicando opcionalmente filtros combinables recibidos
+   * por query parameters en la URL.
+   * 
+   * Flujo de procesamiento:
+   * 1. Extrae parámetros opcionales de req.query (categoria, modalidad, nivel, estado, busqueda).
+   * 2. Invoca a `OportunidadesService.listarOportunidades` que actualiza vigencias y consulta la DB.
+   * 3. Devuelve { success: true, data: [...] } con status 200.
    */
   async listarOportunidades(req: Request, res: Response) {
     try {
       const { categoria, modalidad, nivelEducativo, estado, busqueda } = req.query;
+
       const data = await OportunidadesService.listarOportunidades({
         categoria: categoria ? String(categoria) : undefined,
         modalidad: modalidad ? String(modalidad) : undefined,
@@ -27,21 +67,31 @@ export const OportunidadesController = {
         estado: estado ? String(estado) : undefined,
         busqueda: busqueda ? String(busqueda) : undefined,
       });
+
       return res.json({ success: true, data });
     } catch (error: any) {
       console.error('Error al listar oportunidades:', error);
-      return res.status(500).json({ success: false, error: error.message || 'Error interno' });
+      return res.status(500).json({ success: false, error: error.message || 'Error interno del servidor' });
     }
   },
 
   /**
-   * GET /oportunidades/:id - Detalle
+   * --------------------------------------------------------------------------
+   * 3. GET /oportunidades/:id — Detalle Individual de una Convocatoria
+   * --------------------------------------------------------------------------
+   * Retorna toda la información descriptiva de una convocatoria específica,
+   * incluyendo requisitos, duración, horarios, vacantes y datos del responsable.
+   * 
+   * @param req.params.id Identificador numérico primario de la oportunidad
    */
   async obtenerDetalle(req: Request, res: Response) {
     const id = Number(req.params.id);
+
     try {
       const data = await OportunidadesService.obtenerOportunidad(id);
-      if (!data) return res.status(404).json({ success: false, error: 'Oportunidad no encontrada' });
+      if (!data) {
+        return res.status(404).json({ success: false, error: 'Oportunidad no encontrada' });
+      }
       return res.json({ success: true, data });
     } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message });
@@ -49,7 +99,16 @@ export const OportunidadesController = {
   },
 
   /**
-   * POST /oportunidades - Crear (Docentes / Administradores)
+   * --------------------------------------------------------------------------
+   * 4. POST /oportunidades — Publicación de Nueva Convocatoria
+   * --------------------------------------------------------------------------
+   * Permite a Docentes, Preceptores o Administradores publicar una nueva
+   * pasantía o proyecto técnico para que los alumnos puedan postularse.
+   * 
+   * Validaciones de integridad:
+   * - Campos esenciales obligatorios (título, institución, descripción, categoría, cierre, vacantes).
+   * - Asigna automáticamente como `responsableId` al usuario logueado en la sesión.
+   * - Inicializa el estado en 'abierta'.
    */
   async crearOportunidad(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -73,6 +132,7 @@ export const OportunidadesController = {
       contacto_email,
     } = req.body;
 
+    // Validación defensiva en backend de campos obligatorios
     if (!titulo || !institucion || !descripcion || !categoria || !fecha_cierre_inscripcion || !vacantes_totales) {
       return res.status(400).json({
         success: false,
@@ -102,6 +162,7 @@ export const OportunidadesController = {
         contactoEmail: contacto_email || usuario.correo,
         estado: 'abierta',
       });
+
       return res.status(201).json({ success: true, message: 'Convocatoria creada exitosamente.', id });
     } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message });
@@ -109,15 +170,24 @@ export const OportunidadesController = {
   },
 
   /**
-   * PUT /oportunidades/:id - Editar
+   * --------------------------------------------------------------------------
+   * 5. PUT /oportunidades/:id — Modificación de una Convocatoria
+   * --------------------------------------------------------------------------
+   * Permite actualizar la información de una convocatoria existente.
+   * 
+   * Regla de Autorización:
+   * - Solo el creador original (`responsable_id === usuario.id`) o un Administrador
+   *   tienen permiso para alterar los datos de la convocatoria.
    */
   async modificarOportunidad(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const id = Number(req.params.id);
 
+    // Verificar existencia previa
     const op = await OportunidadesService.obtenerOportunidad(id);
     if (!op) return res.status(404).json({ error: 'Oportunidad no encontrada' });
 
+    // Comprobación de pertenencia o facultades de superusuario
     if (op.responsable_id !== usuario.id && usuario.rol !== 'admin' && !usuario.isAdmin) {
       return res.status(403).json({ error: 'No tienes autorización para editar esta convocatoria.' });
     }
@@ -131,7 +201,15 @@ export const OportunidadesController = {
   },
 
   /**
-   * POST /oportunidades/:id/postular - Postulación del estudiante
+   * --------------------------------------------------------------------------
+   * 6. POST /oportunidades/:id/postular — Postulación del Alumno
+   * --------------------------------------------------------------------------
+   * Permite a un estudiante formalizar su postulación a una vacante activa,
+   * enviando carta de presentación, motivación y disponibilidad horaria.
+   * 
+   * Regla de Negocio:
+   * - Solo usuarios con rol 'alumno' pueden invocar este método.
+   * - Impide doble postulación mediante la restricción UNIQUE(oportunidad_id, alumno_id).
    */
   async postularse(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -151,21 +229,28 @@ export const OportunidadesController = {
         conocimientosPrevios: conocimientos_previos,
         disponibilidad,
       });
+
       return res.status(201).json({
         success: true,
         message: '¡Te has postulado con éxito! El responsable evaluará tu perfil.',
         postulacionId,
       });
     } catch (error: any) {
+      // El servicio lanza excepciones claras si la convocatoria ya expiró o ya se postuló
       return res.status(400).json({ success: false, error: error.message });
     }
   },
 
   /**
-   * GET /mis-postulaciones - Postulaciones del alumno en sesión
+   * --------------------------------------------------------------------------
+   * 7. GET /mis-postulaciones — Seguimiento Personal del Estudiante
+   * --------------------------------------------------------------------------
+   * Devuelve todas las postulaciones realizadas por el alumno logueado,
+   * con su estado de evaluación actual y fecha de postulación.
    */
   async misPostulaciones(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
+
     try {
       const data = await OportunidadesService.listarPostulacionesAlumno(usuario.id);
       return res.json({ success: true, data });
@@ -175,7 +260,11 @@ export const OportunidadesController = {
   },
 
   /**
-   * GET /oportunidades/:id/postulantes - Postulantes de una oportunidad (responsable)
+   * --------------------------------------------------------------------------
+   * 8. GET /oportunidades/:id/postulantes — Lista de Aspirantes
+   * --------------------------------------------------------------------------
+   * Permite al responsable o administrador ver todos los alumnos inscriptos
+   * a una de sus convocatorias, con sus perfiles académicos y presentaciones.
    */
   async verPostulantes(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -197,14 +286,20 @@ export const OportunidadesController = {
   },
 
   /**
-   * PUT /postulaciones/:id/estado - Actualizar estado (evaluar, aceptar, rechazar)
+   * --------------------------------------------------------------------------
+   * 9. PUT /postulaciones/:id/estado — Resolución y Evaluación de Aspirantes
+   * --------------------------------------------------------------------------
+   * Permite al docente o directivo cambiar el estado de la postulación
+   * (pendiente, en_evaluacion, entrevista, aceptada, rechazada, lista_espera),
+   * adjuntar observaciones formativas y desencadenar el envío de correo.
    */
   async actualizarEstadoPostulacion(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
     const id = Number(req.params.id);
     const { estado, notas } = req.body;
 
-    if (!['pendiente', 'en_evaluacion', 'entrevista', 'aceptada', 'rechazada', 'lista_espera'].includes(estado)) {
+    const estadosValidos = ['pendiente', 'en_evaluacion', 'entrevista', 'aceptada', 'rechazada', 'lista_espera'];
+    if (!estadosValidos.includes(estado)) {
       return res.status(400).json({ error: 'Estado de postulación inválido.' });
     }
 
@@ -221,7 +316,11 @@ export const OportunidadesController = {
   },
 
   /**
-   * DELETE /postulaciones/:id - Cancelar postulación (alumno)
+   * --------------------------------------------------------------------------
+   * 10. DELETE /postulaciones/:id — Cancelación Voluntaria de Postulación
+   * --------------------------------------------------------------------------
+   * Permite a un estudiante dar de baja su postulación mientras aún se
+   * encuentre pendiente de resolución.
    */
   async cancelarPostulacion(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -236,7 +335,11 @@ export const OportunidadesController = {
   },
 
   /**
-   * GET /metricas - Telemetría del responsable / admin
+   * --------------------------------------------------------------------------
+   * 11. GET /metricas — Telemetría y Estadísticas del Panel Institucional
+   * --------------------------------------------------------------------------
+   * Calcula indicadores cuantitativos (total publicadas, vacantes cubiertas,
+   * postulaciones totales, etc.) para el dashboard analítico del docente/admin.
    */
   async getMetricas(req: Request, res: Response) {
     const usuario = (req.session as any)?.usuario;
@@ -252,4 +355,3 @@ export const OportunidadesController = {
 };
 
 export default OportunidadesController;
-

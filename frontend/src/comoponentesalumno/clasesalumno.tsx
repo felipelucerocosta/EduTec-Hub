@@ -23,12 +23,12 @@ const ClasesAlumno: React.FC = () => {
   const { user } = useAuth();
   const [mostrarUnirse, setMostrarUnirse] = useState(false);
   const [clases, setClases] = useState<Clase[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [mensajeError, setMensajeError] = useState("");
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "" }>({ msg: "", type: "" });
   const navigate = useNavigate();
 
-  // Check if student is pending or suspended
-  const esPendiente = user?.rol === 'alumno' && user?.estado_acceso !== 'ACTIVO';
+  // Check if student is suspended
   const isSuspendido = user?.estado_acceso === 'SUSPENDIDO';
 
   const showToast = (msg: string, type: "success" | "error") => {
@@ -38,23 +38,28 @@ const ClasesAlumno: React.FC = () => {
 
   const cargarClases = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`${API_URL}/alumno/mis-clases`, {
         credentials: "include",
       });
       if (response.ok) {
         const data = await response.json();
-        setClases(data);
+        setClases(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Error cargando clases:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!esPendiente) {
+    if (!isSuspendido) {
       cargarClases();
+    } else {
+      setLoading(false);
     }
-  }, [esPendiente]);
+  }, [isSuspendido]);
 
   const handleUnirseClase = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -92,8 +97,20 @@ const ClasesAlumno: React.FC = () => {
     }
   };
 
-  // ── Pantalla para alumnos PENDIENTES o SUSPENDIDOS ───────────────────────────────────────
-  if (esPendiente) {
+  // ── Pantalla de Carga ───────────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <AppLayout>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem', color: '#94a3b8' }}>
+          <i className="bx bx-loader-alt bx-spin" style={{ fontSize: '2.5rem', color: '#38bdf8' }}></i>
+          <p style={{ margin: 0, fontSize: '0.95rem' }}>Cargando tus comisiones académicas...</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // ── Pantalla para alumnos SUSPENDIDOS o SIN CLASES ASIGNADAS (PENDIENTES) ─────────────────
+  if (isSuspendido || clases.length === 0) {
     return (
       <AppLayout>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', padding: '2rem', textAlign: 'center' }}>

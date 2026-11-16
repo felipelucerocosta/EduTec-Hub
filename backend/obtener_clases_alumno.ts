@@ -13,21 +13,41 @@ router.get('/alumno/mis-clases', async (req: Request, res: Response) => {
   }
 
   try {
-    // Si el alumno está PENDIENTE → retornar array vacío (sin contenido visible)
+    // Si el alumno está en estado PENDIENTE, verificar si ya se le asignaron clases
     if (usuario?.rol === 'alumno') {
       const estadoQ: any = await pool.query(
         'SELECT estado_acceso FROM usuarios WHERE id_usuario = $1',
         [alumno_id]
       );
       const estado = estadoQ.rows[0]?.estado_acceso || 'PENDIENTE_DE_ASIGNACION';
-      if (estado !== 'ACTIVO') {
+
+      // Cuentas explícitamente suspendidas o inactivas no ven contenido
+      if (estado === 'SUSPENDIDO' || estado === 'INACTIVO') {
         try {
           await pool.query(
-            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'ACCESO_DENEGADO_PENDIENTE', $3)`,
+            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'ACCESO_DENEGADO_SUSPENDIDO', $3)`,
             [alumno_id, usuario.correo || '', `Intento de acceder a clases con estado: ${estado}`]
           );
         } catch (_e) {}
-        return res.json([]); // Array vacío
+        return res.json([]);
+      }
+
+      if (estado !== 'ACTIVO') {
+        // Verificar si ya fue inscripto en alguna clase
+        const countQ: any = await pool.query(
+          'SELECT COUNT(*) as total FROM alumnos_clases WHERE alumno_id = $1',
+          [alumno_id]
+        );
+        const total = Number(countQ?.rows?.[0]?.total || 0);
+        if (total > 0) {
+          // Ya tiene clases asignadas por Administración: auto-regularizar a ACTIVO
+          try {
+            await pool.query("UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE id_usuario = $1", [alumno_id]);
+          } catch (_e) {}
+        } else {
+          // Realmente no tiene clases asignadas aún
+          return res.json([]);
+        }
       }
     }
 

@@ -32,12 +32,12 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    const esPendiente = user.rol === 'alumno' && user.estado_acceso !== 'ACTIVO';
+    const isSuspendido = user.estado_acceso === 'SUSPENDIDO';
 
     const fetchData = async () => {
       setLoading(true);
       try {
-        if (!esPendiente) {
+        if (!isSuspendido) {
           // 1. Clases asignadas
           const endpoint = user.rol === 'alumno' ? '/api/alumno/mis-clases' : '/api/profesor/mis-clases';
           const resClases = await fetch(`${BACKEND_URL}${endpoint}`, { credentials: 'include' });

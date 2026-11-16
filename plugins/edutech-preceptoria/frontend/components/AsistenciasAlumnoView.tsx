@@ -1,27 +1,55 @@
+/**
+ * ============================================================================
+ * ARCHIVO: AsistenciasAlumnoView.tsx
+ * PLUGIN: EduTech Preceptoría — Control Exclusivo de Asistencia
+ * ROL ARQUITECTURAL: Componente de Presentación e Interacción (Frontend View)
+ * ============================================================================
+ * 
+ * RESPONSABILIDAD:
+ * Proporciona a los estudiantes una interfaz completa para:
+ * 1. Monitorear su porcentaje general de presentismo escolar en tiempo real.
+ * 2. Visualizar su condición de regularidad institucional (Regular / No regular).
+ * 3. Consultar el desglose de inasistencias, tardanzas y justificaciones.
+ * 4. Filtrar el historial cronológico por materia/comisión.
+ * 5. Tramitar y descargar constancias oficiales de alumno regular con código QR/verificación.
+ * 
+ * TRATAMIENTO DE ESTADOS VACÍOS:
+ * Si el alumno es recién inscripto o la preceptoría aún no asentó jornadas,
+ * la vista presenta un estado informativo pedagógico sin arrojar excepciones técnicas.
+ */
+
 import React, { useState, useEffect } from 'react';
 import PreceptoriaAPI, { type MiAsistenciaData, type ConstanciaItem } from '../services/preceptoria_api';
 
 export const AsistenciasAlumnoView: React.FC = () => {
+  // Estado principal con los datos consolidados de asistencia recibidos del backend
   const [data, setData] = useState<MiAsistenciaData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal de solicitud de constancia
+  // Estados locales para el modal de solicitud de constancia de alumno regular
   const [showModal, setShowModal] = useState<boolean>(false);
   const [motivo, setMotivo] = useState<string>('Presentación ante organismo oficial / Obra social / Trámite familiar');
   const [enviando, setEnviando] = useState<boolean>(false);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
-  // Modal de visualización de constancia emitida
+  // Estado para desplegar el modal interactivo de la constancia aprobada y firmada
   const [constanciaSeleccionada, setConstanciaSeleccionada] = useState<ConstanciaItem | null>(null);
 
-  // Filtro de materia
+  // Filtro reactivo por asignatura escolar
   const [filtroMateria, setFiltroMateria] = useState<string>('todas');
 
+  /**
+   * Efecto de montaje inicial: recupera las asistencias del alumno en sesión
+   */
   useEffect(() => {
     cargarAsistencias();
   }, []);
 
+  /**
+   * Llama a la API REST (`GET /api/plugins/edutech-preceptoria/mi-asistencia`)
+   * y almacena la respuesta en el estado local.
+   */
   const cargarAsistencias = async () => {
     try {
       setLoading(true);
@@ -36,6 +64,9 @@ export const AsistenciasAlumnoView: React.FC = () => {
     }
   };
 
+  /**
+   * Envía la solicitud de constancia al preceptor a cargo (`POST /solicitar-constancia`)
+   */
   const handleSolicitarConstancia = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!motivo.trim()) return;
@@ -46,7 +77,7 @@ export const AsistenciasAlumnoView: React.FC = () => {
       setMensajeExito('¡Solicitud enviada a Preceptoría! Un preceptor revisará tu condición a la brevedad.');
       setShowModal(false);
       setMotivo('Presentación ante organismo oficial / Obra social / Trámite familiar');
-      // Recargar datos
+      // Recargar datos actualizados
       await cargarAsistencias();
       setTimeout(() => setMensajeExito(null), 6000);
     } catch (err: any) {
@@ -438,9 +469,16 @@ export const AsistenciasAlumnoView: React.FC = () => {
         </div>
 
         {registrosFiltrados.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-            <i className="bx bx-calendar-x" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}></i>
-            <p>No se encontraron registros de asistencia para el filtro seleccionado.</p>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748b' }}>
+            <i className="bx bx-calendar-check" style={{ fontSize: '2.8rem', color: '#38bdf8', marginBottom: '0.75rem', opacity: 0.8 }}></i>
+            <h4 style={{ color: '#cbd5e1', fontSize: '1.05rem', margin: '0 0 0.5rem 0' }}>
+              {data.totalSesiones === 0 ? 'Sin registros de presentismo aún' : 'No hay registros para el filtro seleccionado'}
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.88rem', maxWidth: '480px', marginInline: 'auto' }}>
+              {data.totalSesiones === 0
+                ? 'Tu preceptoría aún no ha asentado jornadas de asistencia para tus comisiones. Las asistencias oficiales aparecerán aquí automáticamente en tiempo real.'
+                : 'Intenta seleccionando otra materia en el selector de filtros superior.'}
+            </p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>

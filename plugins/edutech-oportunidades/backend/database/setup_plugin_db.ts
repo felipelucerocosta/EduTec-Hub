@@ -1,12 +1,42 @@
+/**
+ * ============================================================================
+ * ARCHIVO: setup_plugin_db.ts
+ * PLUGIN: EduTech Oportunidades — Portal de Pasantías y Proyectos
+ * ROL ARQUITECTURAL: Migraciones e Inicialización de Base de Datos (Database Schema)
+ * ============================================================================
+ * 
+ * RESPONSABILIDAD:
+ * Crea las tablas e índices necesarios para el plugin de Oportunidades si no
+ * existen previamente en el motor SQLite/PostgreSQL.
+ * 
+ * POLÍTICA DE SEGURIDAD Y AISLAMIENTO:
+ * - Todas las tablas llevan el prefijo `plugin_oportunidades*` para evitar colisiones
+ *   con el esquema central de EduTec-Hub.
+ * - Se definen claves foráneas (FOREIGN KEY) hacia `usuarios(id_usuario)` con borrado
+ *   en cascada (ON DELETE CASCADE) cuando corresponde, asegurando integridad referencial.
+ */
+
 import pool from '../../../../backend/conexion_pg';
 
-/**
- * Esquema de base de datos para el plugin EduTech Oportunidades
- * Compatible con SQLite / PostgreSQL adapter.
- */
 export async function setupOportunidadesDatabase(): Promise<void> {
   try {
-    // 1. Tabla de Oportunidades Institucionales
+    /**
+     * ------------------------------------------------------------------------
+     * TABLA 1: plugin_oportunidades (Convocatorias Institucionales)
+     * ------------------------------------------------------------------------
+     * Almacena cada una de las ofertas de pasantías, becas o proyectos técnicos.
+     * 
+     * Columnas destacadas:
+     * - id: Clave primaria autoincremental.
+     * - titulo, institucion, descripcion: Información descriptiva básica.
+     * - tipo_oportunidad: 'pasantia' | 'proyecto_tecnico' | 'investigacion' | 'beca'.
+     * - vacantes_totales: Cupo máximo de alumnos admitidos.
+     * - vacantes_ocupadas: Contador dinámico de aspirantes aceptados.
+     * - fecha_cierre_inscripcion: Fecha límite tras la cual se cierra la inscripción.
+     * - modalidad: 'presencial' | 'remoto' | 'hibrido'.
+     * - responsable_id: Usuario docente/directivo que creó y gestiona la búsqueda.
+     * - estado: 'abierta' | 'cerrada' | 'finalizada'.
+     */
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_oportunidades (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +66,18 @@ export async function setupOportunidadesDatabase(): Promise<void> {
       );
     `);
 
-    // 2. Tabla de Postulaciones de Alumnos
+    /**
+     * ------------------------------------------------------------------------
+     * TABLA 2: plugin_oportunidades_postulaciones (Postulaciones de Alumnos)
+     * ------------------------------------------------------------------------
+     * Almacena las solicitudes enviadas por los estudiantes a una oportunidad.
+     * 
+     * Restricción UNIQUE(oportunidad_id, alumno_id):
+     * Impide que un alumno se postule dos veces a la misma convocatoria.
+     * 
+     * Clave foránea ON DELETE CASCADE:
+     * Si la oportunidad es eliminada, sus postulaciones se eliminan automáticamente.
+     */
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_oportunidades_postulaciones (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +97,13 @@ export async function setupOportunidadesDatabase(): Promise<void> {
       );
     `);
 
-    // 3. Índices de aceleración
+    /**
+     * ------------------------------------------------------------------------
+     * ÍNDICES DE ACELERACIÓN B-TREE
+     * ------------------------------------------------------------------------
+     * Agilizan drásticamente los filtros frecuentes del catálogo público
+     * y las consultas por responsable y por alumno.
+     */
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_oportunidades_estado
       ON plugin_oportunidades(estado);
@@ -90,4 +137,3 @@ export async function setupOportunidadesDatabase(): Promise<void> {
 }
 
 export default setupOportunidadesDatabase;
-

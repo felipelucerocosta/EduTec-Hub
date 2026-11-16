@@ -12,12 +12,17 @@ const candidateNodeModules = [
   path.resolve(process.cwd(), 'node_modules'),
 ].filter(p => fs.existsSync(p));
 
+process.env.NODE_PATH = candidateNodeModules.join(path.delimiter);
+if (typeof (Module as any)._initPaths === 'function') {
+  (Module as any)._initPaths();
+}
+
 const origResolveFilename = (Module as any)._resolveFilename;
 (Module as any)._resolveFilename = function (request: string, parent: any, isMain: boolean, options: any) {
   try {
     return origResolveFilename.call(this, request, parent, isMain, options);
   } catch (err: any) {
-    if (err && err.code === 'MODULE_NOT_FOUND' && !request.startsWith('.') && !request.startsWith('/') && !request.includes(':')) {
+    if (err && (err.code === 'MODULE_NOT_FOUND' || (err.message && err.message.includes('Cannot find module'))) && !request.startsWith('.') && !request.startsWith('/') && !request.includes(':')) {
       for (const baseDir of candidateNodeModules) {
         try {
           const fallbackPath = path.join(baseDir, request);
@@ -68,18 +73,34 @@ const boletinRouter        = interop(require('./boletin'));
 const simuladoresApiRouter = interop(require('./simuladores_api'));
 const adminApiRouter       = interop(require('./admin_api'));
 let pluginRegistry: any = null;
-try {
-  pluginRegistry = interop(require('../plugins/index'));
-} catch (_e1) {
+const candidatePluginPaths = [
+  '../plugins/index',
+  '../../plugins/index',
+  path.resolve(__dirname, '../plugins/index'),
+  path.resolve(__dirname, '../../plugins/index'),
+  path.resolve(process.cwd(), 'plugins/index'),
+  path.resolve(process.cwd(), 'dist_backend/plugins/index'),
+  path.resolve(__dirname, '../dist_backend/plugins/index'),
+  path.resolve(__dirname, '../../dist_backend/plugins/index'),
+];
+
+for (const p of candidatePluginPaths) {
   try {
-    pluginRegistry = interop(require(path.resolve(__dirname, '../plugins/index')));
-  } catch (_e2) {
-    try {
-      pluginRegistry = interop(require(path.resolve(process.cwd(), 'plugins/index')));
-    } catch (e3: any) {
-      console.warn('⚠️ [Plugin Registry] Plugins opcionales no disponibles:', e3?.message);
+    const loaded = interop(require(p));
+    if (loaded && typeof loaded.mountAll === 'function') {
+      pluginRegistry = loaded;
+      console.log(`🔌 [Plugin Registry] Cargado exitosamente desde: ${p}`);
+      break;
+    }
+  } catch (err: any) {
+    if (!err.message?.includes('Cannot find module')) {
+      console.warn(`⚠️ [Plugin Registry] Advertencia al evaluar ${p}:`, err.message);
     }
   }
+}
+
+if (!pluginRegistry) {
+  console.warn('⚠️ [Plugin Registry] Plugins opcionales no disponibles o no encontrados en las rutas especificadas.');
 }
 
 const setupDb = interop(require('./setup_db'));

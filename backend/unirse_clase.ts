@@ -61,6 +61,13 @@ router.post('/unirse-clase', async (req: Request, res: Response) => {
       VALUES ($1, $2, $3)
     `;
     await pool.query(insertSql, [alumno_id, clase.materia, clase.codigo]);
+
+    // Activación automática: al unirse a una clase, el alumno pasa a estado ACTIVO
+    await pool.query(
+      `UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE id_usuario = $1 AND (estado_acceso = 'PENDIENTE_DE_ASIGNACION' OR estado_acceso IS NULL)`,
+      [alumno_id]
+    );
+
     await syncUserClassRooms(alumno_id);
     emitToUser(alumno_id, 'student.assigned', { clase_id: Number(clase.id) });
     emitToUser(alumno_id, 'class.created', { id: Number(clase.id), nombre: clase.nombre });

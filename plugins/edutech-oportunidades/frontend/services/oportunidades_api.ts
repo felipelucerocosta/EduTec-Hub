@@ -1,5 +1,24 @@
+/**
+ * ============================================================================
+ * ARCHIVO: oportunidades_api.ts
+ * PLUGIN: EduTech Oportunidades — Portal de Pasantías y Proyectos
+ * ROL ARQUITECTURAL: Cliente de Comunicación HTTP (Frontend Service / API Client)
+ * ============================================================================
+ * 
+ * RESPONSABILIDAD:
+ * Provee métodos fuertemente tipados para comunicarse con los endpoints REST
+ * del plugin en el backend mediante la API Fetch nativa.
+ * 
+ * SEGURIDAD Y CREDENCIALES:
+ * Todas las llamadas incluyen `{ credentials: 'include' }` para transmitir
+ * automáticamente la cookie de sesión (`connect.sid`) de express-session.
+ */
+
 import { API_URL } from '../../../../frontend/src/config/api';
 
+/**
+ * Modelo de datos de una Oportunidad (Convocatoria) en el cliente.
+ */
 export interface OportunidadItem {
   id: number;
   titulo: string;
@@ -26,6 +45,9 @@ export interface OportunidadItem {
   estado: 'abierta' | 'cerrada' | 'finalizada' | 'cancelada';
 }
 
+/**
+ * Modelo de datos de una Postulación enviada por un alumno.
+ */
 export interface PostulacionItem {
   id: number;
   oportunidad_id: number;
@@ -49,6 +71,9 @@ export interface PostulacionItem {
   notas_responsable?: string | null;
 }
 
+/**
+ * Métricas cuantitativas del responsable de convocatorias.
+ */
 export interface MetricasResponsable {
   totalOportunidades: number;
   totalPostulaciones: number;
@@ -58,15 +83,22 @@ export interface MetricasResponsable {
   entrevistas: number;
 }
 
+// Prefijo canónico de ruta del plugin en Express
 const PLUGIN_BASE = `${API_URL}/plugins/oportunidades`;
 
 export const OportunidadesAPI = {
+  /**
+   * Consulta el estado de salud del plugin (Health Check)
+   */
   async getHealth() {
     const res = await fetch(`${PLUGIN_BASE}/health`, { credentials: 'include' });
     const json = await res.json();
     return json;
   },
 
+  /**
+   * Obtiene la lista de convocatorias disponibles aplicando filtros por query string.
+   */
   async listarOportunidades(filtros: {
     categoria?: string;
     modalidad?: string;
@@ -87,6 +119,9 @@ export const OportunidadesAPI = {
     return json.data || [];
   },
 
+  /**
+   * Obtiene la ficha de detalle de una oportunidad por su ID.
+   */
   async obtenerDetalle(id: number): Promise<OportunidadItem> {
     const res = await fetch(`${PLUGIN_BASE}/oportunidades/${id}`, { credentials: 'include' });
     const json = await res.json();
@@ -94,6 +129,9 @@ export const OportunidadesAPI = {
     return json.data;
   },
 
+  /**
+   * Crea una nueva convocatoria institucional enviando payload JSON (Docentes/Admin).
+   */
   async crearOportunidad(data: {
     titulo: string;
     institucion: string;
@@ -124,6 +162,9 @@ export const OportunidadesAPI = {
     return json;
   },
 
+  /**
+   * Envía la postulación de un estudiante a una convocatoria.
+   */
   async postularse(oportunidadId: number, data: {
     presentacion?: string;
     motivacion?: string;
@@ -141,6 +182,9 @@ export const OportunidadesAPI = {
     return json;
   },
 
+  /**
+   * Obtiene las postulaciones realizadas por el alumno en sesión.
+   */
   async misPostulaciones(): Promise<PostulacionItem[]> {
     const res = await fetch(`${PLUGIN_BASE}/mis-postulaciones`, { credentials: 'include' });
     const json = await res.json();
@@ -148,6 +192,9 @@ export const OportunidadesAPI = {
     return json.data || [];
   },
 
+  /**
+   * Cancela una postulación voluntariamente.
+   */
   async cancelarPostulacion(id: number) {
     const res = await fetch(`${PLUGIN_BASE}/postulaciones/${id}`, {
       method: 'DELETE',
@@ -158,6 +205,9 @@ export const OportunidadesAPI = {
     return json;
   },
 
+  /**
+   * Obtiene la lista de postulantes inscriptos en una convocatoria (para el responsable).
+   */
   async verPostulantes(oportunidadId: number): Promise<PostulacionItem[]> {
     const res = await fetch(`${PLUGIN_BASE}/oportunidades/${oportunidadId}/postulantes`, { credentials: 'include' });
     const json = await res.json();
@@ -165,6 +215,9 @@ export const OportunidadesAPI = {
     return json.data || [];
   },
 
+  /**
+   * Actualiza el estado de una postulación (evaluar, aceptar, rechazar).
+   */
   async actualizarEstadoPostulacion(postulacionId: number, estado: string, notas?: string) {
     const res = await fetch(`${PLUGIN_BASE}/postulaciones/${postulacionId}/estado`, {
       method: 'PUT',
@@ -177,6 +230,9 @@ export const OportunidadesAPI = {
     return json;
   },
 
+  /**
+   * Obtiene los indicadores estadísticos de convocatorias del usuario logueado.
+   */
   async getMetricas(): Promise<MetricasResponsable> {
     const res = await fetch(`${PLUGIN_BASE}/metricas`, { credentials: 'include' });
     const json = await res.json();
@@ -186,4 +242,3 @@ export const OportunidadesAPI = {
 };
 
 export default OportunidadesAPI;
-
