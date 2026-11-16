@@ -27,8 +27,6 @@ import Boletin from "./pages/Boletin";
 import Simuladores from "./pages/Simuladores";
 import TrabajoDetallePage from "./pages/TrabajoDetallePage";
 import TrabajoProfesorPage from "./pages/TrabajoProfesorPage";
-// === AULA ACTIVA (FUNCIONALIDAD NATIVA) ===
-import AulaActiva from "./pages/AulaActiva";
 // === PLUGIN 1: PRECEPTORÍA (EXCLUSIVO ASISTENCIA) ===
 import PreceptoriaPage from "../../plugins/edutech-preceptoria/frontend/pages/PreceptoriaPage";
 // === PLUGIN 3: OPORTUNIDADES ===
@@ -125,12 +123,8 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* FUNCIONALIDAD NATIVA: AULA ACTIVA */}
-      <Route path="/aula-activa" element={
-        <ProtectedRoute allowedRoles={["alumno", "profesor", "admin", "preceptor"]}>
-          <AulaActiva />
-        </ProtectedRoute>
-      } />
+      {/* AULA ACTIVA REMOVIDA DE NAVEGACIÓN — REDIRECCIÓN SEGURA */}
+      <Route path="/aula-activa" element={<Navigate to="/dashboard" replace />} />
 
       {/* PLUGIN 3: OPORTUNIDADES */}
       <Route path="/oportunidades" element={

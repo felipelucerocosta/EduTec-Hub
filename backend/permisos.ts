@@ -11,8 +11,54 @@ export interface UsuarioSesion {
 }
 
 /**
+ * Normaliza cualquier variante de rol a uno de los 4 roles canónicos.
+ */
+export function normalizarRol(rol?: string | null): 'admin' | 'profesor' | 'alumno' | 'preceptor' {
+  if (!rol) return 'alumno';
+  const r = String(rol).trim().toLowerCase();
+  if (['admin', 'administrador', 'administrator', 'adm'].includes(r)) return 'admin';
+  if (['profesor', 'docente', 'teacher'].includes(r)) return 'profesor';
+  if (['preceptor', 'preceptoria'].includes(r)) return 'preceptor';
+  return 'alumno';
+}
+
+export function esAdmin(usuario?: any): boolean {
+  if (!usuario) return false;
+  if (typeof usuario === 'string') return normalizarRol(usuario) === 'admin';
+  if (usuario.isAdmin === true) return true;
+  return normalizarRol(usuario.rol) === 'admin';
+}
+
+export function esProfesor(usuario?: any): boolean {
+  if (!usuario) return false;
+  const r = typeof usuario === 'string' ? usuario : usuario.rol;
+  return normalizarRol(r) === 'profesor';
+}
+
+export function esPreceptor(usuario?: any): boolean {
+  if (!usuario) return false;
+  const r = typeof usuario === 'string' ? usuario : usuario.rol;
+  return normalizarRol(r) === 'preceptor';
+}
+
+export function esAlumno(usuario?: any): boolean {
+  if (!usuario) return false;
+  const r = typeof usuario === 'string' ? usuario : usuario.rol;
+  return normalizarRol(r) === 'alumno';
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const usuario = req.session?.usuario;
+  if (!usuario || !esAdmin(usuario)) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' });
+  }
+  next();
+}
+
+/**
  * Verifica si un usuario tiene acceso legítimo a una clase específica.
  * - Admin: acceso total.
+ * - Preceptor: acceso de supervisión y gestión de asistencias/actas.
  * - Profesor: acceso si es titular_id o está en profesores_clases.
  * - Alumno: acceso si está inscripto en alumnos_clases (asociado al código de la clase).
  */
@@ -37,17 +83,19 @@ export async function verificarAccesoClase(
     const clase = claseRes.rows[0];
 
     // 1. Admin siempre tiene acceso
-    if (usuario.rol === 'admin' || usuario.isAdmin) {
+    if (esAdmin(usuario)) {
       return { permitido: true, clase };
     }
 
     // 1.1. Preceptor tiene acceso de supervisión y gestión de asistencias/actas
-    if (usuario.rol === 'preceptor') {
+    if (esPreceptor(usuario)) {
       return { permitido: true, clase };
     }
 
+    const rolNorm = normalizarRol(usuario.rol);
+
     // 2. Profesor
-    if (usuario.rol === 'profesor') {
+    if (rolNorm === 'profesor') {
       if (clase.titular_id === usuario.id) {
         return { permitido: true, clase };
       }
@@ -66,7 +114,7 @@ export async function verificarAccesoClase(
     }
 
     // 3. Alumno
-    if (usuario.rol === 'alumno') {
+    if (rolNorm === 'alumno') {
       const codigoClase = String(clase.codigo || '').trim().toLowerCase();
       const acRes = await pool.query(
         'SELECT id FROM alumnos_clases WHERE alumno_id = $1 AND LOWER(TRIM(codigo)) = $2 LIMIT 1',

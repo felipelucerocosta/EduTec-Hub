@@ -1,25 +1,38 @@
 import Module from 'module';
 import path from 'path';
+import fs from 'fs';
 
 // Asegurar que plugins y módulos externos (ej. /plugins) compartan y resuelvan las dependencias
-// del backend principal (Express, etc.) sin necesidad de duplicar paquetes en cada plugin.
-const backendNodeModules = path.join(__dirname, 'node_modules');
+// del backend principal (Express, etc.) tanto en desarrollo como en distribución compilada o Electron.
+const candidateNodeModules = [
+  path.join(__dirname, 'node_modules'),
+  path.join(__dirname, '../node_modules'),
+  path.join(__dirname, '../../backend/node_modules'),
+  path.resolve(process.cwd(), 'backend/node_modules'),
+  path.resolve(process.cwd(), 'node_modules'),
+].filter(p => fs.existsSync(p));
+
 const origResolveFilename = (Module as any)._resolveFilename;
 (Module as any)._resolveFilename = function (request: string, parent: any, isMain: boolean, options: any) {
   try {
     return origResolveFilename.call(this, request, parent, isMain, options);
   } catch (err: any) {
     if (err && err.code === 'MODULE_NOT_FOUND' && !request.startsWith('.') && !request.startsWith('/') && !request.includes(':')) {
-      try {
-        const fallbackPath = path.join(backendNodeModules, request);
-        return origResolveFilename.call(this, fallbackPath, parent, isMain, options);
-      } catch (_) {}
+      for (const baseDir of candidateNodeModules) {
+        try {
+          const fallbackPath = path.join(baseDir, request);
+          return origResolveFilename.call(this, fallbackPath, parent, isMain, options);
+        } catch (_) {}
+      }
     }
     throw err;
   }
 };
-if (!(Module as any).globalPaths.includes(backendNodeModules)) {
-  (Module as any).globalPaths.push(backendNodeModules);
+
+for (const dir of candidateNodeModules) {
+  if (!(Module as any).globalPaths.includes(dir)) {
+    (Module as any).globalPaths.push(dir);
+  }
 }
 
 import express, { type Request, type Response } from 'express';
@@ -54,15 +67,28 @@ const rendimientoRouter    = interop(require('./rendimiento'));
 const boletinRouter        = interop(require('./boletin'));
 const simuladoresApiRouter = interop(require('./simuladores_api'));
 const adminApiRouter       = interop(require('./admin_api'));
-const pluginRegistry       = interop(require('../plugins/index'));
+let pluginRegistry: any = null;
+try {
+  pluginRegistry = interop(require('../plugins/index'));
+} catch (_e1) {
+  try {
+    pluginRegistry = interop(require(path.resolve(__dirname, '../plugins/index')));
+  } catch (_e2) {
+    try {
+      pluginRegistry = interop(require(path.resolve(process.cwd(), 'plugins/index')));
+    } catch (e3: any) {
+      console.warn('⚠️ [Plugin Registry] Plugins opcionales no disponibles:', e3?.message);
+    }
+  }
+}
 
 const setupDb = interop(require('./setup_db'));
 
 // --- 2. INICIALIZAR LA APP Y SOCKET.IO ---
-const app = express();
-const httpServer = http.createServer(app);
+export const app = express();
+export const httpServer = http.createServer(app);
 
-const PORT: number = Number(process.env.PORT) || 3001;
+const PORT: number = process.env.PORT !== undefined ? Number(process.env.PORT) : 3001;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Función helper de validación de origen CORS para desarrollo
@@ -148,29 +174,65 @@ app.use('/api', boletinRouter);
 app.use('/api', simuladoresApiRouter);
 app.use('/api', adminApiRouter);
 
-// --- 4.1. MONTAR PLUGINS DEL SISTEMA ---
-if (pluginRegistry && typeof pluginRegistry.mountAll === 'function') {
-  pluginRegistry.mountAll(app).catch((err: any) => {
-    console.error('❌ [Plugin Registry] Error al inicializar plugins:', err);
-  });
+// --- 4.1. FUNCIÓN DE ARRANQUE ORDENADA Y SEGURA ---
+async function startServer() {
+  try {
+    // 1. Inicializar esquema de Base de Datos principal
+    await setupDb();
+
+    // 2. Montar Plugins del Sistema ANTES de cualquier ruta catch-all
+    if (pluginRegistry && typeof pluginRegistry.mountAll === 'function') {
+      await pluginRegistry.mountAll(app);
+      console.log('✅ [Plugin Registry] Todos los plugins habilitados han sido montados.');
+    }
+
+    // 3. Manejador 404 Exclusivo para la API — NUNCA devolver HTML en endpoints bajo /api
+    app.all('/api/*', (req: Request, res: Response) => {
+      res.status(404).json({
+        success: false,
+        error: `Endpoint API no encontrado: ${req.method} ${req.originalUrl}`,
+      });
+    });
+
+    // 4. Manejador de errores interno para la API — garantiza siempre JSON
+    app.use((err: any, req: Request, res: Response, next: any) => {
+      if (req.path.startsWith('/api')) {
+        console.error(`❌ [API Error] ${req.method} ${req.originalUrl}:`, err);
+        return res.status(err.status || 500).json({
+          success: false,
+          error: err.message || 'Error interno del servidor en la API',
+        });
+      }
+      next(err);
+    });
+
+    // 5. Ruta base y SPA Fallback (solo para rutas que NO pertenezcan a la API)
+    if (IS_PRODUCTION) {
+      app.get('*', (req: Request, res: Response) => {
+        if (req.path.startsWith('/api')) {
+          return res.status(404).json({
+            success: false,
+            error: `Endpoint API no encontrado: ${req.method} ${req.originalUrl}`,
+          });
+        }
+        const distPath = path.join(__dirname, '../dist', 'index.html');
+        res.sendFile(distPath);
+      });
+    } else {
+      app.get('/', (_req: Request, res: Response) => {
+        res.send('Servidor del Backend de EduTecHub funcionando!');
+      });
+    }
+
+    // 6. Iniciar el servidor HTTP y Socket.IO
+    httpServer.listen(PORT, () => {
+      console.log(`✅ Servidor del Backend (con Socket.IO) corriendo en http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Error fatal al iniciar el servidor:', error);
+    process.exit(1);
+  }
 }
 
-// Ruta base — en producción sirve el index.html del frontend (SPA fallback)
-if (IS_PRODUCTION) {
-  app.get('*', (_req: Request, res: Response) => {
-    const distPath = path.join(__dirname, '../dist', 'index.html');
-    res.sendFile(distPath);
-  });
-} else {
-  app.get('/', (_req: Request, res: Response) => {
-    res.send('Servidor del Backend de EduTecHub funcionando!');
-  });
-}
-
-// --- 5. INICIALIZAR TABLAS Y ARRANCAR ---
-setupDb();
-
-httpServer.listen(PORT, () => {
-  console.log(`✅ Servidor del Backend (con Socket.IO) corriendo en http://localhost:${PORT}`);
-});
+startServer();
 

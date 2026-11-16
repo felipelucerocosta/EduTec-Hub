@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import pool from './conexion_pg';
 import { emitToUser, emitToAdmin } from './socket_bus';
 import { syncUserClassRooms } from './realtime_rooms';
+import { esAdmin } from './permisos';
 
 const router = Router();
 
@@ -18,8 +19,7 @@ router.post('/crear-clase', async (req: Request, res: Response) => {
   }
 
   // Solo los administradores pueden crear clases
-  const rol = req.session?.usuario?.rol;
-  if (!req.session?.usuario || (rol !== 'admin' && !req.session?.usuario?.isAdmin)) {
+  if (!esAdmin(req.session?.usuario)) {
     return res.status(403).json({ error: 'Solo los administradores pueden crear clases.' });
   }
 

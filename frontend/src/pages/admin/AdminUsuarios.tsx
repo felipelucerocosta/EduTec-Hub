@@ -41,9 +41,10 @@ interface AuditoriaItem {
 }
 
 const ROL_COLORS: Record<string, { bg: string; color: string; border: string; label: string }> = {
-  admin:   { bg: 'rgba(245,158,11,0.12)',  color: '#fbbf24', border: 'rgba(245,158,11,0.3)', label: 'Admin' },
-  profesor:{ bg: 'rgba(56,189,248,0.12)',  color: '#38bdf8', border: 'rgba(56,189,248,0.3)', label: 'Profesor' },
-  alumno:  { bg: 'rgba(124,58,237,0.12)', color: '#a78bfa', border: 'rgba(124,58,237,0.3)', label: 'Alumno' },
+  admin:     { bg: 'rgba(245,158,11,0.12)',  color: '#fbbf24', border: 'rgba(245,158,11,0.3)', label: 'Admin' },
+  profesor:  { bg: 'rgba(56,189,248,0.12)',  color: '#38bdf8', border: 'rgba(56,189,248,0.3)', label: 'Profesor' },
+  alumno:    { bg: 'rgba(124,58,237,0.12)', color: '#a78bfa', border: 'rgba(124,58,237,0.3)', label: 'Alumno' },
+  preceptor: { bg: 'rgba(16,185,129,0.12)',  color: '#34d399', border: 'rgba(16,185,129,0.3)', label: 'Preceptor' },
 };
 
 const NIVEL_COLORS: Record<string, { bg: string; color: string; border: string; label: string }> = {
@@ -57,6 +58,7 @@ const ESTADO_COLORS: Record<string, { bg: string; color: string; border: string;
   ACTIVO:                   { bg: 'rgba(16,185,129,0.12)', color: '#34d399', border: 'rgba(16,185,129,0.3)', label: 'Activo', icon: 'bx-check-circle' },
   PENDIENTE_DE_ASIGNACION:  { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.3)', label: 'Pendiente', icon: 'bx-time-five' },
   SUSPENDIDO:               { bg: 'rgba(244,63,94,0.12)',  color: '#fb7185', border: 'rgba(244,63,94,0.3)',  label: 'Suspendido', icon: 'bx-block' },
+  INACTIVO:                 { bg: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: 'rgba(148,163,184,0.3)', label: 'Inactivo', icon: 'bx-power-off' },
 };
 
 const EVENTO_COLORS: Record<string, { bg: string; color: string }> = {
@@ -67,6 +69,9 @@ const EVENTO_COLORS: Record<string, { bg: string; color: string }> = {
   CAMBIO_ESTADO:          { bg: 'rgba(124,58,237,0.15)', color: '#a78bfa' },
   CREACION_USUARIO:       { bg: 'rgba(56,189,248,0.15)', color: '#38bdf8' },
   REGISTRO_ALUMNO:        { bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
+  REGISTRO_PROFESOR:      { bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
+  REGISTRO_PRECEPTOR:     { bg: 'rgba(124,58,237,0.15)', color: '#a78bfa' },
+  DESACTIVACION_USUARIO:  { bg: 'rgba(244,63,94,0.15)',  color: '#fb7185' },
 };
 
 const AdminUsuarios: React.FC = () => {
@@ -81,11 +86,11 @@ const AdminUsuarios: React.FC = () => {
   const [loadingPendientes, setLoadingPendientes] = useState(true);
   const [loadingAuditoria, setLoadingAuditoria] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'todos' | 'alumno' | 'profesor' | 'admin'>(
+  const [activeTab, setActiveTab] = useState<'todos' | 'alumno' | 'profesor' | 'admin' | 'preceptor'>(
     (searchParams.get('rol') as any) || 'todos'
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterEstado, setFilterEstado] = useState<'TODOS' | 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO'>('TODOS');
+  const [filterEstado, setFilterEstado] = useState<'TODOS' | 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO' | 'INACTIVO'>('TODOS');
   const [filterNivel, setFilterNivel] = useState<'TODOS' | 'Inicial' | 'Primario' | 'Secundario' | 'Terciario'>('TODOS');
 
   // Academic Catalogs
@@ -132,10 +137,14 @@ const AdminUsuarios: React.FC = () => {
       const res = await fetch(`${API_URL}/admin/usuarios${rolParam}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setUsuarios(Array.isArray(data) ? data : []);
+        if (Array.isArray(data)) {
+          setUsuarios(data);
+        }
+      } else {
+        showToast('Error al actualizar la lista de usuarios', 'error');
       }
     } catch {
-      showToast('Error al cargar usuarios', 'error');
+      showToast('Error de conexión al cargar usuarios', 'error');
     } finally {
       setLoading(false);
     }
@@ -200,7 +209,7 @@ const AdminUsuarios: React.FC = () => {
     fetchCursosYClases();
   }, [fetchCursosYClases]);
 
-  const handleTabChange = (tab: 'todos' | 'alumno' | 'profesor' | 'admin') => {
+  const handleTabChange = (tab: 'todos' | 'alumno' | 'profesor' | 'admin' | 'preceptor') => {
     setActiveTab(tab);
     if (tab === 'todos') {
       searchParams.delete('rol');
@@ -243,16 +252,17 @@ const AdminUsuarios: React.FC = () => {
         credentials: 'include'
       });
       if (res.ok) {
-        showToast('Usuario eliminado correctamente', 'success');
+        const data = await res.json();
+        showToast(data.message || 'Usuario desactivado lógicamente (registros históricos preservados).', 'success');
         setConfirmDelete(null);
         fetchUsuarios();
         fetchPendientes();
       } else {
         const err = await res.json();
-        showToast(err.error || 'Error al eliminar usuario', 'error');
+        showToast(err.error || 'Error al desactivar usuario', 'error');
       }
     } catch {
-      showToast('Error de conexión al eliminar', 'error');
+      showToast('Error de conexión al desactivar usuario', 'error');
     }
   };
 
@@ -356,29 +366,40 @@ const AdminUsuarios: React.FC = () => {
     }
   };
 
-  // Filtered users list
+  // Filtered users list - Blindado contra null/undefined
   const filteredUsuarios = useMemo(() => {
+    const q = (searchQuery || '').toLowerCase().trim();
     return usuarios.filter(u => {
-      const matchSearch =
-        u.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.correo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.DNI.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.curso && u.curso.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (u.nivel_educativo && u.nivel_educativo.toLowerCase().includes(searchQuery.toLowerCase()));
+      const nombre = (u.nombre_completo || '').toLowerCase();
+      const correo = (u.correo || '').toLowerCase();
+      const dni = (u.DNI || '').toLowerCase();
+      const curso = (u.curso || '').toLowerCase();
+      const nivel = (u.nivel_educativo || '').toLowerCase();
 
-      const estado = u.estado_acceso || 'PENDIENTE_DE_ASIGNACION';
+      const matchSearch =
+        !q ||
+        nombre.includes(q) ||
+        correo.includes(q) ||
+        dni.includes(q) ||
+        curso.includes(q) ||
+        nivel.includes(q);
+
+      const estado = u.estado_acceso || 'ACTIVO';
       const matchEstado = filterEstado === 'TODOS' || estado === filterEstado;
-      const matchNivel = filterNivel === 'TODOS' || (u.nivel_educativo && u.nivel_educativo.toLowerCase() === filterNivel.toLowerCase());
+      const matchNivel =
+        filterNivel === 'TODOS' ||
+        (u.nivel_educativo && u.nivel_educativo.toLowerCase() === filterNivel.toLowerCase());
 
       return matchSearch && matchEstado && matchNivel;
     });
   }, [usuarios, searchQuery, filterEstado, filterNivel]);
 
   const tabs: { key: typeof activeTab; label: string; icon: string }[] = [
-    { key: 'todos',    label: 'Todos',      icon: 'bx-list-ul' },
-    { key: 'alumno',   label: 'Alumnos',    icon: 'bx-group' },
-    { key: 'profesor', label: 'Profesores', icon: 'bx-chalkboard' },
-    { key: 'admin',    label: 'Admins',     icon: 'bx-shield-quarter' },
+    { key: 'todos',     label: 'Todos',       icon: 'bx-list-ul' },
+    { key: 'alumno',    label: 'Alumnos',     icon: 'bx-group' },
+    { key: 'profesor',  label: 'Profesores',  icon: 'bx-chalkboard' },
+    { key: 'preceptor', label: 'Preceptores', icon: 'bx-id-card' },
+    { key: 'admin',     label: 'Admins',      icon: 'bx-shield-quarter' },
   ];
 
   const inputStyle: React.CSSProperties = {
@@ -614,6 +635,7 @@ const AdminUsuarios: React.FC = () => {
               <option value="ACTIVO">Activos</option>
               <option value="PENDIENTE_DE_ASIGNACION">Pendientes</option>
               <option value="SUSPENDIDO">Suspendidos</option>
+              <option value="INACTIVO">Inactivos</option>
             </select>
             <select
               value={filterNivel}
@@ -763,14 +785,14 @@ const AdminUsuarios: React.FC = () => {
                               <i className="bx bx-edit"></i>
                             </button>
 
-                            {/* Eliminar */}
+                            {/* Desactivar (Soft Delete) */}
                             {!isSelf && (
                               <button
                                 onClick={() => setConfirmDelete(u)}
                                 style={btnStyle('#fb7185')}
-                                title="Eliminar usuario"
+                                title="Desactivar usuario (conservar historial académico)"
                               >
-                                <i className="bx bx-trash"></i>
+                                <i className="bx bx-power-off"></i>
                               </button>
                             )}
                           </div>
@@ -840,6 +862,7 @@ const AdminUsuarios: React.FC = () => {
                   >
                     <option value="alumno">Alumno</option>
                     <option value="profesor">Profesor</option>
+                    <option value="preceptor">Preceptor</option>
                     <option value="admin">Administrador</option>
                   </select>
                 </div>
@@ -995,6 +1018,7 @@ const AdminUsuarios: React.FC = () => {
                   <select style={inputStyle} value={editForm.rol} onChange={e => setEditForm(f => ({ ...f, rol: e.target.value }))}>
                     <option value="alumno">Alumno</option>
                     <option value="profesor">Profesor</option>
+                    <option value="preceptor">Preceptor</option>
                     <option value="admin">Administrador</option>
                   </select>
                 </div>
@@ -1176,7 +1200,7 @@ const AdminUsuarios: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: CONFIRMAR ELIMINACIÓN ─────────────────────────────────────── */}
+      {/* ── MODAL: CONFIRMAR DESACTIVACIÓN (SOFT DELETE) ─────────────────────── */}
       {confirmDelete && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
@@ -1184,16 +1208,22 @@ const AdminUsuarios: React.FC = () => {
         }}>
           <div style={{
             background: '#0f172a', border: '1px solid rgba(244,63,94,0.3)', borderRadius: '20px',
-            width: '100%', maxWidth: '420px', padding: '1.75rem',
+            width: '100%', maxWidth: '440px', padding: '1.75rem',
             display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '2.5rem' }}>⚠️</div>
+            <div style={{ fontSize: '2.5rem' }}>🛡️</div>
             <div>
-              <h3 style={{ color: '#f8fafc', margin: '0 0 0.5rem', fontWeight: 800 }}>Eliminar Usuario</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: 0 }}>
-                ¿Estás seguro de eliminar a <strong style={{ color: '#f8fafc' }}>{confirmDelete.nombre_completo}</strong>?<br />
-                Esta acción eliminará sus datos y accesos permanentemente.
+              <h3 style={{ color: '#f8fafc', margin: '0 0 0.5rem', fontWeight: 800 }}>Desactivar Acceso de Usuario</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '0 0 0.5rem', lineHeight: 1.5 }}>
+                ¿Deseas revocar el acceso a <strong style={{ color: '#f8fafc' }}>{confirmDelete.nombre_completo}</strong>?
               </p>
+              <div style={{
+                background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+                borderRadius: '10px', padding: '0.65rem 0.85rem', fontSize: '0.78rem', color: '#34d399', textAlign: 'left',
+              }}>
+                <i className="bx bx-check-shield" style={{ marginRight: '0.4rem', fontSize: '1rem', verticalAlign: 'middle' }}></i>
+                <strong>Protección de Información:</strong> Sus notas, asistencias, entregas y registros históricos permanecerán 100% seguros y vinculados a su expediente.
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <button onClick={() => setConfirmDelete(null)} style={{
@@ -1201,10 +1231,10 @@ const AdminUsuarios: React.FC = () => {
                 color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontWeight: 600,
               }}>Cancelar</button>
               <button onClick={handleDelete} style={{
-                padding: '0.65rem 1.2rem', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+                padding: '0.65rem 1.3rem', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #e11d48, #be123c)',
                 border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer',
-              }}>Sí, eliminar</button>
+              }}>Confirmar Desactivación</button>
             </div>
           </div>
         </div>

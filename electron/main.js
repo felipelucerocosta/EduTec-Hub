@@ -108,7 +108,10 @@ function startBackend() {
     }
 
     const backendDir = getResourcePath('backend');
-    const serverScript = path.join(backendDir, 'server.js');
+    let serverScript = path.join(backendDir, 'backend', 'server.js');
+    if (!fs.existsSync(serverScript)) {
+      serverScript = path.join(backendDir, 'server.js');
+    }
     const envFile = path.join(backendDir, '.env');
 
     log('[backend] backendDir:', backendDir);

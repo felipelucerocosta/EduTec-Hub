@@ -1,9 +1,30 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 
-// Ruta a la base de datos (respeta DB_PATH si se pasa por variable de entorno, ej. en producción/Electron)
-const dbPath = process.env.DB_PATH || path.resolve(__dirname, '../database/edutechhub.sql');
+// Función para resolver la ruta canónica y única de la base de datos SQLite
+export function resolveCanonicalDbPath(): string {
+  if (process.env.DB_PATH && fs.existsSync(process.env.DB_PATH)) {
+    return path.resolve(process.env.DB_PATH);
+  }
+  // Buscar database/edutechhub.sql desde cwd o __dirname
+  const candidates = [
+    path.resolve(process.cwd(), 'database/edutechhub.sql'),
+    path.resolve(__dirname, '../database/edutechhub.sql'),
+    path.resolve(__dirname, '../../database/edutechhub.sql'),
+    path.resolve(__dirname, 'database/edutechhub.sql')
+  ];
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) {
+      return cand;
+    }
+  }
+  // Si no existe ninguno, crear o usar en el cwd principal
+  return candidates[0];
+}
+
+const dbPath = resolveCanonicalDbPath();
 
 let db: Database | null = null;
 
@@ -17,14 +38,49 @@ async function getDb() {
     // Habilitar soporte de claves foráneas en SQLite
     await db.run('PRAGMA foreign_keys = ON;');
     await db.run('PRAGMA journal_mode = WAL;');
+    console.log(`🗄️  [SQLite] Conectado a la base de datos canónica: ${dbPath}`);
   }
   return db;
 }
+
+// Pila de Savepoints para permitir transacciones anidadas y concurrentes en SQLite
+const txStack: string[] = [];
 
 // Simulamos el pool de pg para que los controladores del backend sigan funcionando
 const pool = {
   query: async (text: string, params: any[] = []) => {
     const database = await getDb();
+
+    const upperText = text.trim().toUpperCase();
+
+    // ── GESTIÓN DE TRANSACCIONES CONCURRENTES (SAVEPOINTS) ──
+    if (upperText === 'BEGIN TRANSACTION' || upperText === 'BEGIN') {
+      const spName = `sp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+      txStack.push(spName);
+      await database.run(`SAVEPOINT ${spName};`);
+      return { rows: [], rowCount: 0, insertId: null };
+    }
+
+    if (upperText === 'COMMIT') {
+      if (txStack.length > 0) {
+        const spName = txStack.pop()!;
+        try {
+          await database.run(`RELEASE SAVEPOINT ${spName};`);
+        } catch (_) {}
+      }
+      return { rows: [], rowCount: 0, insertId: null };
+    }
+
+    if (upperText === 'ROLLBACK') {
+      if (txStack.length > 0) {
+        const spName = txStack.pop()!;
+        try {
+          await database.run(`ROLLBACK TO SAVEPOINT ${spName};`);
+          await database.run(`RELEASE SAVEPOINT ${spName};`);
+        } catch (_) {}
+      }
+      return { rows: [], rowCount: 0, insertId: null };
+    }
 
     // Convertir parámetros de estilo Postgres ($1, $2) a estilo SQLite (?)
     const sqlNormalizado = text.replace(/\$\d+/g, '?');
@@ -32,7 +88,6 @@ const pool = {
     const sqlSinReturning = sqlNormalizado.replace(/\s+RETURNING\s+[\s\S]*$/i, '').trim();
 
     try {
-      const upperText = text.trim().toUpperCase();
       const isSelect = upperText.startsWith('SELECT') || upperText.startsWith('PRAGMA') || upperText.startsWith('EXPLAIN');
       const hasReturning = upperText.includes('RETURNING');
 

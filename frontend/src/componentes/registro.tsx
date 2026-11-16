@@ -19,12 +19,14 @@ interface FormData {
   DNI: string;
   correo: string;
   contrasena: string;
+  confirmar_contrasena?: string;
   curso: string;
   materia: string;
   nivel_educativo: string;
+  turno?: string;
 }
 
-type Role = "alumno" | "profesor";
+type Role = "alumno" | "profesor" | "preceptor";
 
 // ─── Component ────────────────────────────────────────────
 const Registro: React.FC = () => {
@@ -39,9 +41,11 @@ const Registro: React.FC = () => {
     DNI: "",
     correo: "",
     contrasena: "",
+    confirmar_contrasena: "",
     curso: "",
     materia: "",
     nivel_educativo: urlNivel,
+    turno: "Turno Mañana",
   });
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
   const [adminForm, setAdminForm] = useState({ correo: "", contrasena: "" });
@@ -129,7 +133,7 @@ const Registro: React.FC = () => {
           id: data.usuario.id,
           nombre: data.usuario.nombre,
           correo: data.usuario.correo,
-          rol: data.usuario.rol as 'alumno' | 'profesor' | 'admin',
+          rol: data.usuario.rol as 'alumno' | 'profesor' | 'admin' | 'preceptor',
           estado_acceso: data.usuario.estado_acceso || 'ACTIVO',
           isAdmin: data.usuario.isAdmin || data.usuario.rol === 'admin',
         });
@@ -137,6 +141,7 @@ const Registro: React.FC = () => {
         // Redirigir según rol
         const destino = data.usuario.rol === 'profesor' ? '/clases'
           : data.usuario.rol === 'admin' ? '/admin'
+          : data.usuario.rol === 'preceptor' ? '/preceptoria'
           : '/dashboard';
         setTimeout(() => navigate(destino), 300);
       } else if (response.ok) {
@@ -157,9 +162,22 @@ const Registro: React.FC = () => {
   const handleRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (formData.confirmar_contrasena && formData.contrasena !== formData.confirmar_contrasena) {
+      showNotification("Las contraseñas no coinciden. Por favor verifícalas.", "error");
+      return;
+    }
+
+    if (formData.contrasena.length < 6) {
+      showNotification("La contraseña debe tener al menos 6 caracteres.", "error");
+      return;
+    }
+
     const isProfesor = selectedRole === "profesor";
+    const isPreceptor = selectedRole === "preceptor";
     const endpoint = isProfesor
       ? `${API_URL}/registro-profesor`
+      : isPreceptor
+      ? `${API_URL}/registro-preceptor`
       : `${API_URL}/registro-alumno`;
 
     const body = {
@@ -168,7 +186,9 @@ const Registro: React.FC = () => {
       DNI: formData.DNI,
       contrasena: formData.contrasena,
       nivel_educativo: formData.nivel_educativo,
-      ...(isProfesor ? { materia: formData.materia } : { curso: formData.curso }),
+      ...(isProfesor ? { materia: formData.materia } : {}),
+      ...(selectedRole === "alumno" ? { curso: formData.curso } : {}),
+      ...(isPreceptor ? { turno: formData.turno || 'Turno Mañana' } : {}),
     };
 
     setIsLoading(true);
@@ -189,9 +209,24 @@ const Registro: React.FC = () => {
       }
 
       if (response.ok) {
-        showNotification("¡Cuenta creada exitosamente! Ahora inicia sesión.", "success");
+        showNotification(
+          isPreceptor
+            ? "¡Cuenta de Preceptor creada exitosamente! Ahora inicia sesión."
+            : "¡Cuenta creada exitosamente! Ahora inicia sesión.",
+          "success"
+        );
         setIsRegistering(false);
-        setFormData({ nombre_completo: "", DNI: "", correo: "", contrasena: "", curso: "", materia: "", nivel_educativo: urlNivel });
+        setFormData({
+          nombre_completo: "",
+          DNI: "",
+          correo: "",
+          contrasena: "",
+          confirmar_contrasena: "",
+          curso: "",
+          materia: "",
+          nivel_educativo: urlNivel,
+          turno: "Turno Mañana"
+        });
       } else {
         throw new Error(data.error || data.message || "Error al crear la cuenta.");
       }
@@ -298,6 +333,14 @@ const Registro: React.FC = () => {
                     <i className="bx bx-chalkboard"></i>
                     Profesor
                   </button>
+                  <button
+                    type="button"
+                    className={`${styles.roleOption} ${selectedRole === "preceptor" ? styles.roleOptionActive : ""}`}
+                    onClick={() => setSelectedRole("preceptor")}
+                  >
+                    <i className="bx bx-id-card"></i>
+                    Preceptor
+                  </button>
                 </div>
               </>
             )}
@@ -353,6 +396,21 @@ const Registro: React.FC = () => {
               autoComplete={isRegistering ? "new-password" : "current-password"}
               required
             />
+
+            {/* Confirm password (register only) */}
+            {isRegistering && (
+              <InputField
+                label="Confirmar Contraseña"
+                type="password"
+                name="confirmar_contrasena"
+                placeholder="Repite tu contraseña"
+                icon="bx-check-shield"
+                value={formData.confirmar_contrasena || ""}
+                onChange={handleInputChange}
+                autoComplete="new-password"
+                required
+              />
+            )}
 
             {/* Forgot password (login only) */}
             {!isRegistering && (
@@ -420,6 +478,54 @@ const Registro: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
+            )}
+
+            {isRegistering && selectedRole === "preceptor" && (
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#cbd5e1", marginBottom: "0.4rem" }}>
+                  Turno Institucional Asignado
+                </label>
+                <div style={{ position: "relative" }}>
+                  <select
+                    name="turno"
+                    value={formData.turno || "Turno Mañana"}
+                    onChange={(e) => setFormData(prev => ({ ...prev, turno: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem 0.75rem 2.5rem",
+                      borderRadius: "12px",
+                      background: "rgba(30, 41, 59, 0.7)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      color: "#f8fafc",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="Turno Mañana">Turno Mañana</option>
+                    <option value="Turno Tarde">Turno Tarde</option>
+                    <option value="Turno Vespertino">Turno Vespertino</option>
+                    <option value="Jornada Completa">Jornada Completa (Mañana y Tarde)</option>
+                  </select>
+                  <i className="bx bx-time-five" style={{ position: "absolute", left: "0.85rem", top: "50%", transform: "translateY(-50%)", color: "#34d399", fontSize: "1.1rem" }}></i>
+                </div>
+                <div style={{
+                  marginTop: "0.6rem",
+                  padding: "0.6rem 0.85rem",
+                  borderRadius: "8px",
+                  background: "rgba(16, 185, 129, 0.08)",
+                  border: "1px solid rgba(16, 185, 129, 0.2)",
+                  color: "#a7f3d0",
+                  fontSize: "0.78rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem"
+                }}>
+                  <i className="bx bx-id-card" style={{ fontSize: "1rem", color: "#34d399" }}></i>
+                  <span>Cuenta con permisos de preceptoría escolar: registro de asistencias, nóminas y constancias.</span>
+                </div>
+              </div>
             )}
 
             <Button type="submit" loading={isLoading} style={{ width: "100%", marginTop: "0.5rem" }}>

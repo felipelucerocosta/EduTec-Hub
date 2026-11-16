@@ -43,6 +43,23 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
+ * Middleware para Preceptor o Administrador (consultas académicas y constancias)
+ */
+export function requirePreceptorOAdmin(req: Request, res: Response, next: NextFunction) {
+  const usuario = (req.session as any)?.usuario;
+  if (!usuario) {
+    return res.status(401).json({ success: false, error: 'No autenticado' });
+  }
+  if (usuario.rol !== 'preceptor' && usuario.rol !== 'admin' && !usuario.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      error: 'Acceso denegado: Se requiere rol de Preceptor o Administrador.',
+    });
+  }
+  next();
+}
+
+/**
  * Verifica que el preceptor esté asignado a la comisión especificada
  */
 export async function requirePreceptorAsignadoAClase(req: Request, res: Response, next: NextFunction) {

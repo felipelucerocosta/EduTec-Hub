@@ -161,7 +161,7 @@ const TREE: Record<string, TreeNode> = {
 
   como_registrarse: {
     id: "como_registrarse",
-    text: "Para registrarse:\n1️⃣ Vaya a la pantalla inicial\n2️⃣ Seleccione 'Crear Cuenta'\n3️⃣ Elija rol (Alumno o Profesor)\n4️⃣ Ingrese sus datos y contraseña",
+    text: "Para registrarse:\n1️⃣ Vaya a la pantalla inicial\n2️⃣ Seleccione 'Crear Cuenta'\n3️⃣ Elija rol (Alumno, Profesor o Preceptor)\n4️⃣ Ingrese sus datos y contraseña",
     options: [
       { label: "✅ Gracias", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },

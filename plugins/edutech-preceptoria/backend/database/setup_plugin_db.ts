@@ -52,7 +52,26 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
       );
     `);
 
-    // 4. Índices de aceleración
+    // 4. Tabla de solicitudes y emisión de constancias de alumno regular
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS plugin_preceptoria_constancias (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          alumno_id INTEGER NOT NULL,
+          preceptor_id INTEGER,
+          clase_id INTEGER,
+          motivo TEXT,
+          estado TEXT NOT NULL DEFAULT 'PENDIENTE' CHECK(estado IN ('PENDIENTE', 'APROBADA', 'RECHAZADA')),
+          fecha_solicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          fecha_resolucion TIMESTAMP,
+          observaciones TEXT,
+          codigo_verificacion TEXT UNIQUE,
+          FOREIGN KEY(alumno_id) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+          FOREIGN KEY(preceptor_id) REFERENCES usuarios(id_usuario),
+          FOREIGN KEY(clase_id) REFERENCES clases(id) ON DELETE SET NULL
+      );
+    `);
+
+    // 5. Índices de aceleración
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_preceptoria_sesion_clase_fecha
       ON plugin_preceptoria_sesiones(clase_id, fecha);
@@ -66,6 +85,33 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_preceptoria_registros_alumno
       ON plugin_preceptoria_registros(alumno_id);
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_preceptoria_constancias_alumno
+      ON plugin_preceptoria_constancias(alumno_id, estado);
+    `);
+
+    // 6. Tabla de Asistencias del Personal Docente (Gestión Laboral Institucional)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS plugin_asistencias_docentes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          profesor_id INTEGER NOT NULL,
+          fecha TEXT NOT NULL,
+          estado TEXT NOT NULL CHECK(estado IN ('PRESENTE', 'AUSENTE_JUSTIFICADO', 'AUSENTE_INJUSTIFICADO', 'TARDE')),
+          motivo TEXT,
+          observaciones TEXT,
+          modificado_por INTEGER,
+          fecha_modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(profesor_id) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+          FOREIGN KEY(modificado_por) REFERENCES usuarios(id_usuario),
+          UNIQUE(profesor_id, fecha)
+      );
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_asistencias_docentes_prof_fecha
+      ON plugin_asistencias_docentes(profesor_id, fecha);
     `);
 
     console.log('✅ [Plugin EduTech Preceptoría] Esquema de base de datos verificado con éxito.');

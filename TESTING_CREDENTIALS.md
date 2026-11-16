@@ -13,6 +13,7 @@ Este documento contiene las credenciales oficiales de prueba y el flujo de testi
 | **Profesor de Matemática** | `profesor.matematica@tecnica29de6.edu.ar` | `12345678` | `PROF-MAT-001` | Asignado a **3ro 1ra** |
 | **Profesor de Programación** | `profesor.programacion@tecnica29de6.edu.ar` | `12345678` | `PROF-PRG-002` | Asignado a **4to 2da** |
 | **Profesor Sin Asignar** | `profesor.sinclase@tecnica29de6.edu.ar` | `12345678` | `PROF-VAC-003` | **0 clases asignadas** (Estado Vacío) |
+| **Preceptor Institucional** | *(Crear vía formulario "Crear Cuenta")* | Min. 6 caracteres | `PREC-...` | Panel de Preceptoría (`/preceptoria`) |
 | **Alumno 3ro 1ra** | `alumno.3ro1ra@tecnica29de6.edu.ar` | `123456789` | `ALU-31-001` | Inscripto en **3ro 1ra** |
 | **Alumno 4to 2da** | `alumno.4to2da@tecnica29de6.edu.ar` | `123456789` | `ALU-42-002` | Inscripto en **4to 2da** |
 | **Alumno Sin Clases** | `alumno.sinclase@tecnica29de6.edu.ar` | `123456789` | `ALU-VAC-003` | **0 clases inscriptas** (Estado Vacío) |
@@ -78,6 +79,16 @@ node clean_database.js --yes
 3. En **Clases**, entrar a *Redes 5to 1ra* (que tiene 0 profesores y 0 alumnos).
 4. Asignar al `profesor.sinclase@tecnica29de6.edu.ar` como titular y al `alumno.sinclase@tecnica29de6.edu.ar` como alumno.
 5. Iniciar sesión con `profesor.sinclase@tecnica29de6.edu.ar` y verificar que la clase ahora aparece de inmediato en su panel.
+
+### Escenario E: Registro de Preceptor y Acceso a Preceptoría
+1. En la pantalla inicial de Login, presionar «Crear Cuenta».
+2. En el selector de tipo de cuenta, hacer clic en **Preceptor**.
+3. Completar nombre, correo (`preceptor.demo@tecnica29de6.edu.ar`), DNI, nivel, turno (Mañana/Tarde/Vespertino) y contraseña (mínimo 6 caracteres).
+4. Al confirmar, el sistema notifica el registro exitoso.
+5. Iniciar sesión con la cuenta de Preceptor recién creada:
+   - Redirige automáticamente a `/preceptoria`.
+   - Tiene acceso al panel de Preceptoría, registro de asistencias de alumnos y control docente.
+   - No tiene acceso ni privilegios de Administrador del sistema.
 
 ---
 

@@ -3,13 +3,14 @@ import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
 import { emitToClass, emitToUser, emitToAdmin } from './socket_bus';
 import { syncUserClassRooms } from './realtime_rooms';
+import { esAdmin, normalizarRol } from './permisos';
 
 const router = Router();
 
 // Middleware: solo administradores
 function requireAdmin(req: Request, res: Response, next: Function) {
   const usuario = req.session?.usuario;
-  if (!usuario || usuario.rol !== 'admin') {
+  if (!usuario || !esAdmin(usuario)) {
     return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' });
   }
   next();
@@ -20,8 +21,8 @@ function requireAdmin(req: Request, res: Response, next: Function) {
 router.get('/admin/stats', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const [alumnos, profesores, clases, trabajos, entregasPend] = await Promise.all([
-      pool.query(`SELECT COUNT(*) as total FROM usuarios WHERE rol = 'alumno'`),
-      pool.query(`SELECT COUNT(*) as total FROM usuarios WHERE rol = 'profesor'`),
+      pool.query(`SELECT COUNT(*) as total FROM usuarios WHERE LOWER(TRIM(rol)) = 'alumno'`),
+      pool.query(`SELECT COUNT(*) as total FROM usuarios WHERE LOWER(TRIM(rol)) = 'profesor'`),
       pool.query(`SELECT COUNT(*) as total FROM clases`),
       pool.query(`SELECT COUNT(*) as total FROM trabajos`),
       pool.query(`SELECT COUNT(*) as total FROM entregas WHERE estado != 'corregido'`),
@@ -70,13 +71,21 @@ router.get('/admin/usuarios', requireAdmin, async (req: Request, res: Response) 
       FROM usuarios
     `;
     const params: any[] = [];
-    if (rol && ['alumno', 'profesor', 'admin', 'preceptor'].includes(String(rol))) {
-      query += ` WHERE rol = $1`;
-      params.push(rol);
+    if (rol) {
+      const r = normalizarRol(String(rol));
+      if (r === 'admin') {
+        query += ` WHERE LOWER(TRIM(rol)) IN ('admin', 'administrador', 'adm')`;
+      } else if (r === 'profesor') {
+        query += ` WHERE LOWER(TRIM(rol)) IN ('profesor', 'docente', 'teacher')`;
+      } else if (r === 'preceptor') {
+        query += ` WHERE LOWER(TRIM(rol)) IN ('preceptor', 'preceptoria')`;
+      } else if (r === 'alumno') {
+        query += ` WHERE LOWER(TRIM(rol)) IN ('alumno', 'estudiante', 'student')`;
+      }
     }
     query += ` ORDER BY rol ASC, nombre_completo ASC`;
     const result = await pool.query(query, params);
-    return res.json(result.rows);
+    return res.json(result.rows || []);
   } catch (error) {
     console.error('Error en admin/usuarios:', error);
     return res.status(500).json({ error: 'Error al obtener usuarios.' });
@@ -90,7 +99,7 @@ router.get('/admin/alumnos/pendientes', requireAdmin, async (_req: Request, res:
     const result = await pool.query(`
       SELECT id_usuario, nombre_completo, correo, DNI, curso, fecha_registro, estado_acceso
       FROM usuarios
-      WHERE rol = 'alumno' AND (estado_acceso = 'PENDIENTE_DE_ASIGNACION' OR estado_acceso IS NULL)
+      WHERE LOWER(TRIM(rol)) = 'alumno' AND (estado_acceso = 'PENDIENTE_DE_ASIGNACION' OR estado_acceso IS NULL)
       ORDER BY fecha_registro DESC
     `);
     return res.json(result.rows);
@@ -158,36 +167,42 @@ router.get('/admin/auditoria', requireAdmin, async (req: Request, res: Response)
 
 
 // ─── DELETE /api/admin/usuarios/:id ───────────────────────────────────────
-// Eliminar usuario (con protección para no auto-eliminarse y borrado en cascada para SQLite FK)
+// Desactivación lógica (Soft Delete) para preservar la integridad histórica y académica
 router.delete('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const myId = req.session?.usuario?.id;
 
   if (Number(id) === myId) {
-    return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta.' });
+    return res.status(400).json({ error: 'No puedes desactivar tu propia cuenta.' });
   }
 
   try {
-    await pool.query('BEGIN TRANSACTION');
-    try {
-      await pool.query('DELETE FROM alumno WHERE id_usuario = $1', [id]);
-      await pool.query('DELETE FROM profesor WHERE id_usuario = $1', [id]);
-      await pool.query('DELETE FROM alumnos_clases WHERE alumno_id = $1', [id]);
-      await pool.query('DELETE FROM profesores_clases WHERE profesor_id = $1', [id]);
-      await pool.query('DELETE FROM auditoria_acceso WHERE usuario_id = $1', [id]);
-      await pool.query('DELETE FROM password_resets WHERE id_usuario = $1', [id]);
-      await pool.query('DELETE FROM calendario_notas WHERE id_usuario = $1', [id]);
-      await pool.query('DELETE FROM notificaciones WHERE usuario_id = $1', [id]);
-      await pool.query('DELETE FROM usuarios WHERE id_usuario = $1', [id]);
-      await pool.query('COMMIT');
-    } catch (txErr) {
-      await pool.query('ROLLBACK');
-      throw txErr;
+    const userQ = await pool.query('SELECT id_usuario, nombre_completo, correo, rol, estado_acceso FROM usuarios WHERE id_usuario = $1', [id]);
+    if (userQ.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
-    return res.json({ success: true, message: 'Usuario eliminado correctamente.' });
+
+    const u = userQ.rows[0];
+
+    // Desactivación lógica: cambia estado a INACTIVO sin destruir relaciones académicas ni notas
+    await pool.query("UPDATE usuarios SET estado_acceso = 'INACTIVO' WHERE id_usuario = $1", [id]);
+
+    // Registrar en auditoría
+    try {
+      await pool.query(
+        `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'DESACTIVACION_USUARIO', $3)`,
+        [id, u.correo, `Usuario "${u.nombre_completo}" desactivado lógicamente por Admin ID ${myId}. Registros históricos preservados.`]
+      );
+    } catch (_e) {}
+
+    return res.json({
+      success: true,
+      message: `Usuario "${u.nombre_completo}" desactivado correctamente. Los registros históricos y académicos se conservan intactos.`,
+      usuario: { id: u.id_usuario, estado_acceso: 'INACTIVO' }
+    });
   } catch (error) {
-    console.error('Error eliminando usuario:', error);
-    return res.status(500).json({ error: 'Error al eliminar usuario.' });
+    console.error('Error desactivando usuario:', error);
+    return res.status(500).json({ error: 'Error al desactivar el usuario.' });
   }
 });
 
@@ -296,9 +311,9 @@ router.delete('/admin/clases/:id', requireAdmin, async (req: Request, res: Respo
   }
 });
 
-// ─── POST /api/admin/clases/:id/asignar-profesor ──────────────────────────
+// ─── POST /api/admin/clases/:id/asignar-profesor & /api/admin/clases/:id/profesores ───
 // Asigna o cambia el titular de una clase
-router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Request, res: Response) => {
+router.post(['/admin/clases/:id/asignar-profesor', '/admin/clases/:id/profesores'], requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { profesor_id } = req.body;
 
@@ -309,7 +324,7 @@ router.post('/admin/clases/:id/asignar-profesor', requireAdmin, async (req: Requ
   try {
     // Verificar que el profesor exista y tenga el rol correcto
     const profQ = await pool.query(
-      `SELECT id_usuario, nombre_completo FROM usuarios WHERE id_usuario = $1 AND (rol = 'profesor' OR rol = 'admin')`,
+      `SELECT id_usuario, nombre_completo FROM usuarios WHERE id_usuario = $1 AND (LOWER(TRIM(rol)) = 'profesor' OR LOWER(TRIM(rol)) = 'admin')`,
       [profesor_id]
     );
     if (profQ.rows.length === 0) {
@@ -400,9 +415,9 @@ router.get('/admin/clases/:id/alumnos', requireAdmin, async (req: Request, res: 
   }
 });
 
-// ─── POST /api/admin/clases/:id/asignar-alumno ────────────────────────────
+// ─── POST /api/admin/clases/:id/asignar-alumno & /api/admin/clases/:id/alumnos ───
 // Inscribir alumno en una clase
-router.post('/admin/clases/:id/asignar-alumno', requireAdmin, async (req: Request, res: Response) => {
+router.post(['/admin/clases/:id/asignar-alumno', '/admin/clases/:id/alumnos'], requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { alumno_id } = req.body;
 
@@ -420,7 +435,7 @@ router.post('/admin/clases/:id/asignar-alumno', requireAdmin, async (req: Reques
 
     // Verificar que el alumno exista
     const alumQ = await pool.query(
-      `SELECT id_usuario, nombre_completo FROM usuarios WHERE id_usuario = $1 AND rol = 'alumno'`,
+      `SELECT id_usuario, nombre_completo FROM usuarios WHERE id_usuario = $1 AND LOWER(TRIM(rol)) = 'alumno'`,
       [alumno_id]
     );
     if (alumQ.rows.length === 0) {
@@ -498,7 +513,7 @@ router.get('/admin/profesores', requireAdmin, async (_req: Request, res: Respons
         (SELECT COUNT(*) FROM clases c WHERE c.titular_id = u.id_usuario) as clases_asignadas
       FROM usuarios u
       LEFT JOIN profesor p ON p.id_usuario = u.id_usuario
-      WHERE u.rol = 'profesor'
+      WHERE LOWER(TRIM(u.rol)) = 'profesor'
       ORDER BY u.nombre_completo ASC
     `;
     const result = await pool.query(query, []);
@@ -525,7 +540,7 @@ router.get('/admin/alumnos', requireAdmin, async (_req: Request, res: Response) 
         (SELECT COUNT(*) FROM alumnos_clases ac WHERE ac.alumno_id = u.id_usuario) as clases_inscriptas
       FROM usuarios u
       LEFT JOIN alumno a ON a.id_usuario = u.id_usuario
-      WHERE u.rol = 'alumno'
+      WHERE LOWER(TRIM(u.rol)) = 'alumno'
       ORDER BY u.nombre_completo ASC
     `;
     const result = await pool.query(query, []);

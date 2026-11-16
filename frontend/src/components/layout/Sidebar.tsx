@@ -12,9 +12,9 @@ const Sidebar: React.FC = () => {
 
   const navItems = user.rol === 'preceptor'
     ? [
-        { label: 'Panel Preceptoría', to: '/asistencia', icon: 'bx-calendar-check' },
+        { label: 'Panel Preceptoría', to: '/preceptoria', icon: 'bx-id-card' },
+        { label: 'Asistencias', to: '/asistencia', icon: 'bx-calendar-check' },
         { label: 'Cursos y Clases', to: '/clases', icon: 'bx-book-open' },
-        { label: 'Aula Activa', to: '/aula-activa', icon: 'bx-task' },
         { label: 'Oportunidades', to: '/oportunidades', icon: 'bx-briefcase-alt-2' },
         { label: 'Calendario Académico', to: '/calendario', icon: 'bx-calendar' },
         { label: 'Simuladores', to: '/simuladores', icon: 'bx-chip' },
@@ -23,7 +23,6 @@ const Sidebar: React.FC = () => {
     : [
         { label: 'Dashboard Analítico', to: '/dashboard', icon: 'bx-grid-alt' },
         { label: 'Mis Clases', to: user.rol === 'alumno' ? '/alumno' : '/clases', icon: 'bx-book-open' },
-        { label: 'Aula Activa', to: '/aula-activa', icon: 'bx-task' },
         { label: 'Oportunidades', to: '/oportunidades', icon: 'bx-briefcase-alt-2' },
         { label: user.rol === 'alumno' ? 'Mi Rendimiento' : 'Rendimiento', to: '/rendimiento', icon: 'bx-bar-chart-alt-2' },
         ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín Oficial', to: '/boletin', icon: 'bx-receipt' }] : []),

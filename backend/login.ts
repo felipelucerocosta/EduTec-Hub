@@ -3,6 +3,7 @@ import pool from './conexion_pg';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
+import { normalizarRol, esAdmin } from './permisos';
 
 const router = Router();
 
@@ -173,17 +174,17 @@ router.post('/login', async (req: Request, res: Response) => {
     // Login correcto → limpiar contador de fallos
     attempts.delete(correo);
 
-    // Determinar rol
+    // Determinar rol con normalización estricta
     const defaultAdminEmails = [
       'admin@edutechhub.edu.ar',
       'felipelucero534@gmail.com',
       'felipe.lucero.617@alu.tecnica29de6.edu.ar',
       'thiago.said.489@alu.tecnica29de6.edu.ar'
     ];
-    let rol: 'alumno' | 'profesor' | 'admin' = (usuario.rol === 'admin' || usuario.rol === 'profesor' || usuario.rol === 'alumno') ? usuario.rol : 'alumno';
+    let rol: 'alumno' | 'profesor' | 'admin' | 'preceptor' = normalizarRol(usuario.rol);
     if (defaultAdminEmails.includes(correo) || (process.env.ADMIN_EMAIL && correo === process.env.ADMIN_EMAIL.trim().toLowerCase())) {
       rol = 'admin';
-    } else if (rol !== 'admin') {
+    } else if (rol !== 'admin' && rol !== 'preceptor') {
       try {
         const profesorQuery = 'SELECT id_profesor FROM profesor WHERE id_usuario = $1 LIMIT 1';
         const profesorResult: any = await pool.query(profesorQuery, [usuario.id_usuario]);
@@ -197,7 +198,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Determinar estado_acceso
     let estado_acceso: string = usuario.estado_acceso || 'PENDIENTE_DE_ASIGNACION';
-    if (rol === 'admin' || rol === 'profesor') {
+    if (rol === 'admin' || rol === 'profesor' || rol === 'preceptor') {
       estado_acceso = 'ACTIVO';
       if (usuario.estado_acceso !== 'ACTIVO') {
         try { await pool.query(`UPDATE usuarios SET estado_acceso = 'ACTIVO' WHERE id_usuario = $1`, [usuario.id_usuario]); } catch(_e){}
@@ -213,13 +214,14 @@ router.post('/login', async (req: Request, res: Response) => {
     } catch (_e) {}
 
     // Establecer sesión
+    const isAdmin = rol === 'admin' || defaultAdminEmails.includes(correo);
     req.session.usuario = {
       id: Number(usuario.id_usuario),
       nombre: usuario.nombre_completo || '',
       correo: usuario.correo || correo,
       rol,
       estado_acceso,
-      isAdmin: rol === 'admin'
+      isAdmin
     };
 
     notifySuccessfulLogin(correo).catch(() => {});
@@ -233,7 +235,7 @@ router.post('/login', async (req: Request, res: Response) => {
         correo: usuario.correo || correo,
         rol,
         estado_acceso,
-        isAdmin: rol === 'admin'
+        isAdmin
       }
     });
   } catch (err) {
@@ -269,7 +271,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
     let usuario = result.rows && result.rows[0];
 
     const isExplicitAdmin = allowedAdminEmails.includes(correo);
-    const isDbAdmin = usuario && usuario.rol === 'admin';
+    const isDbAdmin = usuario && (esAdmin(usuario) || normalizarRol(usuario.rol) === 'admin');
 
     if (!isExplicitAdmin && !isDbAdmin) {
       await handleFailedAttempt(correo);
@@ -470,12 +472,14 @@ router.get('/whoami', async (req: Request, res: Response) => {
       const r: any = await pool.query('SELECT estado_acceso, rol, nombre_completo, correo FROM usuarios WHERE id_usuario = $1', [req.session.usuario.id]);
       if (r.rows && r.rows.length > 0) {
         let estado_acceso = r.rows[0].estado_acceso || 'PENDIENTE_DE_ASIGNACION';
-        const rol = r.rows[0].rol || req.session.usuario.rol;
-        if (rol === 'admin' || rol === 'profesor') estado_acceso = 'ACTIVO';
+        const rawRol = r.rows[0].rol || req.session.usuario.rol;
+        const rol = normalizarRol(rawRol);
+        const isAdmin = rol === 'admin' || req.session.usuario.isAdmin === true;
+        if (isAdmin || rol === 'profesor' || rol === 'preceptor') estado_acceso = 'ACTIVO';
         
         req.session.usuario.rol = rol;
         req.session.usuario.estado_acceso = estado_acceso;
-        req.session.usuario.isAdmin = rol === 'admin';
+        req.session.usuario.isAdmin = isAdmin;
         if (r.rows[0].nombre_completo) {
           req.session.usuario.nombre = r.rows[0].nombre_completo;
         }
