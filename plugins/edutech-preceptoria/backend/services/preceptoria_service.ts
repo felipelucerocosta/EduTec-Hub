@@ -333,7 +333,7 @@ export const PreceptoriaService = {
     }
 
     await pool.query(
-      `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+      `INSERT INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [preceptorId, claseId]
     );
     await syncUserClassRooms(preceptorId);
@@ -357,7 +357,7 @@ export const PreceptoriaService = {
         const numId = Number(cid);
         if (numId > 0) {
           await pool.query(
-            `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+            `INSERT INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
             [preceptorId, numId]
           );
         }

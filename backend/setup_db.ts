@@ -4,11 +4,7 @@ import * as bcrypt from 'bcrypt';
 // Helper para verificar y agregar columnas sin generar excepciones SQL ruidosas
 async function addColumnIfNotExists(table: string, column: string, columnDef: string) {
     try {
-        const info = await pool.query(`PRAGMA table_info(${table});`);
-        const exists = info.rows && info.rows.some((r: any) => r.name === column);
-        if (!exists) {
-            await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${columnDef};`);
-        }
+        await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${column} ${columnDef};`);
     } catch (_e) {
         // En caso de concurrencia o tabla no creada aún
     }
@@ -66,7 +62,7 @@ async function upsertUsuario(u: SeedUserData, saltRounds: number = 10): Promise<
             // Dos registros distintos en conflicto temporal: liberar DNI previo
             idUsuario = idEmail;
             await pool.query(
-                `UPDATE usuarios SET DNI = 'TEMP-' || id_usuario || '-' || hex(randomblob(4)) WHERE id_usuario = $1`,
+                `UPDATE usuarios SET DNI = 'TEMP-' || id_usuario || '-' || substring(md5(random()::text) from 1 for 8) WHERE id_usuario = $1`,
                 [idDni]
             );
             await pool.query(
@@ -114,7 +110,7 @@ const crearTablas = async () => {
         // 1. Tabla CURSO
         await pool.query(`
             CREATE TABLE IF NOT EXISTS curso (
-                id_curso INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_curso SERIAL PRIMARY KEY,
                 nombre_curso TEXT UNIQUE NOT NULL,
                 nivel_educativo TEXT DEFAULT 'Secundario'
             );
@@ -127,7 +123,7 @@ const crearTablas = async () => {
         // 2. Tabla USUARIOS (SQLite compatible)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
-                id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_usuario SERIAL PRIMARY KEY,
                 contrasena TEXT NOT NULL,
                 nombre_completo TEXT NOT NULL,
                 correo TEXT UNIQUE NOT NULL,
@@ -151,7 +147,7 @@ const crearTablas = async () => {
         // 2b. Tabla AUDITORIA_ACCESO
         await pool.query(`
             CREATE TABLE IF NOT EXISTS auditoria_acceso (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 usuario_id INTEGER,
                 correo TEXT,
                 evento TEXT NOT NULL,
@@ -164,7 +160,7 @@ const crearTablas = async () => {
         // 3. Tabla ALUMNO
         await pool.query(`
             CREATE TABLE IF NOT EXISTS alumno (
-                id_alumno INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_alumno SERIAL PRIMARY KEY,
                 DNI TEXT UNIQUE NOT NULL,
                 nombre_completo TEXT NOT NULL,
                 apellido TEXT,
@@ -182,7 +178,7 @@ const crearTablas = async () => {
         // 4. Tabla PROFESOR
         await pool.query(`
             CREATE TABLE IF NOT EXISTS profesor (
-                id_profesor INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_profesor SERIAL PRIMARY KEY,
                 id_usuario INTEGER,
                 correo TEXT NOT NULL,
                 DNI TEXT UNIQUE NOT NULL,
@@ -198,7 +194,7 @@ const crearTablas = async () => {
         // 5. Tabla CLASES
         await pool.query(`
             CREATE TABLE IF NOT EXISTS clases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 nombre TEXT NOT NULL,
                 seccion TEXT,
                 materia TEXT NOT NULL,
@@ -214,7 +210,7 @@ const crearTablas = async () => {
         // 6. Tabla ALUMNOS_CLASES (Inscripciones)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS alumnos_clases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 alumno_id INTEGER NOT NULL,
                 materia TEXT NOT NULL,
                 codigo TEXT NOT NULL,
@@ -226,7 +222,7 @@ const crearTablas = async () => {
         // 6b. Tabla PROFESORES_CLASES (Asignaciones explícitas de docentes)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS profesores_clases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 profesor_id INTEGER NOT NULL,
                 clase_id INTEGER NOT NULL,
                 fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -239,7 +235,7 @@ const crearTablas = async () => {
         // 7. Tabla ACTAS
         await pool.query(`
             CREATE TABLE IF NOT EXISTS actas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 filename TEXT NOT NULL,
                 originalname TEXT NOT NULL,
                 path TEXT NOT NULL,
@@ -252,7 +248,7 @@ const crearTablas = async () => {
         // 7.5. Tabla TABLON_MENSAJES (Foro de Consultas)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS tablon_mensajes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 usuario_id INTEGER,
                 usuario_nombre TEXT,
                 mensaje TEXT NOT NULL,
@@ -265,7 +261,7 @@ const crearTablas = async () => {
         // 8. Tabla PASSWORD_RESETS
         await pool.query(`
             CREATE TABLE IF NOT EXISTS password_resets (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 token TEXT NOT NULL UNIQUE,
                 id_usuario INTEGER NOT NULL,
                 expires_at TIMESTAMP NOT NULL,
@@ -276,7 +272,7 @@ const crearTablas = async () => {
         // 9. Tabla CALENDARIO_NOTAS
         await pool.query(`
              CREATE TABLE IF NOT EXISTS calendario_notas (
-                id_nota INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_nota SERIAL PRIMARY KEY,
                 id_usuario INTEGER,
                 titulo TEXT NOT NULL,
                 descripcion TEXT,
@@ -289,7 +285,7 @@ const crearTablas = async () => {
         // 10. Tabla EMAIL_VERIFICATIONS
         await pool.query(`
             CREATE TABLE IF NOT EXISTS email_verifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 code TEXT NOT NULL,
                 expires_at TIMESTAMP NOT NULL,
@@ -301,7 +297,7 @@ const crearTablas = async () => {
         // 11. Tabla TRABAJOS (Assignments)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS trabajos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 clase_id INTEGER NOT NULL,
                 titulo TEXT NOT NULL,
                 descripcion TEXT,
@@ -325,7 +321,7 @@ const crearTablas = async () => {
         // 12. Tabla ENTREGAS (Submissions)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS entregas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 trabajo_id INTEGER NOT NULL,
                 alumno_id INTEGER NOT NULL,
                 archivo_nombre TEXT,
@@ -344,7 +340,7 @@ const crearTablas = async () => {
         // 12b. Tabla ENTREGA_INTEGRANTES (Group submission members)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS entrega_integrantes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 entrega_id INTEGER NOT NULL,
                 usuario_id INTEGER NOT NULL,
                 calificacion_individual INTEGER,
@@ -357,7 +353,7 @@ const crearTablas = async () => {
         // 13. Tabla MATERIALES (Class Materials)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS materiales (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 clase_id INTEGER NOT NULL,
                 titulo TEXT NOT NULL,
                 descripcion TEXT,
@@ -375,7 +371,7 @@ const crearTablas = async () => {
         // 14. Tabla NOTIFICACIONES
         await pool.query(`
             CREATE TABLE IF NOT EXISTS notificaciones (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 usuario_id INTEGER NOT NULL,
                 tipo TEXT NOT NULL,
                 titulo TEXT NOT NULL,
@@ -391,7 +387,7 @@ const crearTablas = async () => {
         // 15. Tabla ANUNCIOS (Class Announcements / Board)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS anuncios (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 clase_id INTEGER NOT NULL,
                 autor_id INTEGER NOT NULL,
                 contenido TEXT NOT NULL,
@@ -404,7 +400,7 @@ const crearTablas = async () => {
         // 16. Tabla PERIODOS_ACADEMICOS
         await pool.query(`
             CREATE TABLE IF NOT EXISTS periodos_academicos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 nombre TEXT NOT NULL,
                 tipo TEXT DEFAULT 'bimestre',
                 fecha_inicio TEXT NOT NULL,
@@ -417,7 +413,7 @@ const crearTablas = async () => {
         // 17. Tabla SIMULADORES
         await pool.query(`
             CREATE TABLE IF NOT EXISTS simuladores (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 materia_keyword TEXT NOT NULL,
                 nombre TEXT NOT NULL,
                 descripcion TEXT,
@@ -431,7 +427,7 @@ const crearTablas = async () => {
         // 18. Tabla SESIONES_SIMULADOR
         await pool.query(`
             CREATE TABLE IF NOT EXISTS sesiones_simulador (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 simulador_id INTEGER NOT NULL,
                 usuario_id INTEGER NOT NULL,
                 datos_sesion TEXT,

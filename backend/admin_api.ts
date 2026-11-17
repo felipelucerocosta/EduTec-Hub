@@ -706,7 +706,7 @@ router.post('/admin/usuarios', requireAdmin, async (req: Request, res: Response)
               [userId, nombre_completo.trim(), cId]
             );
             await pool.query(
-              'INSERT OR IGNORE INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2)',
+              'INSERT INTO profesores_clases (profesor_id, clase_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
               [userId, cId]
             );
           }
@@ -907,7 +907,7 @@ router.post('/admin/preceptores/:id/clases', requireAdmin, async (req: Request, 
         await pool.query(`DELETE FROM preceptores_clases WHERE preceptor_id = $1`, [preceptorId]);
         for (const cid of cids) {
           await pool.query(
-            `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+            `INSERT INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
             [preceptorId, cid]
           );
         }
@@ -940,7 +940,7 @@ router.post('/admin/preceptores/:id/clases', requireAdmin, async (req: Request, 
     }
 
     await pool.query(
-      `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+      `INSERT INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [preceptorId, targetClaseId]
     );
 

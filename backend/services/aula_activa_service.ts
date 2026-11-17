@@ -37,7 +37,7 @@ export const AulaActivaService = {
   async initDb(): Promise<void> {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS aula_activa_consultas (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           clase_id INTEGER NOT NULL,
           trabajo_id INTEGER,
           usuario_id INTEGER NOT NULL,

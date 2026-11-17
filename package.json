@@ -99,6 +99,7 @@
   },
   "devDependencies": {
     "@types/express-session": "^1.19.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",

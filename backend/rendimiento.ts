@@ -253,7 +253,7 @@ router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
     if (rol === 'profesor') {
       query = `
         SELECT 
-          strftime('%Y-%m', e.fecha_calificacion) as periodo,
+          TO_CHAR(e.fecha_calificacion, 'YYYY-MM') as periodo,
           AVG(e.calificacion) as promedio,
           COUNT(*) as cantidad
         FROM entregas e
@@ -263,14 +263,14 @@ router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
           AND e.estado = 'corregido' 
           AND e.calificacion IS NOT NULL
           AND e.fecha_calificacion IS NOT NULL
-        GROUP BY strftime('%Y-%m', e.fecha_calificacion)
+        GROUP BY TO_CHAR(e.fecha_calificacion, 'YYYY-MM')
         ORDER BY periodo ASC
       `;
       params = [userId];
     } else {
       query = `
         SELECT 
-          strftime('%Y-%m', e.fecha_calificacion) as periodo,
+          TO_CHAR(e.fecha_calificacion, 'YYYY-MM') as periodo,
           AVG(e.calificacion) as promedio,
           COUNT(*) as cantidad
         FROM entregas e
@@ -279,7 +279,7 @@ router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
           AND e.estado = 'corregido' 
           AND e.calificacion IS NOT NULL
           AND e.fecha_calificacion IS NOT NULL
-        GROUP BY strftime('%Y-%m', e.fecha_calificacion)
+        GROUP BY TO_CHAR(e.fecha_calificacion, 'YYYY-MM')
         ORDER BY periodo ASC
       `;
       params = [userId];

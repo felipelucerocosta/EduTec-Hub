@@ -39,7 +39,7 @@ export async function setupOportunidadesDatabase(): Promise<void> {
      */
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_oportunidades (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           titulo TEXT NOT NULL,
           institucion TEXT NOT NULL,
           descripcion TEXT NOT NULL,
@@ -80,7 +80,7 @@ export async function setupOportunidadesDatabase(): Promise<void> {
      */
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_oportunidades_postulaciones (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           oportunidad_id INTEGER NOT NULL,
           alumno_id INTEGER NOT NULL,
           presentacion TEXT,

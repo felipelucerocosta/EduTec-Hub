@@ -9,7 +9,7 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
     // 1. Tabla de asignaciones de preceptores a clases
     await pool.query(`
       CREATE TABLE IF NOT EXISTS preceptores_clases (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           preceptor_id INTEGER NOT NULL,
           clase_id INTEGER NOT NULL,
           fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -22,7 +22,7 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
     // 2. Tabla de sesiones de asistencia
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_preceptoria_sesiones (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           clase_id INTEGER NOT NULL,
           fecha TEXT NOT NULL,
           preceptor_id INTEGER NOT NULL,
@@ -38,7 +38,7 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
     // 3. Tabla de registros individuales de asistencia por alumno
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_preceptoria_registros (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           sesion_id INTEGER NOT NULL,
           alumno_id INTEGER NOT NULL,
           estado TEXT NOT NULL CHECK(estado IN ('PRESENTE', 'AUSENTE', 'TARDE', 'JUSTIFICADO')),
@@ -55,7 +55,7 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
     // 4. Tabla de solicitudes y emisión de constancias de alumno regular
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_preceptoria_constancias (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           alumno_id INTEGER NOT NULL,
           preceptor_id INTEGER,
           clase_id INTEGER,
@@ -95,7 +95,7 @@ export async function setupPreceptoriaDatabase(): Promise<void> {
     // 6. Tabla de Asistencias del Personal Docente (Gestión Laboral Institucional)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS plugin_asistencias_docentes (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           profesor_id INTEGER NOT NULL,
           fecha TEXT NOT NULL,
           estado TEXT NOT NULL CHECK(estado IN ('PRESENTE', 'AUSENTE_JUSTIFICADO', 'AUSENTE_INJUSTIFICADO', 'TARDE')),
