@@ -17,7 +17,7 @@ for (const envPath of envCandidates) {
   }
 }
 
-// Configuración de conexión PostgreSQL
+// Configuración de conexión exclusiva a PostgreSQL
 const poolConfig: PoolConfig = {
   connectionString: process.env.DATABASE_URL || undefined,
   host: process.env.PG_HOST || '127.0.0.1',
@@ -35,7 +35,7 @@ const poolConfig: PoolConfig = {
 export const nativePool = new Pool(poolConfig);
 
 nativePool.on('connect', () => {
-  // Conexión activa al pool
+  // Conexión activa al pool de PostgreSQL
 });
 
 nativePool.on('error', (err) => {
@@ -45,27 +45,16 @@ nativePool.on('error', (err) => {
 console.log(`🐘 [PostgreSQL] Pool inicializado hacia base de datos "${poolConfig.database}" en ${poolConfig.host}:${poolConfig.port}`);
 
 /**
- * Normalizador de consultas para garantizar compatibilidad total entre código
- * legado y PostgreSQL nativo.
+ * Normalizador de consultas para garantizar que los parámetros posicionales
+ * sean siempre compatibles con PostgreSQL ($1, $2, $3...).
  */
 function normalizeQuery(text: string): { sql: string; skip: boolean } {
-  const trimmed = text.trim();
-  const upper = trimmed.toUpperCase();
+  let sql = text.trim();
 
-  // Omitir o responder vacío a comandos específicos de SQLite (ej. PRAGMAs)
-  if (upper.startsWith('PRAGMA ')) {
-    return { sql: trimmed, skip: true };
-  }
-
-  let sql = trimmed;
-
-  // Reemplazar sintaxis SQLite específica si ocurriera
-  if (sql.includes('INTEGER PRIMARY KEY AUTOINCREMENT')) {
-    sql = sql.replace(/\bINTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT\b/gi, 'SERIAL PRIMARY KEY');
-  }
-
-  if (sql.includes('INSERT OR IGNORE INTO')) {
-    sql = sql.replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi, 'INSERT INTO') + ' ON CONFLICT DO NOTHING';
+  // Convertir comodines posicionales '?' a '$1, $2, $3...' si existieran
+  if (sql.includes('?')) {
+    let paramIndex = 1;
+    sql = sql.replace(/\?/g, () => `$${paramIndex++}`);
   }
 
   return { sql, skip: false };
@@ -79,7 +68,7 @@ export interface EduTechQueryResult<T = any> {
 }
 
 /**
- * Exportación unificada de pool compatible con la API de pg y con los controladores de EduTech.
+ * Exportación unificada de pool nativo PostgreSQL para todos los módulos de EduTech.
  */
 const pool = {
   nativePool,
@@ -94,7 +83,7 @@ const pool = {
     const { sql, skip } = normalizeQuery(text);
 
     if (skip) {
-      return { rows: [], rowCount: 0, insertId: null, command: 'PRAGMA_SKIP' };
+      return { rows: [], rowCount: 0, insertId: null, command: 'SKIP' };
     }
 
     try {

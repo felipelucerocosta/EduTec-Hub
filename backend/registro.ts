@@ -42,9 +42,9 @@ router.post(
     }
 
     try {
-      // 1. Verificar si ya existe
+      // 1. Verificar si ya existe por correo o DNI
       const verificarResult = await pool.query(
-        `SELECT id_usuario FROM usuarios WHERE correo = ? OR DNI = ?`,
+        `SELECT id_usuario FROM usuarios WHERE correo = $1 OR DNI = $2`,
         [correo.toLowerCase().trim(), DNI.trim()]
       );
       if (verificarResult.rows.length > 0) {
@@ -55,18 +55,19 @@ router.post(
       const hashedPassword = await bcrypt.hash(contrasena, 10);
 
       // Iniciar transacción para garantizar persistencia atómica
-      await pool.query('BEGIN TRANSACTION');
+      await pool.query('BEGIN');
 
       try {
         // 3. Insertar en usuarios con estado PENDIENTE_DE_ASIGNACION
         const usuarioResult = await pool.query(
           `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, curso, nivel_educativo, rol, estado_acceso)
-           VALUES (?, ?, ?, ?, ?, ?, 'alumno', 'PENDIENTE_DE_ASIGNACION')`,
+           VALUES ($1, $2, $3, $4, $5, $6, 'alumno', 'PENDIENTE_DE_ASIGNACION')
+           RETURNING id_usuario`,
           [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), curso || null, nivel_educativo || null]
         );
 
         // Obtener el ID del usuario recién insertado
-        const ID_Usuario = usuarioResult.rows[0]?.id_usuario ?? usuarioResult.insertId;
+        const ID_Usuario = usuarioResult.rows[0]?.id_usuario;
         if (!ID_Usuario) {
           throw new Error('No se pudo obtener el ID del usuario creado.');
         }
@@ -75,17 +76,17 @@ router.post(
         let ID_Curso: number | null = null;
         if (curso && curso.trim()) {
           const cursoResult = await pool.query(
-            `SELECT id_curso FROM curso WHERE LOWER(TRIM(nombre_curso)) = LOWER(TRIM(?))`,
+            `SELECT id_curso FROM curso WHERE LOWER(TRIM(nombre_curso)) = LOWER(TRIM($1))`,
             [curso.trim()]
           );
           if (cursoResult.rows.length > 0) {
             ID_Curso = cursoResult.rows[0].id_curso;
           } else {
             const insCurso = await pool.query(
-              `INSERT INTO curso (nombre_curso, nivel_educativo) VALUES (?, ?)`,
+              `INSERT INTO curso (nombre_curso, nivel_educativo) VALUES ($1, $2) RETURNING id_curso`,
               [curso.trim(), nivel_educativo || 'Secundario']
             );
-            ID_Curso = insCurso.insertId;
+            ID_Curso = insCurso.rows[0]?.id_curso ?? null;
           }
         }
 
@@ -96,14 +97,14 @@ router.post(
         // 6. Insertar en tabla alumno
         await pool.query(
           `INSERT INTO alumno (DNI, nombre_completo, apellido, id_curso, id_usuario, correo, contrasena, nivel_educativo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           [DNI.trim(), nombre_completo.trim(), apellido, ID_Curso, ID_Usuario, correo.toLowerCase().trim(), hashedPassword, nivel_educativo || null]
         );
 
         // 7. Registrar auditoría de registro
         try {
           await pool.query(
-            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES (?, ?, 'REGISTRO_ALUMNO', ?)`,
+            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'REGISTRO_ALUMNO', $3)`,
             [ID_Usuario, correo.toLowerCase().trim(), `Estado inicial: PENDIENTE_DE_ASIGNACION, Nivel: ${nivel_educativo || 'sin asignar'}, Curso: ${curso || 'sin asignar'}`]
           );
         } catch (_e) {}
@@ -117,7 +118,7 @@ router.post(
       }
     } catch (err: any) {
       console.error('Error en registro de alumno:', err);
-      if (err.message?.includes('UNIQUE constraint failed')) {
+      if (err.code === '23505' || err.message?.includes('duplicate key') || err.message?.includes('UNIQUE')) {
         return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
       }
       return res.status(500).json({ error: 'Error interno del servidor al registrar el alumno.' });
@@ -138,7 +139,7 @@ router.post(
     try {
       // 1. Verificar si ya existe
       const verificarResult = await pool.query(
-        `SELECT id_usuario FROM usuarios WHERE correo = ? OR DNI = ?`,
+        `SELECT id_usuario FROM usuarios WHERE correo = $1 OR DNI = $2`,
         [correo.toLowerCase().trim(), DNI.trim()]
       );
       if (verificarResult.rows.length > 0) {
@@ -149,18 +150,19 @@ router.post(
       const hashedPassword = await bcrypt.hash(contrasena, 10);
 
       // Iniciar transacción para garantizar persistencia atómica
-      await pool.query('BEGIN TRANSACTION');
+      await pool.query('BEGIN');
 
       try {
         // 3. Insertar en usuarios
         const usuarioResult = await pool.query(
           `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, nivel_educativo, rol, estado_acceso)
-           VALUES (?, ?, ?, ?, ?, 'profesor', 'ACTIVO')`,
+           VALUES ($1, $2, $3, $4, $5, 'profesor', 'ACTIVO')
+           RETURNING id_usuario`,
           [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), nivel_educativo || null]
         );
 
         // Obtener el ID del usuario recién insertado
-        const ID_Usuario = usuarioResult.rows[0]?.id_usuario ?? usuarioResult.insertId;
+        const ID_Usuario = usuarioResult.rows[0]?.id_usuario;
         if (!ID_Usuario) {
           throw new Error('No se pudo obtener el ID del usuario creado.');
         }
@@ -168,14 +170,14 @@ router.post(
         // 4. Insertar en tabla profesor
         await pool.query(
           `INSERT INTO profesor (id_usuario, correo, DNI, nombre_completo, materia, contrasena, nivel_educativo)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [ID_Usuario, correo.toLowerCase().trim(), DNI.trim(), nombre_completo.trim(), materia || '', hashedPassword, nivel_educativo || null]
         );
 
         // 5. Auditoría
         try {
           await pool.query(
-            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES (?, ?, 'REGISTRO_PROFESOR', ?)`,
+            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'REGISTRO_PROFESOR', $3)`,
             [ID_Usuario, correo.toLowerCase().trim(), `Profesor registrado (Materia: ${materia || 'General'}, Nivel: ${nivel_educativo || 'sin asignar'})`]
           );
         } catch (_e) {}
@@ -189,7 +191,7 @@ router.post(
       }
     } catch (err: any) {
       console.error('Error en registro de profesor:', err);
-      if (err.message?.includes('UNIQUE constraint failed')) {
+      if (err.code === '23505' || err.message?.includes('duplicate key') || err.message?.includes('UNIQUE')) {
         return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
       }
       return res.status(500).json({ error: 'Error interno del servidor al registrar el profesor.' });
@@ -214,7 +216,7 @@ router.post(
     try {
       // 1. Verificar si ya existe
       const verificarResult = await pool.query(
-        `SELECT id_usuario FROM usuarios WHERE LOWER(correo) = ? OR DNI = ?`,
+        `SELECT id_usuario FROM usuarios WHERE LOWER(correo) = $1 OR DNI = $2`,
         [correo.toLowerCase().trim(), DNI.trim()]
       );
       if (verificarResult.rows.length > 0) {
@@ -225,22 +227,26 @@ router.post(
       const hashedPassword = await bcrypt.hash(contrasena, 10);
 
       // Iniciar transacción atómica
-      await pool.query('BEGIN TRANSACTION');
+      await pool.query('BEGIN');
 
       try {
         // 3. Insertar en usuarios con rol 'preceptor' y estado 'ACTIVO'
         const usuarioResult = await pool.query(
           `INSERT INTO usuarios (contrasena, nombre_completo, correo, DNI, nivel_educativo, rol, estado_acceso)
-           VALUES (?, ?, ?, ?, ?, 'preceptor', 'ACTIVO')`,
+           VALUES ($1, $2, $3, $4, $5, 'preceptor', 'ACTIVO')
+           RETURNING id_usuario`,
           [hashedPassword, nombre_completo.trim(), correo.toLowerCase().trim(), DNI.trim(), nivel_educativo || 'Secundario']
         );
 
-        const ID_Usuario = usuarioResult.rows?.[0]?.id_usuario ?? usuarioResult.insertId;
+        const ID_Usuario = usuarioResult.rows?.[0]?.id_usuario;
+        if (!ID_Usuario) {
+          throw new Error('No se pudo obtener el ID del usuario preceptor.');
+        }
 
         // 4. Registrar auditoría de registro
         try {
           await pool.query(
-            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES (?, ?, 'REGISTRO_PRECEPTOR', ?)`,
+            `INSERT INTO auditoria_acceso (usuario_id, correo, evento, detalle) VALUES ($1, $2, 'REGISTRO_PRECEPTOR', $3)`,
             [ID_Usuario, correo.toLowerCase().trim(), `Preceptor registrado (Nivel: ${nivel_educativo || 'Secundario'}, Turno: ${turno || 'General'})`]
           );
         } catch (_e) {}
@@ -258,7 +264,7 @@ router.post(
       }
     } catch (err: any) {
       console.error('Error en registro de preceptor:', err);
-      if (err.message?.includes('UNIQUE constraint failed')) {
+      if (err.code === '23505' || err.message?.includes('duplicate key') || err.message?.includes('UNIQUE')) {
         return res.status(409).json({ error: 'El correo o DNI ya están registrados.' });
       }
       return res.status(500).json({ error: 'Error interno del servidor al registrar el preceptor.' });

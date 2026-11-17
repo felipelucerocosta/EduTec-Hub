@@ -7,7 +7,7 @@
  * 
  * RESPONSABILIDAD:
  * Crea las tablas e índices necesarios para el plugin de Oportunidades si no
- * existen previamente en el motor SQLite/PostgreSQL.
+ * existen previamente en el motor PostgreSQL.
  * 
  * POLÍTICA DE SEGURIDAD Y AISLAMIENTO:
  * - Todas las tablas llevan el prefijo `plugin_oportunidades*` para evitar colisiones

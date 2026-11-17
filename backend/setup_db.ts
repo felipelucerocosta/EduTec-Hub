@@ -104,7 +104,7 @@ async function upsertUsuario(u: SeedUserData, saltRounds: number = 10): Promise<
 }
 
 const crearTablas = async () => {
-    console.log("🔄 Inicializando Base de Datos Embebida (SQLite)...");
+    console.log("🔄 Inicializando Base de Datos (PostgreSQL)...");
 
     try {
         // 1. Tabla CURSO
@@ -120,7 +120,7 @@ const crearTablas = async () => {
             await pool.query(`UPDATE curso SET nivel_educativo = 'Secundario' WHERE nivel_educativo IS NULL OR nivel_educativo = '';`);
         } catch (_e) {}
 
-        // 2. Tabla USUARIOS (SQLite compatible)
+        // 2. Tabla USUARIOS
         await pool.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
                 id_usuario SERIAL PRIMARY KEY,
@@ -439,7 +439,7 @@ const crearTablas = async () => {
             );
         `);
 
-        console.log("✅ Estructura de tablas en SQLite verificada/creada correctamente.");
+        console.log("✅ Estructura de tablas en PostgreSQL verificada/creada correctamente.");
 
         // 11. Sembrado de Cursos (Idempotente)
         await pool.query(`
@@ -772,7 +772,7 @@ const crearTablas = async () => {
         console.log("🚀 Inicialización y sincronización de base de datos finalizada con éxito.");
 
     } catch (error) {
-        console.error("❌ Error al crear tablas o sembrar datos en SQLite:", error);
+        console.error("❌ Error al crear tablas o sembrar datos en PostgreSQL:", error);
         throw error;
     }
 };

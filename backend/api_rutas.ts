@@ -139,7 +139,7 @@ router.delete('/calendario/notas/:id', async (req: Request, res: Response) => {
 });
 
 // ======================================================
-// 2. SUBIR ACTAS (Adaptado a SQLite)
+// 2. SUBIR ACTAS (PostgreSQL)
 // ======================================================
 router.post('/subir-acta', upload.single('acta'), async (req: Request, res: Response) => {
 
@@ -150,15 +150,14 @@ router.post('/subir-acta', upload.single('acta'), async (req: Request, res: Resp
   const { filename, originalname, path: filepath, mimetype, size } = req.file;
 
   try {
-    // SQLite: Quitamos RETURNING id
     const insertQ = `
         INSERT INTO actas (filename, originalname, path, mimetype, size)
         VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
     `;
     const result: any = await pool.query(insertQ, [filename, originalname, filepath, mimetype, size]);
     
-    // En el pool simulado de SQLite, result.insertId tiene el ID generado
-    const insertedId = result.insertId; 
+    const insertedId = result.rows[0]?.id ?? result.insertId; 
 
     emitToAdmin('bulletin.updated', { id: insertedId, tipo: 'acta' });
     return res.status(201).json({ success: true, message: 'Acta subida e info guardada.', id: insertedId });

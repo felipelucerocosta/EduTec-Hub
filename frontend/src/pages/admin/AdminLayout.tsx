@@ -184,7 +184,7 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#34d399' }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-              Base de Datos SQLite: OK
+              Base de Datos PostgreSQL: OK
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#55ddf5', marginTop: '4px' }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#55ddf5' }}></span>
