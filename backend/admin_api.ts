@@ -825,5 +825,164 @@ router.put('/admin/usuarios/:id', requireAdmin, async (req: Request, res: Respon
   }
 });
 
+// ─── GESTIÓN DE ASIGNACIONES DE PRECEPTORES (EXCLUSIVO ADMIN) ───────────────
+
+// GET /api/admin/preceptores — Lista preceptores con sus clases asignadas
+router.get('/admin/preceptores', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const preceptoresQ = await pool.query(`
+      SELECT u.id_usuario as id, u.nombre_completo as nombre, u.correo, u.DNI, u.estado_acceso,
+             (SELECT COUNT(*) FROM preceptores_clases pc WHERE pc.preceptor_id = u.id_usuario) as clases_asignadas
+      FROM usuarios u
+      WHERE LOWER(TRIM(u.rol)) IN ('preceptor', 'preceptoria')
+      ORDER BY u.nombre_completo ASC
+    `);
+
+    const asignacionesQ = await pool.query(`
+      SELECT pc.preceptor_id, c.id, c.nombre, c.materia, c.seccion, c.codigo, c.aula
+      FROM preceptores_clases pc
+      JOIN clases c ON pc.clase_id = c.id
+      ORDER BY c.nombre ASC
+    `);
+
+    const clasesMap = new Map<number, any[]>();
+    for (const row of asignacionesQ.rows) {
+      const pid = Number(row.preceptor_id);
+      if (!clasesMap.has(pid)) {
+        clasesMap.set(pid, []);
+      }
+      clasesMap.get(pid)!.push({
+        id: Number(row.id),
+        nombre: row.nombre,
+        materia: row.materia,
+        seccion: row.seccion,
+        codigo: row.codigo,
+        aula: row.aula
+      });
+    }
+
+    const preceptores = preceptoresQ.rows.map((p: any) => ({
+      id: Number(p.id),
+      nombre: p.nombre,
+      correo: p.correo,
+      DNI: p.DNI || '',
+      estado_acceso: p.estado_acceso,
+      clases_asignadas: Number(p.clases_asignadas || 0),
+      clases: clasesMap.get(Number(p.id)) || []
+    }));
+
+    return res.json(preceptores);
+  } catch (error) {
+    console.error('Error al obtener preceptores y asignaciones:', error);
+    return res.status(500).json({ error: 'Error al obtener nómina de preceptores.' });
+  }
+});
+
+// POST /api/admin/preceptores/:id/clases — Asigna clases a un preceptor (lote o individual)
+router.post('/admin/preceptores/:id/clases', requireAdmin, async (req: Request, res: Response) => {
+  const preceptorId = Number(req.params.id);
+  const { clase_ids, clase_id } = req.body;
+
+  if (isNaN(preceptorId)) {
+    return res.status(400).json({ error: 'ID de preceptor inválido.' });
+  }
+
+  try {
+    const precQ = await pool.query(
+      `SELECT id_usuario, nombre_completo, rol FROM usuarios WHERE id_usuario = $1`,
+      [preceptorId]
+    );
+
+    if (precQ.rows.length === 0 || !['preceptor', 'preceptoria'].includes(precQ.rows[0].rol.toLowerCase().trim())) {
+      return res.status(404).json({ error: 'Usuario con rol de Preceptor no encontrado.' });
+    }
+
+    const preceptorNombre = precQ.rows[0].nombre_completo;
+
+    // Si se envía clase_ids (array), reemplaza/sincroniza en lote
+    if (Array.isArray(clase_ids)) {
+      const cids = clase_ids.map(Number).filter(n => !isNaN(n) && n > 0);
+      await pool.query('BEGIN');
+      try {
+        await pool.query(`DELETE FROM preceptores_clases WHERE preceptor_id = $1`, [preceptorId]);
+        for (const cid of cids) {
+          await pool.query(
+            `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+            [preceptorId, cid]
+          );
+        }
+        await pool.query('COMMIT');
+      } catch (e) {
+        await pool.query('ROLLBACK');
+        throw e;
+      }
+
+      await syncUserClassRooms(preceptorId);
+      emitToUser(preceptorId, 'preceptor.classes_updated', { preceptor_id: preceptorId, clase_ids: cids });
+      emitToAdmin('preceptor.classes_updated', { preceptor_id: preceptorId, clase_ids: cids });
+
+      return res.json({
+        success: true,
+        message: `Se asignaron ${cids.length} clases al preceptor "${preceptorNombre}".`,
+        clase_ids: cids
+      });
+    }
+
+    // Si se envía clase_id individual
+    const targetClaseId = Number(clase_id);
+    if (isNaN(targetClaseId) || targetClaseId <= 0) {
+      return res.status(400).json({ error: 'Se requiere clase_ids (array) o clase_id (número).' });
+    }
+
+    const claseQ = await pool.query(`SELECT id, nombre FROM clases WHERE id = $1`, [targetClaseId]);
+    if (claseQ.rows.length === 0) {
+      return res.status(404).json({ error: 'Clase no encontrada.' });
+    }
+
+    await pool.query(
+      `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+      [preceptorId, targetClaseId]
+    );
+
+    await syncUserClassRooms(preceptorId);
+    emitToUser(preceptorId, 'teacher.assigned', { clase_id: targetClaseId });
+    emitToAdmin('teacher.assigned', { clase_id: targetClaseId, preceptor_id: preceptorId });
+
+    return res.json({
+      success: true,
+      message: `Comisión "${claseQ.rows[0].nombre}" asignada a "${preceptorNombre}".`
+    });
+  } catch (error) {
+    console.error('Error al asignar clases a preceptor:', error);
+    return res.status(500).json({ error: 'Error al procesar la asignación del preceptor.' });
+  }
+});
+
+// DELETE /api/admin/preceptores/:id/clases/:claseId — Desasigna una comisión de un preceptor
+router.delete('/admin/preceptores/:id/clases/:claseId', requireAdmin, async (req: Request, res: Response) => {
+  const preceptorId = Number(req.params.id);
+  const claseId = Number(req.params.claseId);
+
+  if (isNaN(preceptorId) || isNaN(claseId)) {
+    return res.status(400).json({ error: 'Parámetros inválidos.' });
+  }
+
+  try {
+    await pool.query(
+      `DELETE FROM preceptores_clases WHERE preceptor_id = $1 AND clase_id = $2`,
+      [preceptorId, claseId]
+    );
+
+    await syncUserClassRooms(preceptorId);
+    emitToUser(preceptorId, 'teacher.removed', { clase_id: claseId });
+    emitToAdmin('teacher.removed', { clase_id: claseId, preceptor_id: preceptorId });
+
+    return res.json({ success: true, message: 'Comisión desasignada exitosamente del preceptor.' });
+  } catch (error) {
+    console.error('Error al desasignar clase de preceptor:', error);
+    return res.status(500).json({ error: 'Error al desasignar la comisión.' });
+  }
+});
+
 export default router;
 

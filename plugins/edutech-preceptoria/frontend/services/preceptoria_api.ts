@@ -65,7 +65,16 @@ export interface PreceptorUsuarioItem {
   nombre_completo: string;
   correo: string;
   DNI?: string;
+  estado_acceso?: string;
   total_clases_asignadas: number;
+  clases?: Array<{
+    id: number;
+    nombre: string;
+    materia: string;
+    seccion?: string;
+    codigo?: string;
+    aula?: string;
+  }>;
 }
 
 export interface RegistroAsistenciaAlumno {
@@ -308,6 +317,13 @@ export const PreceptoriaAPI = {
     return apiRequest('/admin/asignar-clase', {
       method: 'POST',
       body: JSON.stringify({ preceptorId, claseId }),
+    });
+  },
+
+  async asignarClasesBatch(preceptorId: number, claseIds: number[]) {
+    return apiRequest(`/admin/preceptores/${preceptorId}/clases-batch`, {
+      method: 'POST',
+      body: JSON.stringify({ clase_ids: claseIds }),
     });
   },
 

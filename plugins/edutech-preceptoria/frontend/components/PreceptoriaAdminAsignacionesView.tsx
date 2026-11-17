@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import PreceptoriaAPI, { type PreceptorUsuarioItem } from '../services/preceptoria_api';
+import PreceptoriaAPI, { type PreceptorUsuarioItem, type ClasePreceptorOption } from '../services/preceptoria_api';
 import styles from '../styles/preceptoria.module.css';
 
 export const PreceptoriaAdminAsignacionesView: React.FC = () => {
   const [preceptores, setPreceptores] = useState<PreceptorUsuarioItem[]>([]);
+  const [clasesDisponibles, setClasesDisponibles] = useState<ClasePreceptorOption[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Modal Asignar Clase
   const [modalAsignar, setModalAsignar] = useState<boolean>(false);
-  const [preceptorSeleccionado, setPreceptorSeleccionado] = useState<number | null>(null);
+  const [preceptorSeleccionado, setPreceptorSeleccionado] = useState<PreceptorUsuarioItem | null>(null);
   const [claseId, setClaseId] = useState<string>('');
+  const [guardando, setGuardando] = useState<boolean>(false);
 
   useEffect(() => {
-    cargarPreceptores();
+    cargarDatos();
   }, []);
 
-  const cargarPreceptores = async () => {
+  const cargarDatos = async () => {
     try {
       setLoading(true);
-      const data = await PreceptoriaAPI.listarPreceptores();
-      setPreceptores(data);
+      const [dataPreceptores, dataClases] = await Promise.all([
+        PreceptoriaAPI.listarPreceptores(),
+        PreceptoriaAPI.getMisClases()
+      ]);
+      setPreceptores(dataPreceptores);
+      setClasesDisponibles(dataClases);
     } catch (err) {
-      console.error('Error al cargar preceptores:', err);
+      console.error('Error al cargar datos de preceptoría:', err);
     } finally {
       setLoading(false);
     }
@@ -32,13 +38,27 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
     if (!preceptorSeleccionado || !claseId) return;
 
     try {
-      await PreceptoriaAPI.asignarClase(preceptorSeleccionado, Number(claseId));
-      alert('Preceptor asignado exitosamente a la comisión.');
+      setGuardando(true);
+      await PreceptoriaAPI.asignarClase(preceptorSeleccionado.id_usuario, Number(claseId));
       setModalAsignar(false);
       setClaseId('');
-      cargarPreceptores();
+      await cargarDatos();
     } catch (err: any) {
-      alert(err.message || 'Error al asignar');
+      alert(err.message || 'Error al asignar comisión');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleDesasignar = async (preceptorId: number, claseIdNum: number, claseNombre: string) => {
+    if (!confirm(`¿Estás seguro de desasignar la comisión "${claseNombre}" de este preceptor?`)) {
+      return;
+    }
+    try {
+      await PreceptoriaAPI.revocarClase(preceptorId, claseIdNum);
+      await cargarDatos();
+    } catch (err: any) {
+      alert(err.message || 'Error al desasignar comisión');
     }
   };
 
@@ -50,7 +70,7 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
             Nómina Institucional de Preceptores
           </h2>
           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.84rem', color: '#94a3b8' }}>
-            El administrador gestiona asignaciones de comisiones. La toma de asistencia es exclusiva de los preceptores.
+            El administrador asigna las comisiones oficiales a cargo de cada preceptor.
           </p>
         </div>
       </div>
@@ -74,7 +94,7 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
                 <th>Correo Institucional</th>
                 <th>DNI</th>
                 <th>Comisiones Asignadas</th>
-                <th>Acciones</th>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -82,21 +102,63 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
                 <tr key={p.id_usuario}>
                   <td>
                     <div style={{ fontWeight: 600, color: '#f8fafc' }}>{p.nombre_completo}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>ID: #{p.id_usuario}</div>
                   </td>
                   <td style={{ color: '#38bdf8' }}>{p.correo}</td>
                   <td style={{ color: '#cbd5e1' }}>{p.DNI || 'S/D'}</td>
                   <td>
-                    <span className={`${styles.badge} ${p.total_clases_asignadas > 0 ? styles.badgeSuccess : styles.badgeWarning}`}>
-                      {p.total_clases_asignadas} comisiones
-                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                      {p.clases && p.clases.length > 0 ? (
+                        p.clases.map((c) => (
+                          <span
+                            key={c.id}
+                            style={{
+                              background: 'rgba(56, 189, 248, 0.12)',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              color: '#38bdf8',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <span>{c.nombre} {c.seccion ? `(${c.seccion})` : ''}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDesasignar(p.id_usuario, c.id, c.nombre)}
+                              title="Desasignar comisión"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                padding: '0 2px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                fontSize: '0.9rem',
+                              }}
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: '#eab308' }}>
+                          Sin comisiones asignadas
+                        </span>
+                      )}
+                    </div>
                   </td>
-                  <td>
+                  <td style={{ textAlign: 'right' }}>
                     <button
                       type="button"
                       className={styles.secondaryBtn}
                       style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
                       onClick={() => {
-                        setPreceptorSeleccionado(p.id_usuario);
+                        setPreceptorSeleccionado(p);
+                        setClaseId('');
                         setModalAsignar(true);
                       }}
                     >
@@ -111,7 +173,7 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
       )}
 
       {/* Modal Asignar */}
-      {modalAsignar && (
+      {modalAsignar && preceptorSeleccionado && (
         <div
           style={{
             position: 'fixed',
@@ -131,7 +193,7 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
               borderRadius: '14px',
               padding: '1.75rem',
               width: '100%',
-              maxWidth: '450px',
+              maxWidth: '480px',
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem',
@@ -141,26 +203,44 @@ export const PreceptoriaAdminAsignacionesView: React.FC = () => {
             <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f8fafc' }}>
               Asignar Comisión a Preceptor
             </h3>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+              Preceptor: <strong style={{ color: '#38bdf8' }}>{preceptorSeleccionado.nombre_completo}</strong> ({preceptorSeleccionado.correo})
+            </p>
+
             <form onSubmit={handleAsignar} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1' }}>ID de Comisión (Clase) *</label>
-                <input
-                  type="number"
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1' }}>
+                  Seleccionar Comisión / Clase *
+                </label>
+                <select
                   required
-                  placeholder="Ej: 1"
                   value={claseId}
                   onChange={(e) => setClaseId(e.target.value)}
                   className={styles.selectInput}
                   style={{ width: '100%', marginTop: '0.35rem' }}
-                />
+                >
+                  <option value="">— Seleccionar Comisión —</option>
+                  {clasesDisponibles
+                    .filter((c) => !preceptorSeleccionado.clases?.some((pc) => pc.id === c.id))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre} {c.seccion ? `(${c.seccion})` : ''} — {c.materia} #{c.codigo}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className={styles.secondaryBtn} onClick={() => setModalAsignar(false)}>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => setModalAsignar(false)}
+                  disabled={guardando}
+                >
                   Cancelar
                 </button>
-                <button type="submit" className={styles.primaryBtn}>
-                  Asignar Comisión
+                <button type="submit" className={styles.primaryBtn} disabled={guardando || !claseId}>
+                  {guardando ? 'Asignando...' : 'Asignar Comisión'}
                 </button>
               </div>
             </form>

@@ -23,6 +23,7 @@ export const PreceptoriaTomaAsistenciaView: React.FC<Props> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [guardando, setGuardando] = useState<boolean>(false);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   useEffect(() => {
     if (claseId && fecha) {
@@ -34,11 +35,15 @@ export const PreceptoriaTomaAsistenciaView: React.FC<Props> = ({
     try {
       setLoading(true);
       setMensajeExito(null);
+      setErrorCarga(null);
       const data = await PreceptoriaAPI.getPlanillaFecha(claseId, fecha);
-      setAlumnos(data.alumnos);
-      setObservaciones(data.sesion?.observaciones || '');
-    } catch (err) {
+      const listaAlumnos = Array.isArray(data?.alumnos) ? data.alumnos : [];
+      setAlumnos(listaAlumnos);
+      setObservaciones(data?.sesion?.observaciones || '');
+    } catch (err: any) {
       console.error('Error al cargar planilla:', err);
+      setErrorCarga(err.message || 'No se pudo cargar la nómina de asistencia de la comisión seleccionada.');
+      setAlumnos([]);
     } finally {
       setLoading(false);
     }
@@ -64,6 +69,7 @@ export const PreceptoriaTomaAsistenciaView: React.FC<Props> = ({
     try {
       setGuardando(true);
       setMensajeExito(null);
+      setErrorCarga(null);
       await PreceptoriaAPI.guardarAsistencia(
         claseId,
         fecha,
@@ -83,11 +89,11 @@ export const PreceptoriaTomaAsistenciaView: React.FC<Props> = ({
     }
   };
 
-  // Contadores rápidos
-  const totalPresentes = alumnos.filter((a) => a.estado === 'PRESENTE').length;
-  const totalAusentes = alumnos.filter((a) => a.estado === 'AUSENTE').length;
-  const totalTardes = alumnos.filter((a) => a.estado === 'TARDE').length;
-  const totalJustificados = alumnos.filter((a) => a.estado === 'JUSTIFICADO').length;
+  // Contadores rápidos defensivos
+  const totalPresentes = (alumnos || []).filter((a) => a.estado === 'PRESENTE').length;
+  const totalAusentes = (alumnos || []).filter((a) => a.estado === 'AUSENTE').length;
+  const totalTardes = (alumnos || []).filter((a) => a.estado === 'TARDE').length;
+  const totalJustificados = (alumnos || []).filter((a) => a.estado === 'JUSTIFICADO').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -169,6 +175,37 @@ export const PreceptoriaTomaAsistenciaView: React.FC<Props> = ({
         >
           <i className="bx bx-check-circle" style={{ fontSize: '1.25rem' }}></i>
           {mensajeExito}
+        </div>
+      )}
+
+      {/* Alerta de error */}
+      {errorCarga && (
+        <div
+          style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            color: '#f87171',
+            padding: '0.9rem 1.25rem',
+            borderRadius: '10px',
+            fontSize: '0.88rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <i className="bx bx-error-circle" style={{ fontSize: '1.4rem' }}></i>
+            <span>{errorCarga}</span>
+          </div>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            onClick={cargarPlanilla}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+          >
+            <i className="bx bx-refresh"></i> Reintentar
+          </button>
         </div>
       )}
 

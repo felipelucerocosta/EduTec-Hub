@@ -73,7 +73,7 @@ export const PreceptoriaController = {
    */
   async getPlanillaFecha(req: Request, res: Response) {
     const claseId = Number(req.params.claseId);
-    const fecha = String(req.query.fecha || new Date().toISOString().split('T')[0]);
+    const fecha = String(req.query.fecha || '').split('T')[0] || new Date().toISOString().split('T')[0];
 
     try {
       const data = await PreceptoriaService.obtenerPlanillaFecha(claseId, fecha);
@@ -194,12 +194,37 @@ export const PreceptoriaController = {
   },
 
   /**
+   * 8b. POST /admin/preceptores/:id/clases-batch — Asigna múltiples comisiones a un preceptor en lote
+   */
+  async asignarClasesBatch(req: Request, res: Response) {
+    const preceptorId = Number(req.params.id || req.body.preceptorId);
+    const { clase_ids } = req.body;
+
+    if (!preceptorId || !Array.isArray(clase_ids)) {
+      return res.status(400).json({ success: false, error: 'Se requiere preceptorId y un arreglo clase_ids.' });
+    }
+
+    try {
+      const result = await PreceptoriaService.asignarClasesBatch(preceptorId, clase_ids.map(Number));
+      return res.json({ success: true, message: 'Asignaciones actualizadas correctamente.', data: result });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
    * 9. POST /revocar — Revoca la asignación de un preceptor sobre una comisión
    */
   async revocarAsignacion(req: Request, res: Response) {
-    const { preceptorId, claseId } = req.body;
+    const preceptorId = Number(req.params.preceptorId || req.body.preceptorId);
+    const claseId = Number(req.params.claseId || req.body.claseId);
+
+    if (!preceptorId || !claseId) {
+      return res.status(400).json({ success: false, error: 'preceptorId y claseId son obligatorios.' });
+    }
+
     try {
-      await PreceptoriaService.revocarAsignacion(Number(preceptorId), Number(claseId));
+      await PreceptoriaService.revocarAsignacion(preceptorId, claseId);
       return res.json({ success: true, message: 'Asignación revocada exitosamente.' });
     } catch (error: any) {
       return res.status(400).json({ success: false, error: error.message });

@@ -48,11 +48,13 @@ export const PreceptoriaService = {
    */
   async obtenerAlumnosClase(claseId: number) {
     const sql = `
-      SELECT u.id_usuario as alumno_id, u.nombre_completo, u.correo, u.DNI, u.curso
+      SELECT DISTINCT u.id_usuario as alumno_id, u.nombre_completo, u.correo, 
+             COALESCE(u.DNI, '') as DNI, COALESCE(u.curso, '') as curso
       FROM alumnos_clases ac
       JOIN clases c ON LOWER(TRIM(c.codigo)) = LOWER(TRIM(ac.codigo))
       JOIN usuarios u ON ac.alumno_id = u.id_usuario
-      WHERE c.id = $1
+      WHERE c.id = $1 
+        AND (u.estado_acceso IS NULL OR u.estado_acceso NOT IN ('SUSPENDIDO', 'INACTIVO'))
       ORDER BY u.nombre_completo ASC
     `;
     const res = await pool.query(sql, [claseId]);
@@ -63,12 +65,14 @@ export const PreceptoriaService = {
    * Carga la planilla de asistencia para una comisión y fecha específica
    */
   async obtenerPlanillaFecha(claseId: number, fecha: string) {
+    const fechaLimpia = String(fecha || '').split('T')[0] || new Date().toISOString().split('T')[0];
+
     const sesionQ = await pool.query(
-      `SELECT s.*, u.nombre_completo as preceptor_nombre
+      `SELECT s.*, COALESCE(u.nombre_completo, 'Preceptoría') as preceptor_nombre
        FROM plugin_preceptoria_sesiones s
-       JOIN usuarios u ON s.preceptor_id = u.id_usuario
+       LEFT JOIN usuarios u ON s.preceptor_id = u.id_usuario
        WHERE s.clase_id = $1 AND s.fecha = $2`,
-      [claseId, fecha]
+      [claseId, fechaLimpia]
     );
 
     const sesion = sesionQ.rows?.[0] || null;
@@ -79,12 +83,14 @@ export const PreceptoriaService = {
     if (!sesion) {
       return {
         sesion: null,
+        fecha: fechaLimpia,
         alumnos: alumnos.map((a: any) => ({
-          alumno_id: a.alumno_id,
-          nombre_completo: a.nombre_completo,
-          correo: a.correo,
-          DNI: a.DNI,
-          estado: 'PRESENTE', // Valor predeterminado para agilizar la carga
+          alumno_id: Number(a.alumno_id),
+          nombre_completo: a.nombre_completo || 'Estudiante',
+          correo: a.correo || '',
+          DNI: a.DNI || '',
+          curso: a.curso || '',
+          estado: 'PRESENTE' as const, // Valor predeterminado seguro para agilizar la toma de lista
           observacion: '',
           existe_registro: false,
         })),
@@ -96,19 +102,21 @@ export const PreceptoriaService = {
       `SELECT r.* FROM plugin_preceptoria_registros r WHERE r.sesion_id = $1`,
       [sesion.id]
     );
-    const regMap = new Map(regQ.rows.map((r: any) => [r.alumno_id, r]));
+    const regMap = new Map(regQ.rows.map((r: any) => [Number(r.alumno_id), r]));
 
     return {
       sesion,
+      fecha: fechaLimpia,
       alumnos: alumnos.map((a: any) => {
-        const reg = regMap.get(a.alumno_id);
+        const reg = regMap.get(Number(a.alumno_id));
         return {
-          alumno_id: a.alumno_id,
-          nombre_completo: a.nombre_completo,
-          correo: a.correo,
-          DNI: a.DNI,
-          estado: reg ? reg.estado : 'PRESENTE',
-          observacion: reg ? reg.observacion : '',
+          alumno_id: Number(a.alumno_id),
+          nombre_completo: a.nombre_completo || 'Estudiante',
+          correo: a.correo || '',
+          DNI: a.DNI || '',
+          curso: a.curso || '',
+          estado: (reg ? reg.estado : 'PRESENTE') as 'PRESENTE' | 'AUSENTE' | 'TARDE' | 'JUSTIFICADO',
+          observacion: reg ? (reg.observacion || '') : '',
           existe_registro: Boolean(reg),
         };
       }),
@@ -116,7 +124,7 @@ export const PreceptoriaService = {
   },
 
   /**
-   * Guarda o actualiza la asistencia de una comisión por el preceptor asignado
+   * Guarda o actualiza la asistencia de una comisión por el preceptor asignado o administrador
    */
   async guardarAsistencia(
     claseId: number,
@@ -125,12 +133,14 @@ export const PreceptoriaService = {
     observaciones: string | undefined,
     registros: RegistroAsistenciaPayload[]
   ) {
+    const fechaLimpia = String(fecha || '').split('T')[0] || new Date().toISOString().split('T')[0];
+
     // 1. Validar pertenencia de alumnos a la clase
     const alumnosValidos = await this.obtenerAlumnosClase(claseId);
-    const idSet = new Set(alumnosValidos.map((a: any) => a.alumno_id));
+    const idSet = new Set(alumnosValidos.map((a: any) => Number(a.alumno_id)));
 
     for (const r of registros) {
-      if (!idSet.has(r.alumnoId)) {
+      if (idSet.size > 0 && !idSet.has(Number(r.alumnoId))) {
         throw new Error(`El alumno con ID ${r.alumnoId} no pertenece a esta comisión.`);
       }
       if (!['PRESENTE', 'AUSENTE', 'TARDE', 'JUSTIFICADO'].includes(r.estado)) {
@@ -141,7 +151,7 @@ export const PreceptoriaService = {
     // 2. Verificar o crear la sesión de asistencia
     const sesionQ = await pool.query(
       `SELECT id FROM plugin_preceptoria_sesiones WHERE clase_id = $1 AND fecha = $2`,
-      [claseId, fecha]
+      [claseId, fechaLimpia]
     );
 
     let sesionId: number;
@@ -151,16 +161,16 @@ export const PreceptoriaService = {
       sesionId = sesionQ.rows[0].id;
       await pool.query(
         `UPDATE plugin_preceptoria_sesiones 
-         SET observaciones = $1, ultima_modificacion = CURRENT_TIMESTAMP
-         WHERE id = $2`,
-        [observaciones || null, sesionId]
+         SET observaciones = $1, preceptor_id = $2, ultima_modificacion = CURRENT_TIMESTAMP
+         WHERE id = $3`,
+        [observaciones || null, preceptorId, sesionId]
       );
     } else {
       esNueva = true;
       const insertSesion = await pool.query(
         `INSERT INTO plugin_preceptoria_sesiones (clase_id, fecha, preceptor_id, observaciones)
          VALUES ($1, $2, $3, $4) RETURNING id`,
-        [claseId, fecha, preceptorId, observaciones || null]
+        [claseId, fechaLimpia, preceptorId, observaciones || null]
       );
       sesionId = insertSesion.rows?.[0]?.id || insertSesion.insertId;
     }
@@ -270,21 +280,55 @@ export const PreceptoriaService = {
    */
   async listarPreceptores() {
     const sql = `
-      SELECT u.id_usuario, u.nombre_completo, u.correo, u.DNI,
+      SELECT u.id_usuario, u.nombre_completo, u.correo, u.DNI, u.estado_acceso,
              COUNT(pc.clase_id) as total_clases_asignadas
       FROM usuarios u
       LEFT JOIN preceptores_clases pc ON u.id_usuario = pc.preceptor_id
-      WHERE u.rol = 'preceptor'
+      WHERE LOWER(TRIM(u.rol)) IN ('preceptor', 'preceptoria')
       GROUP BY u.id_usuario
       ORDER BY u.nombre_completo ASC
     `;
     const res = await pool.query(sql);
-    return res.rows || [];
+    const preceptores = res.rows || [];
+
+    // Enriquecer con el detalle de comisiones asignadas a cada preceptor
+    const asignacionesQ = await pool.query(`
+      SELECT pc.preceptor_id, c.id as clase_id, c.nombre, c.materia, c.seccion, c.codigo, c.aula
+      FROM preceptores_clases pc
+      JOIN clases c ON pc.clase_id = c.id
+      ORDER BY c.nombre ASC
+    `);
+
+    const clasesMap = new Map<number, any[]>();
+    for (const row of asignacionesQ.rows) {
+      const pid = Number(row.preceptor_id);
+      if (!clasesMap.has(pid)) {
+        clasesMap.set(pid, []);
+      }
+      clasesMap.get(pid)!.push({
+        id: Number(row.clase_id),
+        nombre: row.nombre,
+        materia: row.materia,
+        seccion: row.seccion,
+        codigo: row.codigo,
+        aula: row.aula,
+      });
+    }
+
+    return preceptores.map((p: any) => ({
+      id_usuario: Number(p.id_usuario),
+      nombre_completo: p.nombre_completo,
+      correo: p.correo,
+      DNI: p.DNI || '',
+      estado_acceso: p.estado_acceso,
+      total_clases_asignadas: Number(p.total_clases_asignadas || 0),
+      clases: clasesMap.get(Number(p.id_usuario)) || [],
+    }));
   },
 
   async asignarPreceptorClase(preceptorId: number, claseId: number) {
-    const precQ = await pool.query(`SELECT rol FROM usuarios WHERE id_usuario = $1`, [preceptorId]);
-    if (precQ.rows.length === 0 || precQ.rows[0].rol !== 'preceptor') {
+    const precQ = await pool.query(`SELECT id_usuario, rol FROM usuarios WHERE id_usuario = $1`, [preceptorId]);
+    if (precQ.rows.length === 0 || !['preceptor', 'preceptoria'].includes(precQ.rows[0].rol.toLowerCase().trim())) {
       throw new Error('El usuario especificado no tiene rol de Preceptor.');
     }
 
@@ -296,6 +340,38 @@ export const PreceptoriaService = {
     emitToUser(preceptorId, 'teacher.assigned', { clase_id: claseId });
     emitToAdmin('teacher.assigned', { clase_id: claseId, preceptor_id: preceptorId });
     return { success: true };
+  },
+
+  async asignarClasesBatch(preceptorId: number, claseIds: number[]) {
+    const precQ = await pool.query(`SELECT id_usuario, rol, nombre_completo FROM usuarios WHERE id_usuario = $1`, [preceptorId]);
+    if (precQ.rows.length === 0 || !['preceptor', 'preceptoria'].includes(precQ.rows[0].rol.toLowerCase().trim())) {
+      throw new Error('El usuario especificado no tiene rol de Preceptor.');
+    }
+
+    // Reemplazo atómico de asignaciones
+    await pool.query('BEGIN');
+    try {
+      await pool.query(`DELETE FROM preceptores_clases WHERE preceptor_id = $1`, [preceptorId]);
+
+      for (const cid of claseIds) {
+        const numId = Number(cid);
+        if (numId > 0) {
+          await pool.query(
+            `INSERT OR IGNORE INTO preceptores_clases (preceptor_id, clase_id) VALUES ($1, $2)`,
+            [preceptorId, numId]
+          );
+        }
+      }
+      await pool.query('COMMIT');
+    } catch (err) {
+      await pool.query('ROLLBACK');
+      throw err;
+    }
+
+    await syncUserClassRooms(preceptorId);
+    emitToUser(preceptorId, 'preceptor.classes_updated', { preceptor_id: preceptorId, clase_ids: claseIds });
+    emitToAdmin('preceptor.classes_updated', { preceptor_id: preceptorId, clase_ids: claseIds });
+    return { success: true, count: claseIds.length };
   },
 
   async revocarAsignacion(preceptorId: number, claseId: number) {
@@ -311,7 +387,7 @@ export const PreceptoriaService = {
 
   async obtenerClasesAsignadasPreceptor(preceptorId: number) {
     const sql = `
-      SELECT c.id, c.nombre, c.materia, c.seccion
+      SELECT c.id, c.nombre, c.materia, c.seccion, c.codigo, c.aula
       FROM preceptores_clases pc
       JOIN clases c ON pc.clase_id = c.id
       WHERE pc.preceptor_id = $1

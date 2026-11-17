@@ -105,10 +105,15 @@ export async function requirePreceptorAsignadoAClase(req: Request, res: Response
     return res.status(400).json({ success: false, error: 'ID de comisión inválido.' });
   }
 
-  if (usuario.rol !== 'preceptor') {
+  // Bypass para directivos/administradores (supervisión y auditoría institucional)
+  if (usuario && (usuario.rol === 'admin' || usuario.isAdmin)) {
+    return next();
+  }
+
+  if (!usuario || !['preceptor', 'preceptoria'].includes(String(usuario.rol).toLowerCase().trim())) {
     return res.status(403).json({
       success: false,
-      error: 'Operación no permitida: Solo preceptores autorizados pueden gestionar esta comisión.',
+      error: 'Operación no permitida: Solo preceptores autorizados o administradores pueden acceder a esta comisión.',
     });
   }
 
@@ -121,7 +126,7 @@ export async function requirePreceptorAsignadoAClase(req: Request, res: Response
     if (q.rows.length === 0) {
       return res.status(403).json({
         success: false,
-        error: `Acceso no autorizado: No estás asignado como preceptor a la comisión con ID ${claseId}.`,
+        error: `Acceso no autorizado: No estás asignado como preceptor a la comisión con ID ${claseId}. Contacta a la Dirección para su asignación.`,
       });
     }
 

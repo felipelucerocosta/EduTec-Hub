@@ -77,16 +77,16 @@ router.put('/constancias/:id', requireAuth, requirePreceptorOAdmin, PreceptoriaC
 router.post('/constancias/emitir-directa', requireAuth, requirePreceptorOAdmin, PreceptoriaController.emitirConstanciaDirecta);
 
 // ----------------------------------------------------------------------------
-// 5. Comisiones Asignadas y Toma de Asistencia (Exclusivo Preceptor Asignado)
+// 5. Comisiones Asignadas y Toma de Asistencia (Preceptor Asignado o Admin)
 // ----------------------------------------------------------------------------
-// Lista las comisiones que el preceptor tiene asignadas formalmente
+// Lista las comisiones que el preceptor tiene asignadas formalmente (o todas para admin)
 router.get('/mis-clases', requireAuth, requirePreceptorOAdmin, PreceptoriaController.getClasesPreceptor);
 
 // Carga de planilla para una fecha escolar determinada
 router.get(
   '/clases/:claseId/planilla',
   requireAuth,
-  requireExclusivoPreceptor,
+  requirePreceptorOAdmin,
   requirePreceptorAsignadoAClase,
   PreceptoriaController.getPlanillaFecha
 );
@@ -95,7 +95,7 @@ router.get(
 router.post(
   '/clases/:claseId/asistencia',
   requireAuth,
-  requireExclusivoPreceptor,
+  requirePreceptorOAdmin,
   requirePreceptorAsignadoAClase,
   PreceptoriaController.guardarAsistencia
 );
@@ -104,7 +104,7 @@ router.post(
 router.get(
   '/clases/:claseId/historial',
   requireAuth,
-  requireExclusivoPreceptor,
+  requirePreceptorOAdmin,
   requirePreceptorAsignadoAClase,
   PreceptoriaController.getHistorial
 );
@@ -113,7 +113,7 @@ router.get(
 router.get(
   '/clases/:claseId/estadisticas',
   requireAuth,
-  requireExclusivoPreceptor,
+  requirePreceptorOAdmin,
   requirePreceptorAsignadoAClase,
   PreceptoriaController.getEstadisticas
 );
@@ -127,7 +127,11 @@ router.get('/admin/preceptores', requireAuth, requireAdmin, PreceptoriaControlle
 // Asignar un preceptor a una comisión escolar
 router.post('/admin/asignar-clase', requireAuth, requireAdmin, PreceptoriaController.asignarClase);
 
+// Asignar comisiones en lote (batch)
+router.post(['/admin/asignar-clases-batch', '/admin/preceptores/:id/clases-batch'], requireAuth, requireAdmin, PreceptoriaController.asignarClasesBatch);
+
 // Revocar la asignación de un preceptor sobre una comisión
 router.post('/admin/revocar-clase', requireAuth, requireAdmin, PreceptoriaController.revocarAsignacion);
+router.delete('/admin/preceptores/:preceptorId/clases/:claseId', requireAuth, requireAdmin, PreceptoriaController.revocarAsignacion);
 
 export default router;

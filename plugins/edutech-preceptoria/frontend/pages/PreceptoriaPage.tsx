@@ -1,32 +1,3 @@
-/**
- * ============================================================================
- * PÁGINA PRINCIPAL: MÓDULO DE PRECEPTORÍA (EduTech Preceptoría)
- * ============================================================================
- * 
- * Rol arquitectónico:
- * Es el contenedor maestro y despachador de vistas del plugin de Preceptoría.
- * Implementa una matriz de navegación condicional basada en el rol del usuario:
- * 
- * 1. Alumno:
- *    - Renderiza directamente 'AsistenciasAlumnoView' (su propio registro de asistencia,
- *      estadísticas personales, cálculo de regularidad y estado).
- * 
- * 2. Profesor:
- *    - Renderiza 'AsistenciasDocenteView' (su registro de asistencia institucional).
- * 
- * 3. Preceptor:
- *    - Acceso a comisiones asignadas oficialmente.
- *    - Pestañas: Alumnos, Rendimiento, Constancias, Toma de Asistencia, Historial y Estadísticas.
- * 
- * 4. Administrador:
- *    - Visión global de todas las clases y comisiones del establecimiento.
- *    - Gestión de asignaciones de preceptores y asistencias del cuerpo docente.
- * 
- * Ciclo de vida:
- * - Al montar o cambiar de rol, consulta `PreceptoriaAPI.getMisClases()` para obtener
- *   las comisiones disponibles y preseleccionar la primera activa.
- */
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '../../../../frontend/src/components/layout/AppLayout';
 import { useAuth } from '../../../../frontend/src/contexts/AuthContext';
@@ -53,15 +24,11 @@ export const PreceptoriaPage: React.FC = () => {
 
   if (!user) return null;
 
-  // Detección de roles del usuario actual
   const esAlumno = user.rol === 'alumno';
   const esProfesor = user.rol === 'profesor';
   const esPreceptor = user.rol === 'preceptor';
   const esAdmin = user.rol === 'admin' || Boolean(user.isAdmin);
 
-  /**
-   * Efecto para cargar comisiones según el rol con facultades de gestión (Preceptor / Admin)
-   */
   useEffect(() => {
     if (esPreceptor) {
       cargarClases();
@@ -72,9 +39,6 @@ export const PreceptoriaPage: React.FC = () => {
     }
   }, [user.rol]);
 
-  /**
-   * Solicita al backend la lista de comisiones autorizadas para el preceptor o admin
-   */
   const cargarClases = async () => {
     try {
       setLoading(true);
