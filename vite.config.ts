@@ -5,6 +5,11 @@ export default defineConfig({
   root: "frontend",
   base: "/",
   plugins: [react()],
+  css: {
+    postcss: {
+      plugins: [],
+    },
+  },
   server: {
     port: 5173,
     proxy: {
