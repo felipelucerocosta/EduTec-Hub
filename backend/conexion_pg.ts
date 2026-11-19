@@ -87,12 +87,15 @@ const pool = {
     }
 
     try {
-      const result: QueryResult<T> = await nativePool.query(sql, params);
+      const rawResult: any = await nativePool.query(sql, params);
+      // Cuando se ejecutan múltiples sentencias en una sola llamada, node-postgres retorna un Array de resultados
+      const result: QueryResult<T> = Array.isArray(rawResult) ? rawResult[rawResult.length - 1] : rawResult;
+      const rows = result?.rows || [];
 
       // Si la consulta retornó filas (ej. RETURNING id o RETURNING id_usuario), capturar el ID primario
       let insertId: any = null;
-      if (result.rows && result.rows.length > 0) {
-        const firstRow = result.rows[0] as any;
+      if (rows && rows.length > 0) {
+        const firstRow = rows[0] as any;
         insertId =
           firstRow.id ??
           firstRow.id_usuario ??
@@ -104,10 +107,10 @@ const pool = {
       }
 
       return {
-        rows: result.rows,
-        rowCount: result.rowCount ?? result.rows.length,
+        rows,
+        rowCount: result?.rowCount ?? rows.length,
         insertId,
-        command: result.command,
+        command: result?.command || '',
       };
     } catch (error) {
       console.error('❌ [PostgreSQL Error en Query]:', error);

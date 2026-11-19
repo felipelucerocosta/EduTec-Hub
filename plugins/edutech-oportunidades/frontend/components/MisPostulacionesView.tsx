@@ -104,6 +104,26 @@ export const MisPostulacionesView: React.FC = () => {
                   {p.estado.replace('_', ' ').toUpperCase()}
                 </span>
 
+                <a
+                  href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(p.contacto_email || 'felipelucero534@gmail.com')}&su=${encodeURIComponent(`[EduTech] Consulta sobre postulación: ${p.oportunidad_titulo}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.secondaryBtn}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.78rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    textDecoration: 'none',
+                    color: '#f8fafc',
+                    borderColor: 'rgba(234, 67, 53, 0.4)'
+                  }}
+                  title="Escribir correo directo al responsable desde tu Gmail"
+                >
+                  <i className="bx bxl-gmail" style={{ color: '#ea4335' }}></i> Contactar por Gmail
+                </a>
+
                 {p.estado === 'pendiente' && (
                   <button
                     type="button"

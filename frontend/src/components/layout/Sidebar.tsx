@@ -28,7 +28,6 @@ const Sidebar: React.FC = () => {
         ...(user.rol === 'alumno' ? [{ label: 'Mi Boletín Oficial', to: '/boletin', icon: 'bx-receipt' }] : []),
         { label: 'Asistencias', to: '/asistencia', icon: 'bx-calendar-check' },
         { label: 'Calendario Académico', to: '/calendario', icon: 'bx-calendar' },
-        ...(user.rol !== 'profesor' ? [{ label: 'Foro Técnico', to: '/foro', icon: 'bx-conversation' }] : []),
         { label: 'Simuladores', to: '/simuladores', icon: 'bx-chip' },
         { label: 'Mi Perfil', to: '/perfil', icon: 'bx-user-circle' },
       ];
@@ -97,21 +96,17 @@ const Sidebar: React.FC = () => {
             onClick={() => navigate('/dashboard')}
             style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', overflow: 'hidden' }}
           >
-            <div
+            <img
+              src="/emblema-edge.png"
+              alt="EduTech — Emblema Edge"
               style={{
                 width: '34px',
                 height: '34px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #7929d2, #55ddf5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                objectFit: 'contain',
                 flexShrink: 0,
-                boxShadow: '0 0 14px rgba(121, 41, 210, 0.4)'
+                filter: 'drop-shadow(0 0 10px rgba(121, 41, 210, 0.5))'
               }}
-            >
-              <i className="bx bx-atom" style={{ color: '#fff', fontSize: '1.25rem' }}></i>
-            </div>
+            />
             {!collapsed && (
               <span
                 style={{

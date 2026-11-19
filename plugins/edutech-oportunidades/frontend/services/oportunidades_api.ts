@@ -61,6 +61,7 @@ export interface PostulacionItem {
   modalidad?: string;
   oportunidad_estado?: string;
   fecha_cierre_inscripcion?: string;
+  contacto_email?: string;
   presentacion?: string | null;
   motivacion?: string | null;
   conocimientos_previos?: string | null;

@@ -228,7 +228,7 @@ export const OportunidadesService = {
    * --------------------------------------------------------------------------
    * Construye una actualización dinámica solo para los campos suministrados.
    */
-  async modificarOportunidad(id: number, data: Partial<OportunidadPayload>) {
+  async modificarOportunidad(id: number, data: any) {
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -237,21 +237,35 @@ export const OportunidadesService = {
       fields.push(`titulo = $${idx++}`);
       values.push(data.titulo.trim());
     }
+    if (data.institucion !== undefined) {
+      fields.push(`institucion = $${idx++}`);
+      values.push(data.institucion.trim());
+    }
     if (data.descripcion !== undefined) {
       fields.push(`descripcion = $${idx++}`);
       values.push(data.descripcion.trim());
+    }
+    if (data.categoria !== undefined) {
+      fields.push(`categoria = $${idx++}`);
+      values.push(data.categoria);
     }
     if (data.requisitos !== undefined) {
       fields.push(`requisitos = $${idx++}`);
       values.push(data.requisitos?.trim() || null);
     }
-    if (data.vacantesTotales !== undefined) {
-      fields.push(`vacantes_totales = $${idx++}`);
-      values.push(data.vacantesTotales);
+    if (data.conocimientos !== undefined) {
+      fields.push(`conocimientos = $${idx++}`);
+      values.push(data.conocimientos?.trim() || null);
     }
-    if (data.fechaCierreInscripcion !== undefined) {
+    const vacantes = data.vacantesTotales !== undefined ? data.vacantesTotales : data.vacantes_totales;
+    if (vacantes !== undefined) {
+      fields.push(`vacantes_totales = $${idx++}`);
+      values.push(Number(vacantes));
+    }
+    const fechaCierre = data.fechaCierreInscripcion !== undefined ? data.fechaCierreInscripcion : data.fecha_cierre_inscripcion;
+    if (fechaCierre !== undefined) {
       fields.push(`fecha_cierre_inscripcion = $${idx++}`);
-      values.push(data.fechaCierreInscripcion);
+      values.push(fechaCierre);
     }
     if (data.modalidad !== undefined) {
       fields.push(`modalidad = $${idx++}`);
@@ -260,6 +274,11 @@ export const OportunidadesService = {
     if (data.estado !== undefined) {
       fields.push(`estado = $${idx++}`);
       values.push(data.estado);
+    }
+    const email = data.contactoEmail !== undefined ? data.contactoEmail : data.contacto_email;
+    if (email !== undefined) {
+      fields.push(`contacto_email = $${idx++}`);
+      values.push(email.trim());
     }
 
     if (fields.length === 0) return;
@@ -358,20 +377,50 @@ export const OportunidadesService = {
       );
     } catch (_e) {}
 
-    // 6. Enviar correo electrónico informativo al docente responsable
-    EmailOportunidadesService.notificarNuevaPostulacion({
-      destinatarioEmail: op.contacto_email,
-      responsableNombre: op.responsable_nombre,
-      oportunidadTitulo: op.titulo,
-      institucion: op.institucion,
-      alumnoNombre: alumno.nombre_completo,
-      alumnoEmail: alumno.correo,
-      alumnoDni: alumno.DNI,
-      fechaPostulacion: new Date().toLocaleString(),
-      motivacion: payload.motivacion,
-    }).catch((err) => {
-      console.warn('Fallo en el servicio de correo de oportunidades:', err);
+    // 6. Enviar correos electrónicos informativos (profesor y alumno)
+    const emailDocente = op.contacto_email?.trim() || op.responsable_correo;
+    const fechaPostulacionStr = new Date().toLocaleString('es-AR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
     });
+
+    console.log(`📋 [Oportunidades] Postulación #${postulacionId} registrada para alumno "${alumno.nombre_completo}".`);
+    console.log(`   Responsable de oportunidad: ${op.responsable_nombre} <${emailDocente}>`);
+    console.log(`   Alumno postulante: ${alumno.nombre_completo} <${alumno.correo}>`);
+
+    let resultadoProfesor: { sent: boolean; reason?: string } = { sent: false, reason: 'No iniciado' };
+    let resultadoAlumno: { sent: boolean; reason?: string } = { sent: false, reason: 'No iniciado' };
+
+    try {
+      const [resProf, resAlu] = await Promise.all([
+        EmailOportunidadesService.notificarNuevaPostulacion({
+          postulacionId,
+          destinatarioEmail: emailDocente,
+          responsableNombre: op.responsable_nombre,
+          oportunidadTitulo: op.titulo,
+          institucion: op.institucion,
+          alumnoNombre: alumno.nombre_completo,
+          alumnoEmail: alumno.correo,
+          alumnoDni: alumno.DNI,
+          fechaPostulacion: fechaPostulacionStr,
+          motivacion: payload.motivacion,
+        }),
+        EmailOportunidadesService.notificarConfirmacionAlumno({
+          postulacionId,
+          destinatarioEmail: alumno.correo,
+          profesorEmail: emailDocente,
+          alumnoNombre: alumno.nombre_completo,
+          oportunidadTitulo: op.titulo,
+          institucion: op.institucion,
+          fechaPostulacion: fechaPostulacionStr,
+          motivacion: payload.motivacion,
+        }),
+      ]);
+      resultadoProfesor = resProf;
+      resultadoAlumno = resAlu;
+    } catch (emailErr: any) {
+      console.warn('⚠️ [Oportunidades] Error al procesar envíos de correo:', emailErr.message);
+    }
 
     // 7. Notificación en tiempo real por WebSockets
     emitToUser(op.responsable_id, 'application.created', {
@@ -387,7 +436,21 @@ export const OportunidadesService = {
       estado: 'pendiente',
     });
 
-    return postulacionId;
+    return {
+      postulacionId,
+      notificaciones: {
+        profesor: {
+          destinatario: emailDocente,
+          sent: resultadoProfesor.sent,
+          error: resultadoProfesor.sent ? undefined : resultadoProfesor.reason,
+        },
+        alumno: {
+          destinatario: alumno.correo,
+          sent: resultadoAlumno.sent,
+          error: resultadoAlumno.sent ? undefined : resultadoAlumno.reason,
+        },
+      },
+    };
   },
 
   /**
@@ -399,7 +462,7 @@ export const OportunidadesService = {
   async listarPostulacionesAlumno(alumnoId: number) {
     const sql = `
       SELECT p.*, o.titulo as oportunidad_titulo, o.institucion, o.categoria, o.modalidad,
-             o.estado as oportunidad_estado, o.fecha_cierre_inscripcion
+             o.estado as oportunidad_estado, o.fecha_cierre_inscripcion, o.contacto_email
       FROM plugin_oportunidades_postulaciones p
       JOIN plugin_oportunidades o ON p.oportunidad_id = o.id
       WHERE p.alumno_id = $1

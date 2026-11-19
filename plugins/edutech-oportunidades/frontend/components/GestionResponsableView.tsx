@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import OportunidadesAPI, { type OportunidadItem, type PostulacionItem, type MetricasResponsable } from '../services/oportunidades_api';
+import { useAuth } from '../../../../frontend/src/contexts/AuthContext';
 import styles from '../styles/oportunidades.module.css';
 
 export const GestionResponsableView: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
   const [oportunidades, setOportunidades] = useState<OportunidadItem[]>([]);
   const [metricas, setMetricas] = useState<MetricasResponsable | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modal Nueva Oportunidad
   const [modalCrear, setModalCrear] = useState<boolean>(false);
@@ -19,7 +22,7 @@ export const GestionResponsableView: React.FC = () => {
   const [vacantesTotales, setVacantesTotales] = useState<number>(2);
   const [fechaCierre, setFechaCierre] = useState<string>('');
   const [modalidad, setModalidad] = useState<string>('presencial');
-  const [contactoEmail, setContactoEmail] = useState<string>('');
+  const [contactoEmail, setContactoEmail] = useState<string>('felipelucero534@gmail.com');
 
   // Modal Postulantes de una Convocatoria
   const [opSeleccionada, setOpSeleccionada] = useState<OportunidadItem | null>(null);
@@ -32,20 +35,31 @@ export const GestionResponsableView: React.FC = () => {
   const [notasResponsable, setNotasResponsable] = useState<string>('');
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    if (!authLoading) {
+      cargarDatos();
+    }
+  }, [authLoading]);
+
+  // Si el usuario tiene un email cargado en su perfil, inicializamos contactoEmail con el suyo si no se ha modificado
+  useEffect(() => {
+    if (user?.correo && (!contactoEmail || contactoEmail === 'felipelucero534@gmail.com')) {
+      setContactoEmail(user.correo);
+    }
+  }, [user]);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [ops, m] = await Promise.all([
         OportunidadesAPI.listarOportunidades({}),
         OportunidadesAPI.getMetricas().catch(() => null),
       ]);
       setOportunidades(ops);
       setMetricas(m);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al cargar gestión responsable:', err);
+      setError(err?.message || 'Error de conexión al cargar las convocatorias.');
     } finally {
       setLoading(false);
     }
@@ -114,11 +128,31 @@ export const GestionResponsableView: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || (loading && oportunidades.length === 0 && !error)) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
         <i className="bx bx-loader-alt bx-spin" style={{ fontSize: '2rem' }}></i>
         <p>Cargando panel de gestión...</p>
+      </div>
+    );
+  }
+
+  if (error && oportunidades.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem', color: '#f87171' }}>
+        <i className="bx bx-error-circle" style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}></i>
+        <p style={{ fontWeight: 600 }}>{error}</p>
+        <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
+          Verifica que el servidor backend esté en ejecución e intenta nuevamente.
+        </p>
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          style={{ marginTop: '1rem' }}
+          onClick={() => cargarDatos()}
+        >
+          <i className="bx bx-refresh"></i> Reintentar
+        </button>
       </div>
     );
   }
@@ -268,12 +302,12 @@ export const GestionResponsableView: React.FC = () => {
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Correo de Contacto *</label>
+                  <label className={styles.formLabel}>Correo de Notificaciones (Personal o Institucional) *</label>
                   <input
                     type="email"
                     required
                     className={styles.formInput}
-                    placeholder="coordinador@institucion.edu.ar"
+                    placeholder="profesor@gmail.com o institucional"
                     value={contactoEmail}
                     onChange={(e) => setContactoEmail(e.target.value)}
                   />

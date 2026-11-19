@@ -43,9 +43,11 @@ for (const dir of candidateNodeModules) {
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import * as dotenv from 'dotenv';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import { nativePool } from './conexion_pg';
 
 dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || path.join(__dirname, '.env') });
 
@@ -160,10 +162,20 @@ if (IS_PRODUCTION) {
   app.use(express.static(distPath));
 }
 
+const PgSession = connectPgSimple(session);
+const sessionStore = new PgSession({
+  pool: nativePool,
+  tableName: 'session',
+  createTableIfMissing: true,
+  pruneSessionInterval: 60 * 15,
+});
+
 const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || 'una-clave-muy-secreta-y-larga',
+  store: sessionStore,
+  secret: process.env.SESSION_SECRET || 'edutech-hub-session-secret-key-production-techroom29',
   resave: false,
   saveUninitialized: false,
+  rolling: true,
   cookie: {
     secure: false,          // false incluso en producción Electron (HTTP local)
     httpOnly: true,
@@ -245,9 +257,9 @@ async function startServer() {
       });
     }
 
-    // 6. Iniciar el servidor HTTP y Socket.IO
-    httpServer.listen(PORT, () => {
-      console.log(`✅ Servidor del Backend (con Socket.IO) corriendo en http://localhost:${PORT}`);
+    // 6. Iniciar el servidor HTTP y Socket.IO escuchando en 0.0.0.0 para compatibilidad total con IPv4 / IPv6
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Servidor del Backend (con Socket.IO) corriendo en http://127.0.0.1:${PORT} (0.0.0.0:${PORT})`);
     });
   } catch (error) {
     console.error('❌ Error fatal al iniciar el servidor:', error);

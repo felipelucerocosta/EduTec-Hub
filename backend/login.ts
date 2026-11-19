@@ -15,7 +15,7 @@ const mailTransporter = (process.env.SMTP_HOST && process.env.SMTP_USER && proce
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        pass: process.env.SMTP_PASS.replace(/\s+/g, '').trim()
       },
       tls: {
         rejectUnauthorized: false
@@ -242,17 +242,23 @@ router.post('/login', async (req: Request, res: Response) => {
 
     notifySuccessfulLogin(correo).catch(() => {});
 
-    return res.status(200).json({
-      success: true,
-      message: 'Inicio de sesión exitoso.',
-      usuario: {
-        id: Number(usuario.id_usuario),
-        nombre: usuario.nombre_completo || '',
-        correo: usuario.correo || correo,
-        rol,
-        estado_acceso,
-        isAdmin
+    // Forzar guardado sincrónico en PostgreSQL antes de emitir respuesta HTTP
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('⚠️ [Login] Error al persistir sesión en PostgreSQL:', saveErr);
       }
+      return res.status(200).json({
+        success: true,
+        message: 'Inicio de sesión exitoso.',
+        usuario: {
+          id: Number(usuario.id_usuario),
+          nombre: usuario.nombre_completo || '',
+          correo: usuario.correo || correo,
+          rol,
+          estado_acceso,
+          isAdmin
+        }
+      });
     });
   } catch (err) {
     console.error('Error en la consulta de login:', err);
@@ -334,17 +340,23 @@ router.post('/admin-login', async (req: Request, res: Response) => {
 
     await notifySuccessfulLogin(correo);
 
-    return res.status(200).json({
-      success: true,
-      message: 'Inicio de sesión de admin exitoso.',
-      usuario: {
-        id: Number(usuario.id_usuario),
-        nombre: usuario.nombre_completo || 'Administrador',
-        correo: usuario.correo,
-        rol: 'admin',
-        estado_acceso: 'ACTIVO',
-        isAdmin: true
+    // Forzar guardado sincrónico en PostgreSQL antes de emitir respuesta HTTP
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('⚠️ [Admin Login] Error al persistir sesión en PostgreSQL:', saveErr);
       }
+      return res.status(200).json({
+        success: true,
+        message: 'Inicio de sesión de admin exitoso.',
+        usuario: {
+          id: Number(usuario.id_usuario),
+          nombre: usuario.nombre_completo || 'Administrador',
+          correo: usuario.correo,
+          rol: 'admin',
+          estado_acceso: 'ACTIVO',
+          isAdmin: true
+        }
+      });
     });
   } catch (err) {
     console.error('Error en admin-login:', err);

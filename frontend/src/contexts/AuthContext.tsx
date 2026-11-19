@@ -22,34 +22,70 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Inicialización inmediata desde localStorage para evitar parpadeos y preservar estado/rol en recargas F5
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const stored = localStorage.getItem('edutech_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState<boolean>(true);
   // Track whether login() was called explicitly so checkAuth doesn't race-overwrite it
   const loginCalledRef = useRef(false);
 
   const checkAuth = async () => {
-    try {
-      const res = await fetch(`${API_URL}/whoami`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        // Only update from server if login() hasn't already set the user
-        // (prevents race condition between navigate-after-login and initial checkAuth)
-        if (!loginCalledRef.current) {
-          setUser(data.user || null);
+    const maxRetries = 3;
+    const retryDelay = 700;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(`${API_URL}/whoami`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          // Only update from server if login() hasn't already set the user
+          // (prevents race condition between navigate-after-login and initial checkAuth)
+          if (!loginCalledRef.current) {
+            if (data.user) {
+              setUser(data.user);
+              try {
+                localStorage.setItem('edutech_user', JSON.stringify(data.user));
+              } catch (_e) {}
+            } else {
+              // Sesión en el servidor no existe o expiró
+              setUser(null);
+              try {
+                localStorage.removeItem('edutech_user');
+              } catch (_e) {}
+            }
+          }
+          break; // Éxito, salir del loop
+        } else if (res.status === 503 && attempt < maxRetries) {
+          // Backend arrancando (Vite proxy retornó 503 mientras Express se levanta en dev)
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
+        } else {
+          // Error 401, 403 u otro definitivo
+          if (!loginCalledRef.current) {
+            setUser(null);
+            try {
+              localStorage.removeItem('edutech_user');
+            } catch (_e) {}
+          }
+          break;
         }
-      } else {
-        if (!loginCalledRef.current) {
-          setUser(null);
+      } catch (err) {
+        if (attempt < maxRetries) {
+          // Fallo transitorio de red al iniciar concurrently
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
         }
+        console.error('Error checking auth:', err);
+        // Si ya teníamos usuario en caché de localStorage, no lo destruimos ante fallo de conexión
       }
-    } catch (err) {
-      console.error('Error checking auth:', err);
-      if (!loginCalledRef.current) {
-        setUser(null);
-      }
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -68,6 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (userData: User) => {
     loginCalledRef.current = true;
     setUser(userData);
+    try {
+      localStorage.setItem('edutech_user', JSON.stringify(userData));
+    } catch (_e) {}
     setLoading(false);
   };
 
@@ -82,6 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       loginCalledRef.current = false;
       setUser(null);
+      try {
+        localStorage.removeItem('edutech_user');
+      } catch (_e) {}
     }
   };
 

@@ -266,9 +266,16 @@ const Registro: React.FC = () => {
           {/* Form header */}
           <div className={styles.formHeader}>
             <img
-              src="/edutech-logo.png"
-              alt="Edutech Logo"
-              style={{ width: "52px", height: "52px", objectFit: "contain", borderRadius: "10px", margin: "0 auto 1rem", display: "block" }}
+              src="/emblema-edge.png"
+              alt="EduTech — Emblema Edge"
+              style={{
+                width: "124px",
+                height: "124px",
+                objectFit: "contain",
+                margin: "0 auto 1.25rem",
+                display: "block",
+                filter: "drop-shadow(0 0 24px rgba(121, 41, 210, 0.55))"
+              }}
             />
             <h1 className={styles.formTitle}>
               {isRegistering ? "Crear Cuenta" : "Bienvenido"}

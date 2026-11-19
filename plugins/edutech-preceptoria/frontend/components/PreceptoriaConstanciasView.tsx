@@ -669,7 +669,7 @@ export const PreceptoriaConstanciasView: React.FC = () => {
           }}>
             <div style={{ textAlign: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '1rem' }}>
               <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.3rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                Escuela Técnica N° 29 DE 6 — Tech-Room
+                Escuela de Educación Secundaria Técnica N° 29 D.E. 6
               </h2>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>
                 CONSTANCIA OFICIAL DE ALUMNO REGULAR

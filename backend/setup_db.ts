@@ -107,6 +107,19 @@ const crearTablas = async () => {
     console.log("🔄 Inicializando Base de Datos (PostgreSQL)...");
 
     try {
+        // 0. Tabla SESSION (Persistencia robusta de sesiones express-session en PostgreSQL)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS "session" (
+                "sid" varchar NOT NULL COLLATE "default",
+                "sess" json NOT NULL,
+                "expire" timestamp(6) NOT NULL,
+                CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+            );
+        `);
+        await pool.query(`
+            CREATE INDEX IF NOT EXISTS "idx_session_expire" ON "session" ("expire");
+        `);
+
         // 1. Tabla CURSO
         await pool.query(`
             CREATE TABLE IF NOT EXISTS curso (

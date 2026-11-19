@@ -332,7 +332,14 @@ const Home: React.FC = () => {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerBrand}>
-            <span className={styles.footerTitle}>EduTech</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", marginBottom: "0.25rem" }}>
+              <img
+                src="/emblema-edge.png"
+                alt="EduTech — Emblema Edge"
+                style={{ width: "26px", height: "26px", objectFit: "contain", filter: "drop-shadow(0 0 6px rgba(121, 41, 210, 0.4))" }}
+              />
+              <span className={styles.footerTitle} style={{ margin: 0 }}>EduTech</span>
+            </div>
             <span className={styles.footerDesc}>
               Escuela de Educación Secundaria Técnica N° 29 D.E. 6 "Reconquista de Buenos Aires"
             </span>

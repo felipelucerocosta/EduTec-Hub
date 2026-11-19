@@ -31,7 +31,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onOpen
     { label: 'Ir a Rendimiento Académico', icon: 'bx-bar-chart-alt-2', category: 'Navegación', action: () => navigate('/rendimiento') },
     ...(user?.rol === 'alumno' ? [{ label: 'Ver Mi Boletín de Calificaciones', icon: 'bx-receipt', category: 'Académico', action: () => navigate('/boletin') }] : []),
     { label: 'Abrir Calendario Académico', icon: 'bx-calendar', category: 'Navegación', action: () => navigate('/calendario') },
-    { label: 'Ir a Foro de Consultas', icon: 'bx-conversation', category: 'Comunicación', action: () => navigate('/foro') },
     { label: 'Acceder a Simuladores Técnicos', icon: 'bx-chip', category: 'Herramientas', action: () => navigate('/simuladores') },
     { label: 'Ver Mi Perfil', icon: 'bx-user-circle', category: 'Cuenta', action: () => navigate('/perfil') },
     ...(user?.rol === 'admin' ? [{ label: 'Panel de Administración', icon: 'bx-shield-quarter', category: 'Gestión', action: () => navigate('/admin') }] : []),

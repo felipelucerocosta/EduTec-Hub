@@ -140,6 +140,15 @@ export const OportunidadesController = {
       });
     }
 
+    const emailFinal = (contacto_email ? String(contacto_email).trim() : '') || usuario.correo;
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_REGEX.test(emailFinal)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El correo de contacto tiene un formato inválido. Ingrese una dirección válida personal o institucional (ej: docente@gmail.com o docente@institucion.edu.ar).',
+      });
+    }
+
     try {
       const id = await OportunidadesService.crearOportunidad({
         titulo,
@@ -159,7 +168,7 @@ export const OportunidadesController = {
         ubicacion,
         horarios,
         responsableId: usuario.id,
-        contactoEmail: contacto_email || usuario.correo,
+        contactoEmail: emailFinal,
         estado: 'abierta',
       });
 
@@ -221,7 +230,7 @@ export const OportunidadesController = {
     }
 
     try {
-      const postulacionId = await OportunidadesService.postularse({
+      const resultado = await OportunidadesService.postularse({
         oportunidadId,
         alumnoId: usuario.id,
         presentacion,
@@ -232,8 +241,9 @@ export const OportunidadesController = {
 
       return res.status(201).json({
         success: true,
-        message: '¡Te has postulado con éxito! El responsable evaluará tu perfil.',
-        postulacionId,
+        message: '¡Te has postulado con éxito! La postulación fue registrada en la base de datos.',
+        postulacionId: resultado.postulacionId,
+        notificaciones: resultado.notificaciones,
       });
     } catch (error: any) {
       // El servicio lanza excepciones claras si la convocatoria ya expiró o ya se postuló

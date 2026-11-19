@@ -61,23 +61,17 @@ const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
             onClick={() => navigate('/admin')}
             style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', overflow: 'hidden' }}
           >
-            <div
+            <img
+              src="/emblema-edge.png"
+              alt="EduTech — Emblema Edge"
               style={{
                 width: '36px',
                 height: '36px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #f59e0b, #7929d2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem',
+                objectFit: 'contain',
                 flexShrink: 0,
-                color: '#fff',
-                boxShadow: '0 0 14px rgba(245, 158, 11, 0.35)',
+                filter: 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.4))'
               }}
-            >
-              <i className="bx bx-shield-quarter"></i>
-            </div>
+            />
             {sidebarOpen && (
               <div>
                 <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f3f0ff', lineHeight: 1.2, fontFamily: 'var(--font-family-display)' }}>

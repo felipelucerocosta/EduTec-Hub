@@ -99,6 +99,26 @@ export async function setupOportunidadesDatabase(): Promise<void> {
 
     /**
      * ------------------------------------------------------------------------
+     * TABLA 3: plugin_oportunidades_notificaciones (Historial de Envíos de Correo)
+     * ------------------------------------------------------------------------
+     * Registra cada intento de notificación por correo (al profesor y al alumno)
+     * para auditoría, reintentos y diagnóstico de fallos SMTP.
+     */
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS plugin_oportunidades_notificaciones (
+          id SERIAL PRIMARY KEY,
+          postulacion_id INTEGER REFERENCES plugin_oportunidades_postulaciones(id) ON DELETE CASCADE,
+          destinatario_tipo TEXT NOT NULL,
+          destinatario_email TEXT NOT NULL,
+          asunto TEXT NOT NULL,
+          estado_envio TEXT NOT NULL DEFAULT 'pendiente',
+          error_detalle TEXT,
+          fecha_intento TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    /**
+     * ------------------------------------------------------------------------
      * ÍNDICES DE ACELERACIÓN B-TREE
      * ------------------------------------------------------------------------
      * Agilizan drásticamente los filtros frecuentes del catálogo público
@@ -127,6 +147,11 @@ export async function setupOportunidadesDatabase(): Promise<void> {
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_postulaciones_oportunidad
       ON plugin_oportunidades_postulaciones(oportunidad_id);
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_oportunidades_notificaciones_postulacion
+      ON plugin_oportunidades_notificaciones(postulacion_id);
     `);
 
     console.log('✅ [Plugin Oportunidades] Esquema de base de datos verificado con éxito.');

@@ -109,10 +109,19 @@ const ResetPassword = () => {
             </div>
           ) : (
             <>
-              <div className={styles.formHeader} style={{ marginBottom: "2rem" }}>
-                <div className={styles.formLogoMark}>
-                  <i className="bx bx-shield-alt-2"></i>
-                </div>
+              <div className={styles.formHeader} style={{ marginBottom: "1.75rem" }}>
+                <img
+                  src="/emblema-edge.png"
+                  alt="EduTech — Emblema Edge"
+                  style={{
+                    width: "82px",
+                    height: "82px",
+                    objectFit: "contain",
+                    margin: "0 auto 1.15rem",
+                    display: "block",
+                    filter: "drop-shadow(0 0 18px rgba(121, 41, 210, 0.45))"
+                  }}
+                />
                 <h1 className={styles.formTitle}>Nueva Contraseña</h1>
                 <p className={styles.formSubtitle} style={{ marginTop: "0.5rem", lineHeight: "1.5" }}>
                   Ingresa tu nueva contraseña para actualizar tu credencial de acceso a Edutech.

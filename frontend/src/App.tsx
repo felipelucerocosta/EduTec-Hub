@@ -40,10 +40,23 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode;
   if (loading) {
     return (
       <div style={{
-        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-        background: "var(--bg-dark)", color: "#94a3b8"
+        minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        background: "var(--bg-dark, #070913)", color: "#94a3b8", gap: "1.25rem"
       }}>
-        <i className="bx bx-loader-alt bx-spin" style={{ fontSize: "2rem", color: "var(--primary)" }}></i>
+        <img
+          src="/emblema-edge.png"
+          alt="EduTech — Emblema Edge"
+          style={{
+            width: "68px",
+            height: "68px",
+            objectFit: "contain",
+            filter: "drop-shadow(0 0 20px rgba(121, 41, 210, 0.55))"
+          }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#a78bfa", fontSize: "0.9rem", fontWeight: 500 }}>
+          <i className="bx bx-loader-alt bx-spin" style={{ fontSize: "1.25rem" }}></i>
+          <span>Cargando EduTech...</span>
+        </div>
       </div>
     );
   }

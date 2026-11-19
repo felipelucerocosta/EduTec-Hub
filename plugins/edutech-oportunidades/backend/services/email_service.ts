@@ -1,15 +1,27 @@
-let nodemailer: any = null;
-try {
-  nodemailer = require('nodemailer');
-} catch (_e) {
-  try {
-    nodemailer = require('../../../../backend/node_modules/nodemailer');
-  } catch (_e2) {
-    nodemailer = null;
-  }
-}
+/**
+ * ============================================================================
+ * ARCHIVO: email_service.ts
+ * PLUGIN: EduTech Oportunidades — Portal de Pasantías y Proyectos
+ * ROL ARQUITECTURAL: Servicio de Notificaciones por Correo Electrónico
+ * ============================================================================
+ * 
+ * ARQUITECTURA:
+ * - REMITENTE CENTRALIZADO: Integrado con `EmailCentralService` de EduTec-Hub.
+ *   Utiliza una única cuenta autorizada central en el backend sin requerir
+ *   que cada docente o alumno configure credenciales ni autorizaciones.
+ * - DESTINATARIOS DINÁMICOS:
+ *   Soporta cualquier dirección válida (Gmail, Outlook, Hotmail, Yahoo, dominios institucionales).
+ *   El docente recibe el aviso en el correo que indicó en la convocatoria.
+ *   El alumno recibe la confirmación en el correo con el que se registró.
+ * - AUDITORÍA TRANSPARENTE:
+ *   Registra cada intento en la tabla `plugin_oportunidades_notificaciones`.
+ */
+
+import pool from '../../../../backend/conexion_pg';
+import { EmailCentralService } from '../../../../backend/services/email_central_service';
 
 export interface EmailPostulacionPayload {
+  postulacionId?: number;
   destinatarioEmail: string;
   responsableNombre?: string;
   oportunidadTitulo: string;
@@ -21,45 +33,78 @@ export interface EmailPostulacionPayload {
   motivacion?: string;
 }
 
+export interface EmailConfirmacionAlumnoPayload {
+  postulacionId?: number;
+  destinatarioEmail: string;
+  profesorEmail?: string;
+  alumnoNombre: string;
+  oportunidadTitulo: string;
+  institucion: string;
+  fechaPostulacion: string;
+  motivacion?: string;
+}
+
+/**
+ * Validador agnóstico de formato de correo electrónico.
+ * Acepta cualquier proveedor (Gmail, Outlook, Hotmail, Yahoo, institucionales, etc.).
+ * No restringe por listas blancas de dominios.
+ */
+export function validarFormatoEmail(email: string | undefined | null): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email.trim());
+}
+
 export class EmailOportunidadesService {
-  private static transporter: any = null;
-
-  private static getTransporter(): any {
-    if (this.transporter) return this.transporter;
-    if (!nodemailer) return null;
-
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-
-    if (!host || !user || !pass) {
-      return null;
-    }
-
+  /**
+   * Registra en la base de datos el resultado del intento de envío para auditoría.
+   */
+  public static async registrarAuditoriaEnvio(
+    postulacionId: number | undefined,
+    destinatarioTipo: 'profesor' | 'alumno',
+    destinatarioEmail: string,
+    asunto: string,
+    estado: 'enviado' | 'fallido' | 'omitido_sin_smtp',
+    errorDetalle?: string
+  ): Promise<void> {
     try {
-      this.transporter = nodemailer.createTransporter({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-      });
-      return this.transporter;
-    } catch (err) {
-      console.warn('⚠️ [Plugin Oportunidades] No se pudo inicializar transporte SMTP:', err);
-      return null;
+      let validPostulacionId: number | null = null;
+      if (postulacionId) {
+        const check = await pool.query('SELECT id FROM plugin_oportunidades_postulaciones WHERE id = $1', [postulacionId]);
+        if (check.rows.length > 0) {
+          validPostulacionId = postulacionId;
+        }
+      }
+      await pool.query(
+        `INSERT INTO plugin_oportunidades_notificaciones 
+         (postulacion_id, destinatario_tipo, destinatario_email, asunto, estado_envio, error_detalle)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [validPostulacionId, destinatarioTipo, destinatarioEmail, asunto, estado, errorDetalle || null]
+      );
+    } catch (err: any) {
+      console.warn('⚠️ No se pudo registrar auditoría de correo en DB:', err.message);
     }
   }
 
   /**
-   * Envía notificación por correo electrónico al responsable de la oportunidad.
+   * 1. Notificación al Profesor/Responsable ante una nueva postulación estudiantil.
    */
-  public static async notificarNuevaPostulacion(payload: EmailPostulacionPayload): Promise<{ sent: boolean; reason?: string }> {
-    const transporter = this.getTransporter();
-
+  public static async notificarNuevaPostulacion(payload: EmailPostulacionPayload): Promise<{ sent: boolean; reason?: string; previewUrl?: string | false }> {
+    const emailDestino = payload.destinatarioEmail?.trim();
     const subject = `[EduTech Oportunidades] Nueva postulación: ${payload.alumnoNombre} para ${payload.oportunidadTitulo}`;
+
+    console.log(`📧 [Notificación Profesor] Preparando aviso para oportunidad "${payload.oportunidadTitulo}".`);
+    console.log(`   Destinatario obtenido: ${emailDestino || '(vacío)'}`);
+
+    if (!validarFormatoEmail(emailDestino)) {
+      const errorMsg = `La dirección de correo del responsable no tiene un formato válido (${emailDestino}).`;
+      console.error(`❌ [Notificación Profesor] ${errorMsg}`);
+      await this.registrarAuditoriaEnvio(payload.postulacionId, 'profesor', emailDestino || 'sin-correo', subject, 'fallido', errorMsg);
+      return { sent: false, reason: errorMsg };
+    }
+
     const textContent = `
-Estimado/a ${payload.responsableNombre || 'Responsable de Proyecto'}:
+Estimado/a ${payload.responsableNombre || 'Responsable de Convocatoria'}:
 
 Se ha registrado una nueva postulación en el portal de Oportunidades de EduTech.
 
@@ -67,60 +112,136 @@ Detalles de la postulación:
 - Estudiante: ${payload.alumnoNombre}
 - Correo Electrónico: ${payload.alumnoEmail}
 ${payload.alumnoDni ? `- DNI: ${payload.alumnoDni}\n` : ''}- Convocatoria: ${payload.oportunidadTitulo}
-- Institución: ${payload.institucion}
+- Institución / Empresa: ${payload.institucion}
 - Fecha y Hora: ${payload.fechaPostulacion}
 
-${payload.motivacion ? `Motivación expresada por el alumno:\n"${payload.motivacion}"\n` : ''}
+${payload.motivacion ? `Motivación expresada por el estudiante:\n"${payload.motivacion}"\n` : ''}
 
-Puede acceder a EduTech-Hub para revisar la postulación completa y gestionar el proceso de selección.
+Puede responder directamente a este correo para ponerse en contacto con el estudiante o acceder al panel de EduTech-Hub para gestionar el proceso de selección.
     `;
 
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-        <div style="border-bottom: 2px solid #7c3aed; padding-bottom: 12px; margin-bottom: 16px;">
-          <h2 style="color: #38bdf8; margin: 0;">EduTech — Portal de Oportunidades</h2>
-          <p style="color: #94a3b8; font-size: 14px; margin: 4px 0 0 0;">Notificación Oficial de Postulación Estudiantil</p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #070913; color: #f3f0ff; padding: 28px; border-radius: 14px; border: 1px solid rgba(121, 41, 210, 0.35);">
+        <div style="border-bottom: 2px solid #7929d2; padding-bottom: 14px; margin-bottom: 20px;">
+          <h2 style="color: #55ddf5; margin: 0; font-size: 22px;">EduTech — Portal de Oportunidades</h2>
+          <p style="color: #a9a3c7; font-size: 13px; margin: 6px 0 0 0;">Notificación Oficial para el Responsable</p>
         </div>
         
-        <p>Estimado/a <strong>${payload.responsableNombre || 'Responsable'}</strong>,</p>
-        <p>Un estudiante se ha postulado a la convocatoria institucional:</p>
+        <p style="font-size: 15px;">Estimado/a <strong>${payload.responsableNombre || 'Responsable'}</strong>,</p>
+        <p style="font-size: 14px; color: #cbd5e1;">Un estudiante se ha postulado a la convocatoria que gestionás en la plataforma:</p>
 
-        <div style="background: rgba(30, 41, 59, 0.7); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin: 16px 0;">
-          <p style="margin: 6px 0;"><strong>Convocatoria:</strong> ${payload.oportunidadTitulo}</p>
-          <p style="margin: 6px 0;"><strong>Institución:</strong> ${payload.institucion}</p>
-          <hr style="border: 0; border-top: 1px solid #334155; margin: 12px 0;" />
-          <p style="margin: 6px 0;"><strong>Estudiante:</strong> ${payload.alumnoNombre}</p>
-          <p style="margin: 6px 0;"><strong>Correo de contacto:</strong> <a href="mailto:${payload.alumnoEmail}" style="color: #38bdf8;">${payload.alumnoEmail}</a></p>
-          ${payload.alumnoDni ? `<p style="margin: 6px 0;"><strong>DNI:</strong> ${payload.alumnoDni}</p>` : ''}
-          <p style="margin: 6px 0;"><strong>Fecha:</strong> ${payload.fechaPostulacion}</p>
-          ${payload.motivacion ? `<p style="margin: 12px 0 4px 0;"><strong>Motivación:</strong></p><p style="font-style: italic; color: #cbd5e1; margin: 0;">"${payload.motivacion}"</p>` : ''}
+        <div style="background: #0d1222; padding: 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Convocatoria:</strong> <span style="color: #9747ff;">${payload.oportunidadTitulo}</span></p>
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Institución / Empresa:</strong> ${payload.institucion}</p>
+          <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 0;" />
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Estudiante Postulante:</strong> ${payload.alumnoNombre}</p>
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Correo de Contacto:</strong> <a href="mailto:${payload.alumnoEmail}" style="color: #55ddf5;">${payload.alumnoEmail}</a></p>
+          ${payload.alumnoDni ? `<p style="margin: 6px 0; font-size: 14px;"><strong>DNI:</strong> ${payload.alumnoDni}</p>` : ''}
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Fecha y Hora de Envío:</strong> ${payload.fechaPostulacion}</p>
+          ${payload.motivacion ? `<div style="margin-top: 14px; padding: 12px; background: rgba(121, 41, 210, 0.12); border-left: 3px solid #7929d2; border-radius: 4px;"><p style="margin: 0 0 4px 0; font-size: 12px; font-weight: bold; color: #d8c5ff;">Motivación del Alumno:</p><p style="font-style: italic; color: #f3f0ff; margin: 0; font-size: 13px;">"${payload.motivacion}"</p></div>` : ''}
         </div>
 
-        <p style="font-size: 13px; color: #94a3b8;">
-          Puede contactar directamente al alumno respondiendo a su correo institucional o ingresando al panel de EduTech.
+        <p style="font-size: 13px; color: #a9a3c7; line-height: 1.5;">
+          Podés responder directamente a este correo para comunicarte con el alumno o ingresar al panel de gestión de postulantes en EduTec-Hub.
         </p>
       </div>
     `;
 
-    if (!transporter) {
-      console.log(`ℹ️ [Plugin Oportunidades - Email Service] SMTP no configurado. Notificación simulada para responsable: ${payload.destinatarioEmail}`);
-      console.log(`   Asunto: ${subject}`);
-      return { sent: false, reason: 'SMTP no configurado en variables de entorno' };
+    const result = await EmailCentralService.sendMail({
+      to: emailDestino,
+      replyTo: payload.alumnoEmail,
+      fromAlias: 'EduTech Oportunidades',
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    if (result.success) {
+      await this.registrarAuditoriaEnvio(payload.postulacionId, 'profesor', emailDestino, subject, 'enviado');
+      return { sent: true };
+    } else {
+      await this.registrarAuditoriaEnvio(payload.postulacionId, 'profesor', emailDestino, subject, 'fallido', result.error);
+      return { sent: false, reason: result.error, previewUrl: result.previewUrl };
+    }
+  }
+
+  /**
+   * 2. Confirmación al Alumno tras completar exitosamente su postulación.
+   */
+  public static async notificarConfirmacionAlumno(payload: EmailConfirmacionAlumnoPayload): Promise<{ sent: boolean; reason?: string; previewUrl?: string | false }> {
+    const emailDestino = payload.destinatarioEmail?.trim();
+    const subject = `[EduTech Oportunidades] Confirmación de postulación: ${payload.oportunidadTitulo}`;
+
+    console.log(`📧 [Confirmación Alumno] Preparando confirmación para estudiante "${payload.alumnoNombre}".`);
+    console.log(`   Destinatario obtenido: ${emailDestino || '(vacío)'}`);
+
+    if (!validarFormatoEmail(emailDestino)) {
+      const errorMsg = `La dirección de correo del alumno no tiene un formato válido (${emailDestino}).`;
+      console.error(`❌ [Confirmación Alumno] ${errorMsg}`);
+      await this.registrarAuditoriaEnvio(payload.postulacionId, 'alumno', emailDestino || 'sin-correo', subject, 'fallido', errorMsg);
+      return { sent: false, reason: errorMsg };
     }
 
-    try {
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"EduTech Oportunidades" <no-reply@edutechhub.edu.ar>',
-        to: payload.destinatarioEmail,
-        subject,
-        text: textContent,
-        html: htmlContent,
-      });
-      console.log(`📧 [Plugin Oportunidades] Notificación enviada con éxito a ${payload.destinatarioEmail}`);
+    const textContent = `
+Hola ${payload.alumnoNombre}:
+
+Tu postulación para la convocatoria "${payload.oportunidadTitulo}" ha sido recibida con éxito en EduTech-Hub.
+
+Resumen de tu solicitud:
+- Convocatoria: ${payload.oportunidadTitulo}
+- Institución / Empresa: ${payload.institucion}
+- Fecha y Hora de Envío: ${payload.fechaPostulacion}
+
+El responsable de la oportunidad ha sido notificado y evaluará tu perfil.
+Podrás consultar el estado de tu postulación en cualquier momento ingresando a la sección "Mis Postulaciones" en la plataforma.
+
+¡Éxitos en tu proceso formativo!
+Equipo EduTech-Hub
+    `;
+
+    const htmlContent = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #070913; color: #f3f0ff; padding: 28px; border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.35);">
+        <div style="border-bottom: 2px solid #10b981; padding-bottom: 14px; margin-bottom: 20px;">
+          <h2 style="color: #34d399; margin: 0; font-size: 22px;">¡Postulación Registrada con Éxito!</h2>
+          <p style="color: #a9a3c7; font-size: 13px; margin: 6px 0 0 0;">EduTech — Portal de Oportunidades Técnicas</p>
+        </div>
+        
+        <p style="font-size: 15px;">Hola <strong>${payload.alumnoNombre}</strong>,</p>
+        <p style="font-size: 14px; color: #cbd5e1;">Tu postulación fue recibida correctamente por el sistema y el responsable de la convocatoria ya fue notificado.</p>
+
+        <div style="background: #0d1222; padding: 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Convocatoria:</strong> <span style="color: #55ddf5;">${payload.oportunidadTitulo}</span></p>
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Institución / Empresa:</strong> ${payload.institucion}</p>
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Fecha y Hora de Envío:</strong> ${payload.fechaPostulacion}</p>
+          <p style="margin: 6px 0; font-size: 14px;"><strong>Estado Inicial:</strong> <span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">En Revisión</span></p>
+        </div>
+
+        <p style="font-size: 14px; color: #cbd5e1; line-height: 1.5;">
+          Podés ingresar en cualquier momento a <strong>EduTech-Hub &gt; Oportunidades &gt; Mis Postulaciones</strong> para verificar las novedades y ver si el responsable aceptó tu postulación o te dejó un comentario.
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 18px 0;" />
+        <p style="font-size: 12px; color: #6b6688; text-align: center;">
+          Este es un aviso automático generado por EduTec-Hub.
+        </p>
+      </div>
+    `;
+
+    const result = await EmailCentralService.sendMail({
+      to: emailDestino,
+      replyTo: payload.profesorEmail,
+      fromAlias: 'EduTech Oportunidades',
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    if (result.success) {
+      await this.registrarAuditoriaEnvio(payload.postulacionId, 'alumno', emailDestino, subject, 'enviado');
       return { sent: true };
-    } catch (err: any) {
-      console.error(`❌ [Plugin Oportunidades] Error al enviar email a ${payload.destinatarioEmail}:`, err.message);
-      return { sent: false, reason: err.message };
+    } else {
+      await this.registrarAuditoriaEnvio(payload.postulacionId, 'alumno', emailDestino, subject, 'fallido', result.error);
+      return { sent: false, reason: result.error, previewUrl: result.previewUrl };
     }
   }
 }

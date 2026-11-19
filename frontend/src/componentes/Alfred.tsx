@@ -27,7 +27,7 @@ const TREE: Record<string, TreeNode> = {
       { label: "🔑 Problemas con mi cuenta", icon: "bx-key", nextId: "cuenta" },
       { label: "📚 Cómo usar la plataforma", icon: "bx-help-circle", nextId: "plataforma" },
       { label: "🏫 Clases y materias", icon: "bx-book", nextId: "clases" },
-      { label: "📅 Calendario y foro", icon: "bx-calendar", nextId: "calendario" },
+      { label: "📅 Calendario académico", icon: "bx-calendar", nextId: "calendario" },
       { label: "🤖 Hacer consulta a la IA (Gemini)", icon: "bx-bot", nextId: "modo_ia" },
       { label: "💬 Otro tema", icon: "bx-chat", nextId: "otro" },
     ],

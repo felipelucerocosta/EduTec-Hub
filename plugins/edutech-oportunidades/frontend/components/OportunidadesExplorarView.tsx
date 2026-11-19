@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import OportunidadesAPI, { type OportunidadItem } from '../services/oportunidades_api';
+import { useAuth } from '../../../../frontend/src/contexts/AuthContext';
 import styles from '../styles/oportunidades.module.css';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export const OportunidadesExplorarView: React.FC<Props> = ({ esAlumno, onPostulacionExitosa }) => {
+  const { user } = useAuth();
   const [oportunidades, setOportunidades] = useState<OportunidadItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -24,6 +26,15 @@ export const OportunidadesExplorarView: React.FC<Props> = ({ esAlumno, onPostula
   const [conocimientos, setConocimientos] = useState<string>('');
   const [disponibilidad, setDisponibilidad] = useState<string>('10 hs semanales');
   const [enviando, setEnviando] = useState<boolean>(false);
+
+  // Modal de Envío Directo Gmail (Alumno -> Profesor)
+  const [postulacionExitosa, setPostulacionExitosa] = useState<{
+    opTitulo: string;
+    institucion: string;
+    profesorEmail: string;
+    gmailUrl: string;
+    mailtoUrl: string;
+  } | null>(null);
 
   useEffect(() => {
     cargarOportunidades();
@@ -63,11 +74,51 @@ export const OportunidadesExplorarView: React.FC<Props> = ({ esAlumno, onPostula
         conocimientos_previos: conocimientos,
         disponibilidad,
       });
-      alert('¡Postulación enviada exitosamente! Se notificó al responsable de la institución.');
+
+      // Construcción del correo directo de Gmail (Alumno -> Profesor)
+      const profesorEmail = (opSeleccionada.contacto_email && opSeleccionada.contacto_email.trim())
+        ? opSeleccionada.contacto_email.trim()
+        : 'felipelucero534@gmail.com';
+
+      const subject = `[EduTech] Postulación a convocatoria: ${opSeleccionada.titulo} - ${user?.nombre || 'Estudiante'}`;
+      const body = `Estimado/a responsable de ${opSeleccionada.institucion}:
+
+Me comunico a través de la plataforma EduTech-Hub para presentar mi postulación a la convocatoria "${opSeleccionada.titulo}".
+
+Datos del Postulante:
+- Nombre Completo: ${user?.nombre || 'Estudiante'}
+- Correo Electrónico: ${user?.correo || ''}
+
+Motivación de la postulación:
+"${motivacion}"
+
+${presentacion ? `Presentación Personal y Trayectoria:\n${presentacion}\n\n` : ''}${conocimientos ? `Conocimientos previos:\n${conocimientos}\n\n` : ''}${disponibilidad ? `Disponibilidad horaria informada: ${disponibilidad}\n\n` : ''}Quedo a su disposición para coordinar una entrevista o evaluación.
+
+Saludos cordiales,
+${user?.nombre || 'Estudiante'}`;
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(profesorEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      const mailtoUrl = `mailto:${encodeURIComponent(profesorEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+      // Cerrar formulario de postulación
       setModalPostular(false);
       setPresentacion('');
       setMotivacion('');
       setConocimientos('');
+
+      // Desplegar modal de envío directo y abrir pestaña de Gmail automáticamente
+      setPostulacionExitosa({
+        opTitulo: opSeleccionada.titulo,
+        institucion: opSeleccionada.institucion,
+        profesorEmail,
+        gmailUrl,
+        mailtoUrl,
+      });
+
+      try {
+        window.open(gmailUrl, '_blank');
+      } catch (_e) {}
+
       if (onPostulacionExitosa) onPostulacionExitosa();
       cargarOportunidades();
     } catch (err: any) {
@@ -349,6 +400,117 @@ export const OportunidadesExplorarView: React.FC<Props> = ({ esAlumno, onPostula
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Envío Directo Gmail (Alumno -> Profesor) */}
+      {postulacionExitosa && (
+        <div className={styles.modalOverlay} onClick={() => setPostulacionExitosa(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(234, 67, 53, 0.15)',
+                color: '#ea4335',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1rem',
+                fontSize: '2.2rem'
+              }}>
+                <i className="bx bxl-gmail"></i>
+              </div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 0.4rem 0', color: '#f8fafc' }}>
+                ¡Postulación Registrada en EduTech!
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                Tu solicitud se guardó correctamente. Ahora enviá el correo formal directamente desde tu cuenta personal de Gmail al responsable con un solo clic:
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '10px',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              fontSize: '0.85rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div>
+                <strong style={{ color: '#94a3b8' }}>Para (Profesor / Empresa):</strong>{' '}
+                <span style={{ color: '#38bdf8', fontWeight: 600 }}>{postulacionExitosa.profesorEmail}</span>
+              </div>
+              <div>
+                <strong style={{ color: '#94a3b8' }}>De (Tu cuenta de Gmail):</strong>{' '}
+                <span style={{ color: '#f8fafc' }}>{user?.correo || 'Tu cuenta activa'}</span>
+              </div>
+              <div>
+                <strong style={{ color: '#94a3b8' }}>Convocatoria:</strong>{' '}
+                <span style={{ color: '#a78bfa' }}>{postulacionExitosa.opTitulo} ({postulacionExitosa.institucion})</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <a
+                href={postulacionExitosa.gmailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setPostulacionExitosa(null)}
+                style={{
+                  background: 'linear-gradient(135deg, #ea4335 0%, #c5221f 100%)',
+                  color: '#ffffff',
+                  padding: '0.9rem 1.5rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.6rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(234, 67, 53, 0.35)',
+                }}
+              >
+                <i className="bx bxl-gmail" style={{ fontSize: '1.3rem' }}></i>
+                Abrir en Gmail y Enviar Correo
+              </a>
+
+              <a
+                href={postulacionExitosa.mailtoUrl}
+                onClick={() => setPostulacionExitosa(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#cbd5e1',
+                  padding: '0.65rem 1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                  textDecoration: 'none',
+                }}
+              >
+                <i className="bx bx-envelope"></i>
+                Abrir en otro gestor (Outlook, Mail, Thunderbird)
+              </a>
+
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                style={{ marginTop: '0.25rem', width: '100%' }}
+                onClick={() => setPostulacionExitosa(null)}
+              >
+                Listo, ya lo envié
+              </button>
+            </div>
           </div>
         </div>
       )}

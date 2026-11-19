@@ -61,9 +61,9 @@ const Header: React.FC<HeaderProps> = ({ navLinks, showLogout = true }) => {
     <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
       <Link to="/" className={styles.brand}>
         <img
-          src="/edutech-logo.png"
-          alt="Edutech Logo"
-          style={{ width: "36px", height: "36px", objectFit: "contain", borderRadius: "8px" }}
+          src="/emblema-edge.png"
+          alt="EduTech — Emblema Edge"
+          style={{ width: "36px", height: "36px", objectFit: "contain", filter: "drop-shadow(0 0 8px rgba(121, 41, 210, 0.4))" }}
         />
         <span className={styles.brandName}>Edutech</span>
       </Link>
