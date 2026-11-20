@@ -4,6 +4,7 @@ declare module 'express-session' {
   interface UsuarioSession {
     id: number;
     nombre: string;
+    nombre_completo?: string;
     correo: string;
     rol: 'alumno' | 'profesor' | 'admin' | 'preceptor';
     estado_acceso?: 'ACTIVO' | 'PENDIENTE_DE_ASIGNACION' | 'SUSPENDIDO' | string;

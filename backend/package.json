@@ -20,6 +20,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/socket.io": "^3.0.1",
@@ -33,6 +34,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
+    "openai": "^7.62.0",
     "pg": "^8.21.0",
     "socket.io": "^4.8.3"
   }

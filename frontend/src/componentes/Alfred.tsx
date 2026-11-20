@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import "../alfred.css";
 import { useAuth } from "../contexts/AuthContext";
 import { API_URL } from "../config/api";
+import AlfredMarkdown from "./AlfredMarkdown";
 
 // ─── Árbol de decisiones ────────────────────────────────────────────────────
 interface TreeNode {
@@ -22,13 +23,13 @@ interface Option {
 const TREE: Record<string, TreeNode> = {
   start: {
     id: "start",
-    text: "¡Buenas! Soy Alfred 🎩, el asistente de Edutech. ¿En qué le puedo ayudar hoy? Puede elegir una opción rápida o escribirme una pregunta libre directamente.",
+    text: "¡Buenas! Soy Alfred 🎩, el asistente de inteligencia artificial de EduTech. ¿En qué le puedo ayudar hoy? Puede elegir una opción rápida o hacerme cualquier consulta académica, técnica o libre.",
     options: [
+      { label: "🤖 Hacer consulta libre con IA", icon: "bx-bot", nextId: "modo_ia" },
       { label: "🔑 Problemas con mi cuenta", icon: "bx-key", nextId: "cuenta" },
       { label: "📚 Cómo usar la plataforma", icon: "bx-help-circle", nextId: "plataforma" },
       { label: "🏫 Clases y materias", icon: "bx-book", nextId: "clases" },
       { label: "📅 Calendario académico", icon: "bx-calendar", nextId: "calendario" },
-      { label: "🤖 Hacer consulta a la IA (Gemini)", icon: "bx-bot", nextId: "modo_ia" },
       { label: "💬 Otro tema", icon: "bx-chat", nextId: "otro" },
     ],
   },
@@ -149,7 +150,7 @@ const TREE: Record<string, TreeNode> = {
   // ── PLATAFORMA ─────────────────────────────────────────────────────────────
   plataforma: {
     id: "plataforma",
-    text: "Con gusto le explico cómo funciona Edutech. ¿Qué necesita saber?",
+    text: "Con gusto le explico cómo funciona EduTech. ¿Qué necesita saber?",
     options: [
       { label: "📝 Cómo registrarme", nextId: "como_registrarse" },
       { label: "🏛️ Cómo acceder a mis clases", nextId: "como_clases" },
@@ -179,7 +180,7 @@ const TREE: Record<string, TreeNode> = {
 
   como_trabajo: {
     id: "como_trabajo",
-    text: "Para entregar un trabajo:\n1️⃣ Ingrese a la clase correspondiente\n2️⃣ Haga clic en la tarea publicada\n3️⃣ Adjunte el archivo o comentario y presione Entregar.",
+    text: "Para entregar un trabajo:\n1️⃣ Ingrese a la clase correspondiente\n2️⃣ Haga clic en la tarea publicada\n3️⃣ Adjunte el archivo o comentario y presione Entregar (en trabajos grupales puede seleccionar a sus compañeros de grupo).",
     options: [
       { label: "✅ Perfecto", nextId: "cierre" },
       { label: "🏠 Menú principal", nextId: "start" },
@@ -234,7 +235,7 @@ const TREE: Record<string, TreeNode> = {
 
   modo_ia: {
     id: "modo_ia",
-    text: "💡 Modo Inteligencia Artificial activo (Gemini). Escriba cualquier consulta técnica, académica o duda abajo y con gusto le responderé.",
+    text: "💡 Modo Inteligencia Artificial activo (Groq AI). Puede consultarme sobre matemáticas, física, programación, redes, redacción, ejercicios o dudas conceptuales. Escriba su pregunta abajo.",
     options: [
       { label: "🏠 Menú principal", nextId: "start" },
     ],
@@ -266,11 +267,20 @@ const TREE: Record<string, TreeNode> = {
   },
 };
 
-// ─── Interfaces de mensajes ────────────────────────────────────────────────
+// ─── Interfaces ────────────────────────────────────────────────────────────
 interface Message {
   sender: "user" | "alfred";
   text: string;
   options?: Option[];
+  isStreaming?: boolean;
+}
+
+interface ConversacionItem {
+  id: number;
+  titulo: string;
+  actualizado_en: string;
+  ultimo_mensaje?: string;
+  total_mensajes?: number;
 }
 
 interface AlfredProps {
@@ -282,6 +292,7 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
   const { user } = useAuth();
   const [isOpenInternal, setIsOpenInternal] = useState(false);
   const isOpen = isOpenOverride !== undefined ? isOpenOverride : isOpenInternal;
+
   const setIsOpen = (open: boolean | ((prev: boolean) => boolean)) => {
     setIsOpenInternal(prev => {
       const next = typeof open === "function" ? open(prev) : open;
@@ -289,11 +300,24 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
       return next;
     });
   };
+
   const [, setCurrentNode] = useState<string>("start");
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false);
+  const [activeConversacionId, setActiveConversacionId] = useState<number | null>(null);
+
+  // Historial de conversaciones
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [conversaciones, setConversaciones] = useState<ConversacionItem[]>([]);
+  const [loadingConversaciones, setLoadingConversaciones] = useState(false);
+  const [activeModel, setActiveModel] = useState<string>("Groq AI");
+
+  // Error visual
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -304,6 +328,7 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
     return () => window.removeEventListener("toggle-alfred", handleToggle);
   }, []);
 
+  // Cargar mensaje inicial si está vacío
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const node = TREE["start"];
@@ -312,9 +337,77 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
     }
   }, [isOpen]);
 
+  // Cargar lista de conversaciones cuando se abre Alfred
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchConversaciones();
+    }
+  }, [isOpen, user]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isThinking]);
+
+  // Cargar lista de conversaciones del usuario
+  const fetchConversaciones = async () => {
+    if (!user) return;
+    setLoadingConversaciones(true);
+    try {
+      const res = await fetch(`${API_URL}/alfred/conversaciones`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setConversaciones(data.conversaciones || []);
+        if (data.model) setActiveModel(data.model);
+      }
+    } catch (err) {
+      console.warn("No se pudieron cargar conversaciones previas de Alfred:", err);
+    } finally {
+      setLoadingConversaciones(false);
+    }
+  };
+
+  // Cargar una conversación específica desde PostgreSQL
+  const handleSelectConversacion = async (convId: number) => {
+    setIsLoading(true);
+    setShowHistoryDrawer(false);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/alfred/conversaciones/${convId}`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveConversacionId(convId);
+        const msgs: Message[] = (data.mensajes || []).map((m: any) => ({
+          sender: m.rol === "assistant" ? "alfred" : "user",
+          text: m.contenido,
+        }));
+        setMessages(msgs.length > 0 ? msgs : [{ sender: "alfred", text: "Conversación recuperada. ¿En qué puedo ayudarte?" }]);
+      }
+    } catch (err) {
+      console.error("Error al cargar conversación:", err);
+      setErrorMessage("No se pudo cargar la conversación seleccionada.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Eliminar conversación
+  const handleDeleteConversacion = async (e: React.MouseEvent, convId: number) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`${API_URL}/alfred/conversaciones/${convId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setConversaciones(prev => prev.filter(c => c.id !== convId));
+        if (activeConversacionId === convId) {
+          resetChat();
+        }
+      }
+    } catch (err) {
+      console.error("Error al eliminar conversación:", err);
+    }
+  };
 
   const addAlfredMessage = (nodeId: string) => {
     const node = TREE[nodeId];
@@ -339,10 +432,10 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
     setTimeout(() => {
       addAlfredMessage(option.nextId);
       setIsLoading(false);
-    }, 400);
+    }, 300);
   };
 
-  // Enviar mensaje libre o email a backend / Gemini
+  // Enviar mensaje a Groq AI con streaming o respuesta estándar
   const handleFreeInputSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = inputText.trim();
@@ -350,10 +443,12 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
 
     setMessages(prev => [...prev, { sender: "user", text: query }]);
     setInputText("");
-    setIsLoading(true);
+    setErrorMessage(null);
 
+    // Caso: flujo de recuperación por correo
     if (awaitingEmail) {
       setAwaitingEmail(false);
+      setIsLoading(true);
       try {
         const res = await fetch(`${API_URL}/forgot-password`, {
           method: "POST",
@@ -374,91 +469,152 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
       return;
     }
 
-    // Consulta libre con Gemini AI en /api/ask-alfred
+    // Consulta con Groq AI en /api/alfred/chat
     if (!user) {
-      setIsLoading(false);
       setMessages(prev => [
         ...prev,
         {
           sender: "alfred",
-          text: "Para realizar consultas con IA con Alfred, por favor inicia sesión en la plataforma primero.",
+          text: "Para realizar consultas completas de Inteligencia Artificial con Alfred, por favor inicia sesión en la plataforma.",
           options: [{ label: "🏠 Menú principal", nextId: "start" }]
         }
       ]);
       return;
     }
 
-    // Armar historial de conversación
-    const historyPayload = messages
-      .filter(m => m.text && !m.text.includes("¡Buenas! Soy Alfred"))
-      .slice(-6)
-      .map(m => ({
-        role: m.sender === "user" ? ("user" as const) : ("model" as const),
-        parts: [{ text: m.text }]
-      }));
-
-    historyPayload.push({
-      role: "user" as const,
-      parts: [{ text: query }]
-    });
+    setIsThinking(true);
+    setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/ask-alfred`, {
+      // Intentar streaming mediante SSE
+      const response = await fetch(`${API_URL}/alfred/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ chatHistory: historyPayload }),
+        body: JSON.stringify({
+          message: query,
+          conversacionId: activeConversacionId,
+          stream: true,
+        }),
       });
 
-      const data = await res.json();
-      setIsLoading(false);
-
-      const aiText = data.response || data.reply || data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (res.ok && aiText && !data.error) {
-        setMessages(prev => [
-          ...prev,
-          {
-            sender: "alfred",
-            text: aiText,
-            options: [
-              { label: "🤖 Otra consulta IA", nextId: "modo_ia" },
-              { label: "🏠 Menú principal", nextId: "start" }
-            ]
-          }
-        ]);
-      } else {
-        setMessages(prev => [
-          ...prev,
-          {
-            sender: "alfred",
-            text: data.reply || data.error || "Disculpe, la IA no pudo responder en este momento.",
-            options: [{ label: "🏠 Menú principal", nextId: "start" }]
-          }
-        ]);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || errData.reply || "Error al conectar con el asistente de IA");
       }
-    } catch (err) {
-      console.error("Error al consultar Alfred AI:", err);
-      setIsLoading(false);
+
+      // Si la respuesta es un stream
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("text/event-stream") && response.body) {
+        setIsThinking(false);
+        let assistantText = "";
+
+        // Agregar mensaje inicial vacío para streaming
+        setMessages(prev => [...prev, { sender: "alfred", text: "", isStreaming: true }]);
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data: ")) {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6));
+                if (parsed.chunk) {
+                  assistantText += parsed.chunk;
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    const lastIdx = updated.length - 1;
+                    if (lastIdx >= 0 && updated[lastIdx].sender === "alfred") {
+                      updated[lastIdx] = {
+                        ...updated[lastIdx],
+                        text: assistantText,
+                        isStreaming: true,
+                      };
+                    }
+                    return updated;
+                  });
+                }
+                if (parsed.conversacionId && !activeConversacionId) {
+                  setActiveConversacionId(parsed.conversacionId);
+                }
+              } catch (_e) {}
+            }
+          }
+        }
+
+        // Finalizar streaming
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastIdx = updated.length - 1;
+          if (lastIdx >= 0 && updated[lastIdx].sender === "alfred") {
+            updated[lastIdx] = {
+              ...updated[lastIdx],
+              text: assistantText || "Respuesta recibida.",
+              isStreaming: false,
+            };
+          }
+          return updated;
+        });
+
+        // Actualizar lista de conversaciones
+        fetchConversaciones();
+      } else {
+        // Modo JSON directo
+        const data = await response.json();
+        setIsThinking(false);
+        if (data.conversacionId && !activeConversacionId) {
+          setActiveConversacionId(data.conversacionId);
+        }
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: "alfred",
+            text: data.reply || data.response || "Respuesta recibida.",
+          }
+        ]);
+        fetchConversaciones();
+      }
+    } catch (err: any) {
+      console.error("Error al consultar Groq AI:", err);
+      setIsThinking(false);
+      const errMsg = err?.message || "Error al conectar con el asistente de IA";
+      setErrorMessage(errMsg);
       setMessages(prev => [
         ...prev,
         {
           sender: "alfred",
-          text: "⚠️ No fue posible conectar con el servidor de la IA. Verifique su conexión.",
+          text: `⚠️ **Aviso de conexión:** ${errMsg}\n\nPuede volver a intentarlo o seleccionar otra opción.`,
           options: [{ label: "🏠 Menú principal", nextId: "start" }]
         }
       ]);
+    } finally {
+      setIsLoading(false);
+      setIsThinking(false);
     }
   };
 
   const resetChat = () => {
+    setActiveConversacionId(null);
     setMessages([]);
     setCurrentNode("start");
     setAwaitingEmail(false);
     setInputText("");
+    setErrorMessage(null);
+    setShowHistoryDrawer(false);
     const node = TREE["start"];
     setTimeout(() => {
       setMessages([{ sender: "alfred", text: node.text, options: node.options }]);
-    }, 100);
+    }, 80);
   };
 
   return (
@@ -467,9 +623,9 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
         onClick={() => setIsOpen(prev => !prev)}
         className="alfred-toggle-button"
         aria-label="Abrir asistente Alfred"
-        title="Alfred - Asistente Edutech"
+        title="Alfred — Asistente EduTech con IA"
       >
-        <i className="bx bx-bot" style={{ fontSize: "1.5rem" }}></i>
+        <i className="bx bx-bot" style={{ fontSize: "1.6rem" }}></i>
       </button>
 
       {isOpen && (
@@ -478,25 +634,42 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
           <div className="alfred-header">
             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
               <div style={{
-                width: "32px", height: "32px", borderRadius: "50%",
+                width: "34px", height: "34px", borderRadius: "50%",
                 background: "linear-gradient(135deg, #7c3aed, #38bdf8)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "1rem"
+                fontSize: "1.05rem", boxShadow: "0 0 12px rgba(124, 58, 237, 0.5)"
               }}>🎩</div>
               <div>
-                <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>Alfred</h3>
-                <p style={{ margin: 0, fontSize: "0.7rem", color: "#94a3b8" }}>Asistente EduTec-Hub (IA Gemini)</p>
+                <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>Alfred</h3>
+                <p style={{ margin: 0, fontSize: "0.7rem", color: "#94a3b8" }}>
+                  EduTech Hub • <span style={{ color: "#55ddf5", fontWeight: 600 }}>{activeModel}</span>
+                </p>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              {user && (
+                <button
+                  onClick={() => setShowHistoryDrawer(prev => !prev)}
+                  className="alfred-close-button"
+                  title="Historial de conversaciones"
+                  style={{
+                    background: showHistoryDrawer ? "rgba(121, 41, 210, 0.4)" : "rgba(255, 255, 255, 0.06)",
+                    color: showHistoryDrawer ? "#55ddf5" : "#cbd5e1"
+                  }}
+                >
+                  <i className="bx bx-history"></i>
+                </button>
+              )}
+
               <button
                 onClick={resetChat}
                 className="alfred-close-button"
-                title="Reiniciar conversación"
-                style={{ fontSize: "0.8rem", opacity: 0.7 }}
+                title="Nueva conversación"
               >
-                <i className="bx bx-refresh"></i>
+                <i className="bx bx-plus"></i>
               </button>
+
               <button
                 onClick={() => setIsOpen(false)}
                 className="alfred-close-button"
@@ -507,17 +680,82 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
             </div>
           </div>
 
+          {/* Drawer de Historial de Conversaciones */}
+          {showHistoryDrawer && (
+            <div className="alfred-history-drawer">
+              <div className="alfred-history-header">
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f8fafc", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <i className="bx bx-conversation" style={{ color: "#7c3aed" }}></i> Tus conversaciones
+                </span>
+                <button
+                  onClick={resetChat}
+                  className="alfred-new-chat-btn"
+                >
+                  <i className="bx bx-plus"></i> Nueva
+                </button>
+              </div>
+
+              <div className="alfred-history-list">
+                {loadingConversaciones ? (
+                  <p style={{ color: "#94a3b8", fontSize: "0.8rem", textAlign: "center", margin: "1rem 0" }}>
+                    Cargando conversaciones...
+                  </p>
+                ) : conversaciones.length === 0 ? (
+                  <p style={{ color: "#94a3b8", fontSize: "0.8rem", textAlign: "center", margin: "1.5rem 0" }}>
+                    No tienes conversaciones previas guardadas.
+                  </p>
+                ) : (
+                  conversaciones.map(conv => (
+                    <div
+                      key={conv.id}
+                      className={`alfred-history-item ${activeConversacionId === conv.id ? 'active' : ''}`}
+                      onClick={() => handleSelectConversacion(conv.id)}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem", overflow: "hidden" }}>
+                        <span className="alfred-history-title">{conv.titulo}</span>
+                        <span className="alfred-history-date">
+                          {new Date(conv.actualizado_en).toLocaleDateString()} • {conv.total_mensajes || 0} msgs
+                        </span>
+                      </div>
+                      <button
+                        className="alfred-history-delete-btn"
+                        onClick={(e) => handleDeleteConversacion(e, conv.id)}
+                        title="Eliminar conversación"
+                      >
+                        <i className="bx bx-trash"></i>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="alfred-messages">
             {messages.map((msg, index) => (
               <div key={index}>
                 <div className={`alfred-message ${msg.sender}`}>
                   {msg.sender === "alfred" && (
-                    <span style={{ fontSize: "1rem", marginRight: "0.3rem", flexShrink: 0 }}>🎩</span>
+                    <span style={{ fontSize: "1rem", marginRight: "0.35rem", flexShrink: 0, marginTop: "0.15rem" }}>🎩</span>
                   )}
-                  <p style={{ whiteSpace: "pre-line", margin: 0 }}>{msg.text}</p>
+                  {msg.sender === "alfred" ? (
+                    <div style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(151, 71, 255, 0.15)",
+                      borderRadius: "16px",
+                      borderBottomLeftRadius: "4px",
+                      padding: "0.75rem 1rem",
+                      maxWidth: "85%",
+                    }}>
+                      <AlfredMarkdown content={msg.text} />
+                    </div>
+                  ) : (
+                    <p style={{ whiteSpace: "pre-line", margin: 0 }}>{msg.text}</p>
+                  )}
                 </div>
 
+                {/* Opciones interactivas rápidas */}
                 {msg.sender === "alfred" && msg.options && index === messages.length - 1 && !isLoading && (
                   <div className="alfred-options">
                     {msg.options.map((opt, i) => (
@@ -526,6 +764,7 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
                         className="alfred-option-btn"
                         onClick={() => handleOption(opt)}
                       >
+                        {opt.icon && <i className={`bx ${opt.icon}`}></i>}
                         {opt.label}
                       </button>
                     ))}
@@ -534,46 +773,48 @@ const Alfred: React.FC<AlfredProps> = ({ isOpenOverride, onCloseOverride }) => {
               </div>
             ))}
 
-            {isLoading && (
+            {/* Indicador de pensamiento */}
+            {isThinking && (
+              <div className="alfred-thinking-bubble">
+                <span className="alfred-thinking-dot"></span>
+                <span>Alfred está pensando...</span>
+              </div>
+            )}
+
+            {/* Typing standard indicator */}
+            {isLoading && !isThinking && (
               <div className="alfred-message alfred typing-indicator">
                 <span></span><span></span><span></span>
+              </div>
+            )}
+
+            {/* Error visual banner */}
+            {errorMessage && (
+              <div className="alfred-error-banner">
+                <i className="bx bx-error-circle" style={{ fontSize: "1.1rem", flexShrink: 0, marginTop: "0.1rem" }}></i>
+                <div>
+                  <strong>Aviso:</strong> {errorMessage}
+                </div>
               </div>
             )}
 
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Formulario de entrada libre para cualquier pregunta o correo */}
-          <form onSubmit={handleFreeInputSubmit} className="alfred-input-form" style={{ padding: '8px', display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Formulario de entrada */}
+          <form onSubmit={handleFreeInputSubmit} className="alfred-input-form">
             <input
               type="text"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              placeholder={awaitingEmail ? "tu@correo.com" : "Escribe tu duda o consulta a Alfred..."}
+              placeholder={awaitingEmail ? "tu@correo.com" : "Pregúntale a Alfred (ej: ¿Qué es una red LAN?)..."}
               autoComplete="off"
               disabled={isLoading}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                borderRadius: '8px',
-                background: 'rgba(30, 41, 59, 0.8)',
-                color: '#f8fafc',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                fontSize: '0.85rem'
-              }}
             />
             <button
               type="submit"
               disabled={isLoading || !inputText.trim()}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #7c3aed, #38bdf8)',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
+              title="Enviar mensaje"
             >
               <i className="bx bx-send"></i>
             </button>

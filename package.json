@@ -87,11 +87,13 @@
     }
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/three": "^0.186.0",
     "boxicons": "^2.1.4",
     "connect-pg-simple": "^10.0.0",
     "express-session": "^1.19.0",
+    "openai": "^7.62.0",
     "pg": "^8.21.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

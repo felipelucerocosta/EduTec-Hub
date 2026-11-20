@@ -100,9 +100,9 @@ const Dashboard: React.FC = () => {
   const porcentajeAvance = totalTrabajos > 0 ? Math.round((totalEntregados / totalTrabajos) * 100) : 0;
 
   // Formatear línea de tiempo real
-  const chartTimeline = evolucionData.map((d: any) => {
-    let mesLabel = d.periodo || '';
-    if (d.periodo && d.periodo.includes('-')) {
+  let rawTimeline = evolucionData.map((d: any, idx: number) => {
+    let mesLabel = d.label || d.periodo || `Eval ${idx + 1}`;
+    if (d.periodo && d.periodo.includes('-') && !d.label) {
       const parts = d.periodo.split('-');
       const monthIdx = parseInt(parts[1], 10) - 1;
       if (monthIdx >= 0 && monthIdx < 12) {
@@ -111,27 +111,56 @@ const Dashboard: React.FC = () => {
     }
     return {
       label: mesLabel,
-      valor: Number(d.promedio || 0),
+      valor: Number(d.promedio !== undefined ? d.promedio : (d.calificacion !== undefined ? d.calificacion : d.valor || 0)),
       target: 7.0,
-      cantidad: Number(d.cantidad || 0)
+      cantidad: Number(d.cantidad || 1),
+      materia: d.materia || undefined
     };
+  });
+
+  // Fallback inteligente: si no hay evolución histórica de entregas, usar las materias activas con calificación
+  if (rawTimeline.length === 0 && Array.isArray(rendimientoData?.materias) && rendimientoData.materias.length > 0) {
+    const matsConNota = rendimientoData.materias.filter((m: any) => m.promedio !== null && m.promedio !== undefined);
+    if (matsConNota.length > 0) {
+      rawTimeline = matsConNota.map((m: any) => ({
+        label: m.materia || m.nombre,
+        valor: Number(m.promedio),
+        target: 7.0,
+        cantidad: 1,
+        materia: m.nombre
+      }));
+    }
+  }
+
+  // Filtrado de acuerdo al selector de períodos
+  const chartTimeline = rawTimeline.filter((_, idx, arr) => {
+    if (selectedPeriod === 'anual' || arr.length <= 2) return true;
+    const sliceSize = Math.ceil(arr.length / 3);
+    if (selectedPeriod === '1t') return idx < sliceSize;
+    if (selectedPeriod === '2t') return idx >= sliceSize && idx < sliceSize * 2;
+    if (selectedPeriod === '3t') return idx >= sliceSize * 2;
+    return true;
   });
 
   // Coordenadas SVG
   const chartWidth = 620;
   const chartHeight = 180;
-  const paddingX = 40;
-  const paddingY = 25;
+  const paddingX = 45;
+  const paddingY = 28;
   const maxY = 10;
   const minY = 1;
+  const targetY = chartHeight - paddingY - ((7.0 - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
 
   const points = chartTimeline.map((d, i) => {
-    const divisor = chartTimeline.length > 1 ? chartTimeline.length - 1 : 1;
-    const x = paddingX + (i / divisor) * (chartWidth - paddingX * 2);
+    let x: number;
+    if (chartTimeline.length === 1) {
+      x = chartWidth / 2;
+    } else {
+      x = paddingX + (i / (chartTimeline.length - 1)) * (chartWidth - paddingX * 2);
+    }
     const clampedVal = Math.max(minY, Math.min(maxY, d.valor));
     const y = chartHeight - paddingY - ((clampedVal - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
-    const yTarget = chartHeight - paddingY - ((d.target - minY) / (maxY - minY)) * (chartHeight - paddingY * 2);
-    return { ...d, x, y, yTarget, index: i };
+    return { ...d, x, y, targetY, index: i };
   });
 
   const createSmoothPath = (pts: { x: number; y: number }[]) => {
@@ -148,11 +177,17 @@ const Dashboard: React.FC = () => {
     }, '');
   };
 
-  const linePath = createSmoothPath(points.map((p) => ({ x: p.x, y: p.y })));
-  const targetPath = createSmoothPath(points.map((p) => ({ x: p.x, y: p.yTarget })));
-  const areaPath = points.length > 1
-    ? `${linePath} L ${points[points.length - 1].x} ${chartHeight - paddingY} L ${points[0].x} ${chartHeight - paddingY} Z`
-    : '';
+  let linePath = '';
+  let areaPath = '';
+
+  if (points.length === 1) {
+    // Si hay un solo dato, trazar una línea horizontal de referencia visual en torno a ese valor
+    linePath = `M ${paddingX} ${points[0].y} L ${chartWidth - paddingX} ${points[0].y}`;
+    areaPath = `M ${paddingX} ${points[0].y} L ${chartWidth - paddingX} ${points[0].y} L ${chartWidth - paddingX} ${chartHeight - paddingY} L ${paddingX} ${chartHeight - paddingY} Z`;
+  } else if (points.length > 1) {
+    linePath = createSmoothPath(points.map((p) => ({ x: p.x, y: p.y })));
+    areaPath = `${linePath} L ${points[points.length - 1].x} ${chartHeight - paddingY} L ${points[0].x} ${chartHeight - paddingY} Z`;
+  }
 
   // Donut Ring Data basado en datos reales
   const enRevision = Math.max(0, totalEntregados - totalCalificados);
@@ -450,26 +485,40 @@ const Dashboard: React.FC = () => {
                     );
                   })}
 
+                  {/* Línea Objetivo Institucional (7.0) */}
+                  <line x1={paddingX} y1={targetY} x2={chartWidth - paddingX} y2={targetY} stroke="#55ddf5" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.65" />
+                  <text x={chartWidth - paddingX} y={targetY - 6} fill="#55ddf5" fontSize="10" textAnchor="end" fontWeight="600">
+                    Objetivo (7.0)
+                  </text>
+
                   {/* Curva de Área y Línea Principal */}
                   {areaPath && <path d={areaPath} fill="url(#curveGradient)" />}
-                  {targetPath && <path d={targetPath} stroke="#55ddf5" strokeWidth="1.5" strokeDasharray="4 4" fill="none" opacity="0.6" />}
-                  {linePath && <path d={linePath} stroke="#7929d2" strokeWidth="2.5" fill="none" strokeLinecap="round" />}
+                  {linePath && <path d={linePath} stroke="#7929d2" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />}
 
                   {/* Puntos Interactivos */}
                   {points.map((p, idx) => (
                     <g key={idx}>
+                      {points.length === 1 && (
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r={12}
+                          fill="rgba(121, 41, 210, 0.25)"
+                          style={{ animation: 'pulse 2s infinite' }}
+                        />
+                      )}
                       <circle
                         cx={p.x}
                         cy={p.y}
-                        r={hoveredPoint === idx ? 6 : 4}
+                        r={hoveredPoint === idx ? 7 : (points.length === 1 ? 6 : 4.5)}
                         fill="#7929d2"
                         stroke="#f3f0ff"
-                        strokeWidth={hoveredPoint === idx ? 2 : 1}
-                        style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
+                        strokeWidth={hoveredPoint === idx ? 2.5 : 1.5}
+                        style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
                         onMouseEnter={() => setHoveredPoint(idx)}
                         onMouseLeave={() => setHoveredPoint(null)}
                       />
-                      <text x={p.x} y={chartHeight - 6} fill="#a9a3c7" fontSize="11" textAnchor="middle">
+                      <text x={p.x} y={chartHeight - 6} fill="#a9a3c7" fontSize="11" textAnchor="middle" fontWeight="500">
                         {p.label}
                       </text>
                     </g>

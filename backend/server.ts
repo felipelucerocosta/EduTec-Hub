@@ -49,7 +49,7 @@ import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { nativePool } from './conexion_pg';
 
-dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || path.join(__dirname, '.env') });
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || path.join(__dirname, '.env'), override: true });
 
 function interop(m: any) { return m && (m.default ?? m); }
 

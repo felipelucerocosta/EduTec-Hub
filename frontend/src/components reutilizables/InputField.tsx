@@ -34,6 +34,14 @@ const InputField: React.FC<InputFieldProps> = ({
         <input
           id={inputId}
           type={type}
+          autoComplete={props.autoComplete || "one-time-code"}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-form-type="other"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          aria-autocomplete="none"
           className={`${styles.inputField} ${icon ? styles.inputFieldWithIcon : ""} ${
             error ? styles.inputFieldInvalid : ""
           } ${className}`}

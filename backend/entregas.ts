@@ -34,7 +34,7 @@ const getUserId = (req: Request) => req.session?.usuario?.id;
 // POST /api/trabajos/:trabajoId/entregar - Submit assignment (Student enrolled in class)
 router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (req: Request, res: Response) => {
   const { trabajoId } = req.params;
-  const { comentario } = req.body;
+  const { comentario, integrantes } = req.body;
   const usuario = req.session?.usuario;
 
   if (!usuario || !usuario.id) {
@@ -63,36 +63,154 @@ router.post('/trabajos/:trabajoId/entregar', upload.single('archivo'), async (re
     const archivoNombre = req.file ? req.file.originalname : null;
     const archivoPath = req.file ? req.file.filename : null;
 
-    // Check if already submitted
-    const existingQ = await pool.query('SELECT id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
-    
-    if (existingQ.rows.length > 0) {
-      // Update existing submission
-      const updateQ = `
-        UPDATE entregas 
-        SET archivo_nombre = COALESCE($1, archivo_nombre),
-            archivo_path = COALESCE($2, archivo_path),
-            comentario = $3,
-            estado = $4,
-            fecha_entrega = CURRENT_TIMESTAMP
-        WHERE trabajo_id = $5 AND alumno_id = $6
-      `;
-      await pool.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, trabajoId, usuario.id]);
-      emitToClass(trabajo.clase_id, 'assignment.submitted', { trabajo_id: Number(trabajoId), alumno_id: usuario.id, estado });
-      return res.json({ success: true, message: 'Entrega actualizada correctamente' });
-    } else {
-      // Insert new submission
-      const insertQ = `
-        INSERT INTO entregas (trabajo_id, alumno_id, archivo_nombre, archivo_path, comentario, estado)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `;
-      await pool.query(insertQ, [trabajoId, usuario.id, archivoNombre, archivoPath, comentario || '', estado]);
-      emitToClass(trabajo.clase_id, 'assignment.submitted', { trabajo_id: Number(trabajoId), alumno_id: usuario.id, estado });
-      return res.status(201).json({ success: true, message: 'Trabajo entregado exitosamente' });
+    // Procesar integrantes para trabajos grupales
+    let memberIds: number[] = [Number(usuario.id)];
+    const esGrupal = trabajo.tipo_entrega === 'grupal';
+
+    if (esGrupal && integrantes) {
+      try {
+        const parsed = typeof integrantes === 'string' ? JSON.parse(integrantes) : integrantes;
+        if (Array.isArray(parsed)) {
+          const validNums = parsed.map(Number).filter((n: number) => !isNaN(n) && n > 0);
+          memberIds = Array.from(new Set([Number(usuario.id), ...validNums]));
+        }
+      } catch (_e) {
+        if (typeof integrantes === 'string') {
+          const splitIds = integrantes.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0);
+          memberIds = Array.from(new Set([Number(usuario.id), ...splitIds]));
+        }
+      }
     }
-  } catch (error) {
+
+    // Validar que todos los integrantes pertenezcan a la misma clase
+    if (memberIds.length > 1) {
+      const verifyQ = `
+        SELECT u.id_usuario, u.nombre_completo 
+        FROM alumnos_clases ac
+        JOIN clases c ON LOWER(TRIM(c.codigo)) = LOWER(TRIM(ac.codigo))
+        JOIN usuarios u ON ac.alumno_id = u.id_usuario
+        WHERE c.id = $1 AND u.id_usuario = ANY($2::int[])
+      `;
+      const verifyRes = await pool.query(verifyQ, [trabajo.clase_id, memberIds]);
+      const validIds = new Set(verifyRes.rows.map((r: any) => Number(r.id_usuario)));
+      
+      for (const mId of memberIds) {
+        if (!validIds.has(mId)) {
+          return res.status(400).json({ error: 'Uno o más integrantes seleccionados no pertenecen a esta clase.' });
+        }
+      }
+    }
+
+    // Verificar si ya existe una entrega previa (propia o de algún compañero del grupo)
+    let existingEntregaId: number | null = null;
+    
+    // 1. Chequeo directo por alumno_id
+    const existingQ = await pool.query('SELECT id, alumno_id FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
+    if (existingQ.rows.length > 0) {
+      existingEntregaId = existingQ.rows[0].id;
+    } else if (esGrupal) {
+      // 2. Chequeo por grupo: verificar si el usuario o algún integrante ya tiene entrega registrada
+      const existingGroupQ = `
+        SELECT e.id, e.alumno_id, u.nombre_completo
+        FROM entrega_integrantes ei
+        JOIN entregas e ON ei.entrega_id = e.id
+        JOIN usuarios u ON ei.usuario_id = u.id_usuario
+        WHERE e.trabajo_id = $1 AND ei.usuario_id = ANY($2::int[])
+      `;
+      const existingGroupRes = await pool.query(existingGroupQ, [trabajoId, memberIds]);
+      if (existingGroupRes.rows.length > 0) {
+        // Si la entrega existente pertenece al mismo alumno que ahora actualiza, permitimos update
+        const firstMatch = existingGroupRes.rows[0];
+        if (Number(firstMatch.alumno_id) === Number(usuario.id)) {
+          existingEntregaId = firstMatch.id;
+        } else {
+          return res.status(400).json({
+            error: `El integrante "${firstMatch.nombre_completo}" ya cuenta con una entrega registrada para este trabajo.`
+          });
+        }
+      }
+    }
+
+    // Transacción de guardado
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      let entregaId: number;
+
+      if (existingEntregaId) {
+        // Actualizar entrega existente
+        const updateQ = `
+          UPDATE entregas 
+          SET archivo_nombre = COALESCE($1, archivo_nombre),
+              archivo_path = COALESCE($2, archivo_path),
+              comentario = $3,
+              estado = $4,
+              fecha_entrega = CURRENT_TIMESTAMP
+          WHERE id = $5
+          RETURNING id
+        `;
+        const uRes = await client.query(updateQ, [archivoNombre, archivoPath, comentario || '', estado, existingEntregaId]);
+        entregaId = uRes.rows[0].id;
+
+        // Limpiar integrantes previos para sincronizar los actuales
+        await client.query('DELETE FROM entrega_integrantes WHERE entrega_id = $1', [entregaId]);
+      } else {
+        // Insertar nueva entrega
+        const insertQ = `
+          INSERT INTO entregas (trabajo_id, alumno_id, archivo_nombre, archivo_path, comentario, estado)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id
+        `;
+        const iRes = await client.query(insertQ, [trabajoId, usuario.id, archivoNombre, archivoPath, comentario || '', estado]);
+        entregaId = iRes.rows[0].id;
+      }
+
+      // Guardar todos los integrantes en entrega_integrantes
+      for (const mId of memberIds) {
+        await client.query(
+          `INSERT INTO entrega_integrantes (entrega_id, usuario_id) VALUES ($1, $2) ON CONFLICT (entrega_id, usuario_id) DO NOTHING`,
+          [entregaId, mId]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      // Notificaciones en tiempo real a la clase y a todos los integrantes
+      emitToClass(trabajo.clase_id, 'assignment.submitted', {
+        trabajo_id: Number(trabajoId),
+        entrega_id: entregaId,
+        alumno_id: usuario.id,
+        estado,
+        es_grupal: esGrupal,
+        integrantes: memberIds
+      });
+
+      for (const mId of memberIds) {
+        emitToUser(mId, 'assignment.submitted', {
+          trabajo_id: Number(trabajoId),
+          entrega_id: entregaId,
+          estado,
+          es_grupal: esGrupal,
+          entregado_por: usuario.nombre_completo || usuario.nombre || 'Compañero de grupo'
+        });
+      }
+
+      return res.status(existingEntregaId ? 200 : 201).json({
+        success: true,
+        message: esGrupal
+          ? `¡Entrega grupal registrada con éxito para ${memberIds.length} integrantes!`
+          : 'Trabajo entregado exitosamente'
+      });
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } catch (error: any) {
     console.error('Error al entregar trabajo:', error);
-    return res.status(500).json({ error: 'Error al procesar la entrega' });
+    return res.status(500).json({ error: error.message || 'Error al procesar la entrega' });
   }
 });
 
@@ -106,7 +224,7 @@ router.delete('/trabajos/:trabajoId/retirar', async (req: Request, res: Response
   }
 
   try {
-    const trabajoQ = await pool.query('SELECT clase_id FROM trabajos WHERE id = $1', [trabajoId]);
+    const trabajoQ = await pool.query('SELECT clase_id, tipo_entrega FROM trabajos WHERE id = $1', [trabajoId]);
     if (trabajoQ.rows.length === 0) {
       return res.status(404).json({ error: 'Trabajo no encontrado.' });
     }
@@ -116,7 +234,29 @@ router.delete('/trabajos/:trabajoId/retirar', async (req: Request, res: Response
       return res.status(403).json({ error: motivo || 'No perteneces a esta clase.' });
     }
 
-    await pool.query('DELETE FROM entregas WHERE trabajo_id = $1 AND alumno_id = $2', [trabajoId, usuario.id]);
+    // Buscar entrega por alumno_id o por ser integrante
+    const findQ = `
+      SELECT e.id 
+      FROM entregas e
+      LEFT JOIN entrega_integrantes ei ON ei.entrega_id = e.id
+      WHERE e.trabajo_id = $1 AND (e.alumno_id = $2 OR ei.usuario_id = $2)
+      LIMIT 1
+    `;
+    const findRes = await pool.query(findQ, [trabajoId, usuario.id]);
+    if (findRes.rows.length === 0) {
+      return res.status(404).json({ error: 'No se encontró entrega para retirar.' });
+    }
+
+    const entregaId = findRes.rows[0].id;
+    await pool.query('DELETE FROM entrega_integrantes WHERE entrega_id = $1', [entregaId]);
+    await pool.query('DELETE FROM entregas WHERE id = $1', [entregaId]);
+
+    emitToClass(trabajoQ.rows[0].clase_id, 'assignment.withdrawn', {
+      trabajo_id: Number(trabajoId),
+      entrega_id: entregaId,
+      alumno_id: usuario.id
+    });
+
     return res.json({ success: true, message: 'Entrega retirada correctamente' });
   } catch (error) {
     console.error('Error al retirar entrega:', error);

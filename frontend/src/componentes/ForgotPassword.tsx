@@ -75,8 +75,8 @@ const ForgotPassword = () => {
               src="/emblema-edge.png"
               alt="EduTech — Emblema Edge"
               style={{
-                width: "82px",
-                height: "82px",
+                width: "124px",
+                height: "124px",
                 objectFit: "contain",
                 margin: "0 auto 1.15rem",
                 display: "block",
@@ -89,7 +89,9 @@ const ForgotPassword = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <form onSubmit={handleSubmit} autoComplete="off" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            <input type="text" name="fake_email_prevent" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+            <input type="password" name="fake_pass_prevent" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
             <InputField
               label="Correo Electrónico"
               type="email"
@@ -98,6 +100,7 @@ const ForgotPassword = () => {
               icon="bx-envelope"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="one-time-code"
               required
             />
             

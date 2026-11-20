@@ -247,51 +247,116 @@ router.get('/rendimiento/evolucion', async (req: Request, res: Response) => {
   if (!userId) return res.status(401).json({ error: 'No autorizado' });
 
   try {
-    let query: string;
-    let params: any[];
-
     if (rol === 'profesor') {
-      query = `
+      // 1. Intentar evolución por trabajos individuales del docente para mayor granularidad visual
+      const queryTrabajos = `
         SELECT 
-          TO_CHAR(e.fecha_calificacion, 'YYYY-MM') as periodo,
+          t.id as trabajo_id,
+          t.titulo as trabajo_titulo,
+          c.nombre as clase_nombre,
+          AVG(e.calificacion) as promedio,
+          COUNT(e.id) as cantidad,
+          TO_CHAR(COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP), 'YYYY-MM') as periodo
+        FROM entregas e
+        JOIN trabajos t ON t.id = e.trabajo_id
+        JOIN clases c ON t.clase_id = c.id
+        JOIN profesores_clases pc ON pc.clase_id = c.id
+        WHERE pc.profesor_id = $1 
+          AND e.calificacion IS NOT NULL
+        GROUP BY t.id, t.titulo, c.nombre, TO_CHAR(COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP), 'YYYY-MM'), COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP)
+        ORDER BY COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP) ASC, t.id ASC
+      `;
+      const resT = await pool.query(queryTrabajos, [userId]);
+      if (resT.rows.length >= 2) {
+        const evolucion = resT.rows.map((r: any, idx: number) => ({
+          periodo: r.periodo,
+          label: r.trabajo_titulo || `TP ${idx + 1}`,
+          promedio: Math.round(Number(r.promedio) * 10) / 10,
+          cantidad: Number(r.cantidad),
+        }));
+        return res.json(evolucion);
+      }
+
+      // Fallback a evolución mensual tradicional
+      const queryMes = `
+        SELECT 
+          TO_CHAR(COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP), 'YYYY-MM') as periodo,
           AVG(e.calificacion) as promedio,
           COUNT(*) as cantidad
         FROM entregas e
         JOIN trabajos t ON t.id = e.trabajo_id
         JOIN profesores_clases pc ON pc.clase_id = t.clase_id
         WHERE pc.profesor_id = $1 
-          AND e.estado = 'corregido' 
           AND e.calificacion IS NOT NULL
-          AND e.fecha_calificacion IS NOT NULL
-        GROUP BY TO_CHAR(e.fecha_calificacion, 'YYYY-MM')
+        GROUP BY TO_CHAR(COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP), 'YYYY-MM')
         ORDER BY periodo ASC
       `;
-      params = [userId];
+      const resMes = await pool.query(queryMes, [userId]);
+      const evolMes = resMes.rows.map((r: any) => ({
+        periodo: r.periodo,
+        label: r.periodo,
+        promedio: Math.round(Number(r.promedio) * 10) / 10,
+        cantidad: Number(r.cantidad),
+      }));
+      return res.json(evolMes);
     } else {
-      query = `
-        SELECT 
-          TO_CHAR(e.fecha_calificacion, 'YYYY-MM') as periodo,
-          AVG(e.calificacion) as promedio,
-          COUNT(*) as cantidad
+      // Para ALUMNO: Obtener todas las calificaciones de trabajos (tanto individuales como grupales)
+      const queryAlumno = `
+        SELECT DISTINCT
+          t.id as trabajo_id,
+          t.titulo as trabajo_titulo,
+          c.materia as materia_nombre,
+          c.nombre as clase_nombre,
+          COALESCE(ei.calificacion_individual, e.calificacion) as calificacion,
+          COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP) as fecha_ref,
+          TO_CHAR(COALESCE(e.fecha_calificacion, e.fecha_entrega, CURRENT_TIMESTAMP), 'YYYY-MM') as periodo
         FROM entregas e
         JOIN trabajos t ON t.id = e.trabajo_id
-        WHERE e.alumno_id = $1 
-          AND e.estado = 'corregido' 
-          AND e.calificacion IS NOT NULL
-          AND e.fecha_calificacion IS NOT NULL
-        GROUP BY TO_CHAR(e.fecha_calificacion, 'YYYY-MM')
-        ORDER BY periodo ASC
+        JOIN clases c ON t.clase_id = c.id
+        LEFT JOIN entrega_integrantes ei ON (ei.entrega_id = e.id AND ei.usuario_id = $1)
+        WHERE (e.alumno_id = $1 OR ei.usuario_id = $1)
+          AND (e.calificacion IS NOT NULL OR ei.calificacion_individual IS NOT NULL)
+        ORDER BY fecha_ref ASC, t.id ASC
       `;
-      params = [userId];
-    }
+      const resAlumno = await pool.query(queryAlumno, [userId]);
 
-    const result = await pool.query(query, params);
-    const evolucion = result.rows.map((r: any) => ({
-      periodo: r.periodo,
-      promedio: Math.round(Number(r.promedio) * 10) / 10,
-      cantidad: Number(r.cantidad),
-    }));
-    return res.json(evolucion);
+      if (resAlumno.rows.length > 0) {
+        const evolucion = resAlumno.rows.map((r: any, idx: number) => ({
+          periodo: r.periodo,
+          label: r.trabajo_titulo || `Trabajo ${idx + 1}`,
+          materia: r.materia_nombre || r.clase_nombre,
+          promedio: Math.round(Number(r.calificacion) * 10) / 10,
+          cantidad: 1,
+        }));
+        return res.json(evolucion);
+      }
+
+      // Si no tiene entregas calificadas, comprobar si tiene notas en boletín
+      const queryBoletin = `
+        SELECT 
+          c.materia as materia_nombre,
+          c.nombre as clase_nombre,
+          bn.nota,
+          bn.periodo,
+          bn.tipo
+        FROM boletin_notas bn
+        JOIN clases c ON bn.clase_id = c.id
+        WHERE bn.alumno_id = $1
+        ORDER BY bn.id ASC
+      `;
+      const resBoletin = await pool.query(queryBoletin, [userId]);
+      if (resBoletin.rows.length > 0) {
+        const evolB = resBoletin.rows.map((r: any, idx: number) => ({
+          periodo: r.periodo || '2026',
+          label: `${r.materia_nombre || r.clase_nombre} (${r.periodo || `P${idx+1}`})`,
+          promedio: Math.round(Number(r.nota) * 10) / 10,
+          cantidad: 1,
+        }));
+        return res.json(evolB);
+      }
+
+      return res.json([]);
+    }
   } catch (error) {
     console.error('Error evolución:', error);
     return res.status(500).json({ error: 'Error al obtener evolución' });

@@ -316,6 +316,9 @@ const Registro: React.FC = () => {
 
           {/* Form */}
           <form onSubmit={isRegistering ? handleRegistro : handleLogin} autoComplete="off">
+            {/* Dummy fields to prevent Chrome/Edge autofill */}
+            <input type="text" name="fake_user_prevent_autofill" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+            <input type="password" name="fake_pass_prevent_autofill" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
 
             {/* Role selector (register only) */}
             {isRegistering && (
@@ -400,7 +403,7 @@ const Registro: React.FC = () => {
               icon="bx-lock-alt"
               value={formData.contrasena}
               onChange={handleInputChange}
-              autoComplete={isRegistering ? "new-password" : "current-password"}
+              autoComplete="one-time-code"
               required
             />
 
@@ -414,7 +417,7 @@ const Registro: React.FC = () => {
                 icon="bx-check-shield"
                 value={formData.confirmar_contrasena || ""}
                 onChange={handleInputChange}
-                autoComplete="new-password"
+                autoComplete="one-time-code"
                 required
               />
             )}
@@ -561,6 +564,8 @@ const Registro: React.FC = () => {
               Ingresa el correo y contraseña del administrador para acceder al panel de control.
             </p>
             <form onSubmit={handleAdminLogin} autoComplete="off">
+              <input type="text" name="fake_admin_email" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+              <input type="password" name="fake_admin_pass" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
               <InputField
                 label="Correo de Admin"
                 type="email"
@@ -569,7 +574,7 @@ const Registro: React.FC = () => {
                 icon="bx-envelope"
                 value={adminForm.correo}
                 onChange={handleAdminInputChange}
-                autoComplete="off"
+                autoComplete="one-time-code"
                 required
               />
               <InputField
@@ -580,7 +585,7 @@ const Registro: React.FC = () => {
                 icon="bx-lock-alt"
                 value={adminForm.contrasena}
                 onChange={handleAdminInputChange}
-                autoComplete="new-password"
+                autoComplete="one-time-code"
                 required
               />
               {adminError && (
